@@ -107,12 +107,12 @@ int momapSetValPtr(momap *mo, const exmo *key, Tcl_Obj *val) {
 #define RETERR(errmsg) \
 { if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
 
-typedef enum { SET, GET, LIST, UNSET, ADD } momacmdcode;
+typedef enum { CLEAR, SET, GET, LIST, UNSET, ADD } momacmdcode;
 
-static CONST char *cmdNames[] = { "set", "get", "list", "unset", "add",
+static CONST char *cmdNames[] = { "clear", "set", "get", "list", "unset", "add",
                                   (char *) NULL };
 
-static momacmdcode cmdmap[] = { SET, GET, LIST, UNSET, ADD };
+static momacmdcode cmdmap[] = { CLEAR, SET, GET, LIST, UNSET, ADD };
 
 int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
@@ -131,6 +131,14 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
     if (result != TCL_OK) return result;
 
    switch (cmdmap[index]) {
+       case CLEAR:
+           if (objc != 2) {
+               Tcl_WrongNumArgs(ip, 2, objv, NULL);
+               return TCL_ERROR;
+           }
+           momapClear(mo);
+           return TCL_OK;
+
        case SET:
            if (objc != 4) {
                Tcl_WrongNumArgs(ip, 2, objv, "<monomial> value");
