@@ -189,7 +189,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
     if (mc->firstSource(mc)) 
         do {
-            ((int) ma->cd5) = mc->currow; /* row indicator */
+            ma->cd5 = (void *) mc->currow; /* row indicator */
 
             if ((0 == (mc->currow & theprogmsk)) && (NULL != THEPROGVAR)) {
                 perc = mc->currow; perc /= srcdim; 
