@@ -37,7 +37,7 @@ typedef struct {
 int exmoGetLen(exmo *e);
 int exmoGetPad(exmo *e);
 
-void copyExmo(exmo *dest, exmo *src);
+void copyExmo(exmo *dest, const exmo *src);
 
 #define ADJUSTSIGNS 1 /* should we just xor the exterior data,
                        * or should we simulate an exterior algebra? */
@@ -54,7 +54,6 @@ typedef enum {
     ISNEGATIVE,  /* all exponents  < 0, exterior component  < 0 */
     ISPOSNEG     /* ISPOSITIVE or ISNEGATIVE */
 } pprop;
-
 
 typedef struct {
     const char *name;
@@ -120,7 +119,8 @@ typedef struct polyType {
                                         * poly of the same type, possibly
                                         * shifted by a given exmo */
 
-    int  (*appendExmo)(void *self, exmo *exmo); /* append an extended monomial */
+    int  (*appendExmo)(void *self, 
+                       const exmo *exmo); /* append an extended monomial */
 
     int  (*scaleMod)(void *self, 
                      int scale, 
@@ -150,7 +150,7 @@ int   PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *resul
 int   PLgetExmo(polyType *type, void *self, exmo *exmo, int index);
 int   PLcollectCoeffs(polyType *type, void *self, const exmo *exmo, 
                       int *rval, int mod,int flags);
-int   PLappendExmo(polyType *dtp, void *dst, exmo *e);
+int   PLappendExmo(polyType *dtp, void *dst, const exmo *e);
 int   PLappendPoly(polyType *dtp, void *dst, 
                    polyType *stp, void *src,                      
                    const exmo *shift, int shiftflags,
@@ -169,7 +169,8 @@ int   PLnegMultiply(polyType **rtp, void **res,
                     polyType *sftp, void *sf, int mod);
 int   PLsteenrodMultiply(polyType **rtp, void **res,
                          polyType *fftp, void *ff,
-                         polyType *sftp, void *sf, primeInfo *pi);
+                         polyType *sftp, void *sf, 
+                         primeInfo *pi, const exmo *pro);
 
 #ifndef POLYC 
 extern polyType stdPolyType;

@@ -28,6 +28,8 @@
 #define CD_INVERSE     9
 #define CD_BINOM       10
 #define CD_PRIME       11
+
+#define DBGPR if (0)
     
 #define RETURNINT(rval) Tcl_SetObjResult(ip,Tcl_NewIntObj(rval)); return TCL_OK
 #define RETURNLIST(list,len) \
@@ -113,6 +115,7 @@ static Tcl_ObjType PrimeType;
 int PT_SetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
     int rc, prime;
     primeInfo *pi;
+    DBGPR printf("PT_SetFromAnyProc obj at %p\n",objPtr);
     if (objPtr->typePtr == &PrimeType) 
         return TCL_OK;
     if (TCL_OK != Tcl_GetIntFromObj(interp, objPtr, &prime)) 
@@ -129,6 +132,7 @@ int PT_SetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
         if (NULL != interp) Tcl_SetResult(interp, (char *) err, TCL_STATIC);
         return TCL_ERROR;
     } 
+    TRYFREEOLDREP(objPtr);
     objPtr->typePtr = &PrimeType;
     objPtr->internalRep.twoPtrValue.ptr1 = (void *) pi;
     return TCL_OK;
@@ -137,6 +141,7 @@ int PT_SetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 /* recreate string representation */
 void PT_UpdateStringProc(Tcl_Obj *objPtr) {
     primeInfo *pi = (primeInfo *) objPtr->internalRep.twoPtrValue.ptr1;
+    DBGPR printf("PT_UpdateStringProc obj at %p\n",objPtr);
     objPtr->bytes = ckalloc(5);
     sprintf(objPtr->bytes, "%d", pi->prime);
     objPtr->length = strlen(objPtr->bytes);
@@ -144,6 +149,7 @@ void PT_UpdateStringProc(Tcl_Obj *objPtr) {
 
 /* create copy */
 void PT_DupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
+    DBGPR printf("PT_DupInternalRepProc %p -> %p\n",srcPtr,dupPtr);
     dupPtr->typePtr = &PrimeType;
     dupPtr->internalRep.twoPtrValue.ptr1 = srcPtr->internalRep.twoPtrValue.ptr1;
 }

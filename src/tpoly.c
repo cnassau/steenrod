@@ -79,6 +79,11 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     int objc, objc2, i, pad=0, aux;
     Tcl_Obj **objv, **objv2;
     exmo *e;
+
+#ifdef TCL_MEM_DEBUG
+    Tcl_DumpActiveMemory("actmem.dbg");
+#endif
+
     if (TCL_OK != Tcl_ListObjGetElements(ip, objPtr, &objc, &objv))
         return TCL_ERROR;
     if (4 != objc) 
@@ -102,8 +107,11 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         e->dat[i] = aux;
     }
     for (;i<NALG;) e->dat[i++] = pad;
+
+    TRYFREEOLDREP(objPtr);
     PTR1(objPtr) = e;
     objPtr->typePtr = &tclExmo;
+
     return TCL_OK;
 }
 
@@ -207,10 +215,12 @@ int PolySetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
             (stdpoly->free)(pol);
             RETERR("out of memory");
         }
-    (objPtr->typePtr->freeIntRepProc)(objPtr);
+
+    TRYFREEOLDREP(objPtr);
     PTR1(objPtr) = stdpoly;
     PTR2(objPtr) = pol;
     objPtr->typePtr = &tclPoly;
+
     return TCL_OK;
 }
 
@@ -328,7 +338,7 @@ Tcl_Obj *Tcl_PolyObjSteenrodProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) 
     polyType *rtp; void *res;
     if (SUCCESS != PLsteenrodMultiply(&rtp,&res,
                                       PTR1(obj),PTR2(obj),
-                                      PTR1(pol2),PTR2(pol2),pi))
+                                      PTR1(pol2),PTR2(pol2),pi,NULL))
         return NULL;
     return Tcl_NewPolyObj(rtp,res);
 }

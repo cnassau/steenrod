@@ -34,7 +34,7 @@ int exmoGetPad(exmo *e) {
     return (e->dat[0]<0) ? -1 : 0;
 }
 
-void copyExmo(exmo *dest, exmo *src) {
+void copyExmo(exmo *dest, const exmo *src) {
     memcpy(dest,src,sizeof(exmo));
 }
 
@@ -136,7 +136,7 @@ int PLgetExmo(polyType *type, void *self, exmo *ex, int index) {
     return FAILIMPOSSIBLE;
 }
 
-int PLappendExmo(polyType *dtp, void *dst, exmo *e) {
+int PLappendExmo(polyType *dtp, void *dst, const exmo *e) {
     if (NULL != dtp->appendExmo) return (dtp->appendExmo)(dst,e);
     return FAILIMPOSSIBLE;
 }
@@ -315,7 +315,7 @@ int stdGetLength(void *self) {
     return s->num;
 }
 
-int stdAppendExmo(void *self, exmo *ex) {
+int stdAppendExmo(void *self, const exmo *ex) {
     stp *s = (stp *) self;
     LOGSTD("AppendExmo");
     if (s->num == s->nalloc) {
@@ -420,7 +420,8 @@ int PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *res) {
 
 int PLtest(polyType *tp, void *pol1, pprop prop) {
     int i, len; exmo e;
-    if (NULL != tp->test) return (tp->test)(pol1, prop);
+    if (NULL != tp->test) 
+        return (tp->test)(pol1, prop);
     len = PLgetLength(tp,pol1);
     switch (prop) {
         case ISPOSITIVE:
@@ -429,18 +430,21 @@ int PLtest(polyType *tp, void *pol1, pprop prop) {
                     return FAILIMPOSSIBLE;
                 else 
                     if (!isposExmo(&e)) return FAILUNTRUE;
+            return SUCCESS;
         case ISNEGATIVE:
             for (i=0;i<len;i++) 
                 if (SUCCESS != PLgetExmo(tp,pol1,&e,i)) 
                     return FAILIMPOSSIBLE;
                 else 
                     if (!isnegExmo(&e)) return FAILUNTRUE;
+            return SUCCESS;
         case ISPOSNEG:
             for (i=0;i<len;i++) 
                 if (SUCCESS != PLgetExmo(tp,pol1,&e,i)) 
                     return FAILIMPOSSIBLE;
                 else 
                     if (!(isposExmo(&e) || isnegExmo(&e))) return FAILUNTRUE;
+            return SUCCESS;
     }
     return FAILIMPOSSIBLE;
 }
@@ -475,14 +479,17 @@ int PLnegMultiply(polyType **rtp, void **res,
     return FAILIMPOSSIBLE;
 }
 
+#include "mult.h"
+
 int PLsteenrodMultiply(polyType **rtp, void **res,
                        polyType *fftp, void *ff,
-                       polyType *sftp, void *sf, primeInfo *pi) {
+                       polyType *sftp, void *sf, 
+                       primeInfo *pi, const exmo *pro) {
     int flen, slen;
-    int fpos = PLtest(fftp,ff,ISPOSITIVE);
-    int fneg = PLtest(fftp,ff,ISNEGATIVE);
-    int spos = PLtest(sftp,sf,ISPOSITIVE);
-    int sneg = PLtest(sftp,sf,ISNEGATIVE);
+    int fpos = (SUCCESS == PLtest(fftp,ff,ISPOSITIVE));
+    int fneg = (SUCCESS == PLtest(fftp,ff,ISNEGATIVE));
+    int spos = (SUCCESS == PLtest(sftp,sf,ISPOSITIVE));
+    int sneg = (SUCCESS == PLtest(sftp,sf,ISNEGATIVE));
 
     /* check if both factors are all positive or all negative */
     if ((!(fpos || fneg)) || (!(spos || sneg))) 
@@ -491,14 +498,17 @@ int PLsteenrodMultiply(polyType **rtp, void **res,
     /* check if both factors are non-zero */
     if ((0 == (flen = PLgetLength(fftp,ff)))
         || (0 == (slen = PLgetLength(sftp,sf)))) {
-        *rtp = stdpoly; *res = stdCreateCopy(NULL);
+        *rtp = stdpoly; 
+        *res = stdCreateCopy(NULL);
         return SUCCESS;
     }
 
     /* negative times negative is undefined */
     if (fneg && sneg) return FAILIMPOSSIBLE;
     
-    
+    *rtp = stdpoly; 
+    *res = stdCreateCopy(NULL);
+    stdAddProductToPoly(*rtp,*res,fftp,ff,sftp,sf,pi,pro,fpos,spos);
 
-    return FAILIMPOSSIBLE;
+    return SUCCESS;
 }

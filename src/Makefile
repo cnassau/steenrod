@@ -9,7 +9,7 @@
 # published by the Free Software Foundation.
 
 CC      = gcc -fPIC
-CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS 
+CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS -DTCL_MEM_DEBUG
 
 TCLDIR = /home/cn/selfmade-tcl/include/
 
