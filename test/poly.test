@@ -418,8 +418,63 @@ test poly-1.9 {poly split} {
        -0-1-1-1-0-0-6-6 ok -4-1-1-1-0-0-6-6 ok]
 
 
-test poly- {poly } {
-} {}
+foreach prime {2 3 5 7 11 13} {
+
+    test poly-1.10.$prime "poly posmult, binom-$prime" {
+        set res {}
+        set pol1 [set one {{1 0 0 0}}]
+        set pol2 {{1 0 1 0} {1 0 {0 1} 0}}
+        for {set i 1} {$i<=$prime} {incr i} {
+            set pol1 [poly posmult $pol1 $pol2 $prime]
+            for {set j 0} {$j<=$i} {incr j} {
+                set cf [poly coeff $pol1 [list 0 0 [list $j [expr $i-$j]] 0]]
+                set bn [prime::binom $prime $i $j]
+                if {$cf!=$bn} { lappend res "coeffs:$cf!=$bn" }
+            }
+            set ln [llength $pol1]
+            if {($i<$prime) && ($ln!=[expr 1+$i])} { 
+                lappend res "length:$ln!=[expr 1+$i]" 
+            }
+        }
+        set res
+    } {}
+
+    test poly-1.11.$prime "poly negmult, binom-$prime" {
+        set res {}
+        set pol1 [set one {{1 -1 -1 0}}]
+        set pol2 {{1 -1 -2 0} {1 -1 {-1 -2} 0}}
+        for {set i 1} {$i<=$prime} {incr i} {
+            set pol1 [poly negmult $pol1 $pol2 $prime]
+            for {set j 0} {$j<=$i} {incr j} {
+                set cf [poly coeff $pol1 [list 0 -1 [list [expr -1-$j] [expr -1-$i+$j]] 0]]
+                set bn [prime::binom $prime $i $j]
+                if {$cf!=$bn} { lappend res "coeffs:$cf!=$bn" }
+            }
+            set ln [llength $pol1]
+            if {($i<$prime) && ($ln!=[expr 1+$i])} { 
+                lappend res "length:$ln!=[expr 1+$i]" 
+            }
+        }
+        set res
+    } {}
+
+}
+
+test poly-1.12 {poly posmult/negmult, signs} {
+    set res {}
+    foreach {a b} {1 1 2 2 1 2 2 1 1 6 6 1 5 2 2 5 3 4 4 3 
+        8 1 1 8 2 8 8 2 10 9 9 10 10 5 5 10} { 
+        set po1 [list [list 1 $a 0 0]]
+        set po2 [list [list 1 $b 0 0]]
+        set aux1 [lindex [poly posmult $po1 $po2] 0 0]
+        set po1 [list [list 1 [expr -1-$a] -1 0]]
+        set po2 [list [list 1 [expr -1-$b] -1 0]]
+        set aux2 [lindex [poly negmult $po1 $po2] 0 0]
+        lappend res $aux1
+        if {$aux1 != $aux2} { lappend res mismatch! }
+    }
+    set res
+} {{} {} 1 -1 1 1 -1 -1 1 1 -1 1 1 -1 {} {} -1 -1}
 
 
 # --------------------------------------------------------------------------
