@@ -185,7 +185,7 @@ int Tprime_Init(Tcl_Interp *ip) {
     }
 
 #define CREATECOMMAND(name, code) \
-Tcl_CreateObjCommand(ip,NSP name,tPrInfo,(ClientData) code, NULL);
+Tcl_CreateObjCommand(ip, NSP name,tPrInfo,(ClientData) code, NULL);
 
     CREATECOMMAND("primecheck", CD_PRIME);
     CREATECOMMAND("maxpow",     CD_MAXPOW);
@@ -196,6 +196,8 @@ Tcl_CreateObjCommand(ip,NSP name,tPrInfo,(ClientData) code, NULL);
     CREATECOMMAND("extdegs",    CD_EXTDEGS);
     CREATECOMMAND("inverse",    CD_INVERSE);
     CREATECOMMAND("binom",      CD_BINOM);
-    
+
+    Tcl_Eval(ip, "namespace eval " NSP " { namespace export * }");
+
     return TCL_OK;
 }
