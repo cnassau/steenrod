@@ -578,7 +578,7 @@ Tcl_Obj *TakeMatrixFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
     if (TCL_OK != Tcl_ConvertToMatrix(ip, res)) {
         Tcl_SetObjResult(ip, varname);
-        Tcl_AppendResult(ip, " does not contain a valid matrix");
+        Tcl_AppendResult(ip, " does not contain a valid matrix", NULL);
         return NULL;
     }
 
@@ -613,7 +613,7 @@ Tcl_Obj *TakeVectorFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
     if (TCL_OK != Tcl_ConvertToVector(ip, res)) {
         Tcl_SetObjResult(ip, varname);
-        Tcl_AppendResult(ip, " does not contain a valid vector");
+        Tcl_AppendResult(ip, " does not contain a valid vector", NULL);
         return NULL;
     }
 
