@@ -399,3 +399,9 @@ Tcl_Obj *Tcl_ListFromArray(int len, int *list) {
     return res;
 }
 
+void copyStringRep(Tcl_Obj *dest, Tcl_Obj *src) {
+    int slen; char *str = Tcl_GetStringFromObj(src, &slen);
+    dest->bytes = ckalloc(slen + 1);
+    memcpy(dest->bytes, str, slen + 1);
+    dest->length = slen;
+}

@@ -105,5 +105,7 @@ if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,T3,T4,T5,T6,T7,TP_END)) return TCL
         if (NULL != (objPtr)->typePtr->freeIntRepProc)     \
             ((objPtr)->typePtr->freeIntRepProc)((objPtr));
 
+void copyStringRep(Tcl_Obj *dest, Tcl_Obj *src);
+
 #endif
 
