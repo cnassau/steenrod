@@ -185,17 +185,17 @@ seqnoInfo *createSeqno(enumEnv *env, int maxdim) {
  
     /* dimtab[0] is the dimension of k[xi_1] (restricted to A//B) */ 
     for (j=0;j<reddim;j++) 
-        if ((j>=alg->rdat[0]) || (pro->rdat[0] * (j/pro->rdat[0]) != j))  
-            res->dimtab[0][j] = 0;
-        else 
+        if ((j<alg->rdat[0]) && ((j % pro->rdat[0]) == 0))
             res->dimtab[0][j] = 1;
+        else 
+            res->dimtab[0][j] = 0;
     
     /* now dimtab[i] for k[xi_1,...,xi_{i+1}] */
     for (i=1;i<NPRO;i++) 
         for (j=0;j<reddim;j++) {
             int sum=0, d = pi->reddegs[i];
             for (k=j/d;k>=0;k--)
-                if ((k<alg->rdat[i]) && (pro->rdat[i] * (k/pro->rdat[i]) == k))
+                if ((k<alg->rdat[i]) && ((k % pro->rdat[i] == 0)))
                     sum += res->dimtab[i-1][j-k*d];
             res->dimtab[i][j] = sum;
         }
@@ -222,16 +222,19 @@ void destroySeqno(seqnoInfo *s) {
         if (NULL != (s->dimtab[i])) free(s->dimtab[i]);
         if (NULL != (s->seqtab[i])) free(s->seqtab[i]);
     }
+    free(s);
 }
 
 int SqnInfGetDim(seqnoInfo *sqn, int dim) {
-    int i,j;
     if (0 != (dim % sqn->pi->tpmo)) return 0;
 #if 0
-    for (i=0;i<6;i++) {
-        for (j=0;j<25;j++)
-            printf(" %2d",sqn->dimtab[i][j]);
-        printf("\n");
+    {
+        int i,j;
+        for (i=0;i<6;i++) {
+            for (j=0;j<25;j++)
+                printf(" %2d",sqn->dimtab[i][j]);
+            printf("\n");
+        }
     }
 #endif
     return sqn->dimtab[NPRO-1][dim / sqn->pi->tpmo];
@@ -245,11 +248,13 @@ int SqnInfGetSeqnoWithDegree(seqnoInfo *sqn, exmon *ex, int deg) {
     int res=0, k;
     deg /= sqn->pi->tpmo;
     for (k=NPRO-1;k--;) {
-        int maxdeg = (sqn->env->alg->core.rdat[k]-1) * sqn->pi->reddegs[k];
+        int maxdeg = (sqn->env->alg->core.rdat[k]-sqn->env->pro->core.rdat[k]) * sqn->pi->reddegs[k];
         int actdeg =                ex->core.rdat[k] * sqn->pi->reddegs[k];
         if (maxdeg>deg) maxdeg = deg; 
         res += sqn->seqtab[k][deg - actdeg] - sqn->seqtab[k][deg - maxdeg];
+#if 0
         printf("+ %d - %d\n",sqn->seqtab[k][deg - actdeg],sqn->seqtab[k][deg - maxdeg]);  
+#endif
         deg -= actdeg;
     }
     return res;
