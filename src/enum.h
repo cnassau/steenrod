@@ -30,7 +30,7 @@ typedef struct {
 
     /* genList is a list of 4-tuples (gen-id, ideg, edeg, hdeg) */
     int       *genList, numgens;
-    int       idegmin, edegmin, maxgenid;
+    int       maxideg, minideg, maxedeg, minedeg, maxgenid;
 
     /* the tri-degree that we're enumerating */
     int       ideg, edeg, hdeg;
@@ -56,7 +56,8 @@ typedef struct {
     /* list of effective generators, and their sequence number offsets */
     effgen    *efflist;
     int       *seqoff;
-    int        efflen, maxrrideg; 
+    int        efflen;
+    int        maxrrideg, maxredeg;  
 
 } enumerator;
 
@@ -85,6 +86,10 @@ int firstRedmon(enumerator *en);
 int nextRedmon(enumerator *en);
 
 int SeqnoFromEnum(enumerator *en, exmo *ex);
+
+/* signature enumeration; the first signature is always zero */
+int nextSignature(enumerator *en, exmo *sig, int *sideg, int *sedeg);
+int enmIncrementSig(enumerator *en);
 
 /* An enumpoly allows to access an enumerator as a polynomial */
 

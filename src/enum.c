@@ -144,11 +144,11 @@ void clipExmo(exmo *ex, exmo *prof) {
     }
 }
 
-void enmUpdateSigInfo(enumerator *en) {
+void enmUpdateSigInfo(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
     /* clip signature to profile and determine degrees */
-    clipExmo(&(en->signature), &(en->profile));
-    en->sigedeg = BITCOUNT(en->signature.ext);
-    en->sigideg = exmoIdeg(en->pi, &(en->signature));
+    clipExmo(sig, &(en->profile));
+    *sedeg = BITCOUNT(sig->ext);
+    *sideg = exmoIdeg(en->pi, sig);
 }
 
 /* create list of effective generators for the given tridegree */
@@ -157,9 +157,9 @@ int enmRecreateEfflist(enumerator *en) {
     if (NULL == en->pi) return FAILIMPOSSIBLE;
     /* if present: destroy old values */
     enmDestroyEffList(en);
-    en->maxrrideg = 0;
+    en->maxrrideg = 0; en->maxredeg = -1;
     /* find real tridegree coords */
-    enmUpdateSigInfo(en);
+    enmUpdateSigInfo(en, &(en->signature), &(en->sigedeg), &(en->sigideg));
     thdeg = en->hdeg;
     tedeg = en->edeg - en->sigedeg;
     tideg = en->ideg - en->sigideg;
@@ -191,6 +191,8 @@ int enmRecreateEfflist(enumerator *en) {
                             gen->rrideg = diffideg / tpmo;
                             if (gen->rrideg > en->maxrrideg) 
                                 en->maxrrideg = gen->rrideg;
+                            if (redeg > en->maxredeg)
+                                en->maxredeg = redeg;
                             if (ENLOG) printf("  effgen id=%d ext=%d rrideg=%d\n",
                                               id, ext, gen->rrideg);
                             en->efflen++;
@@ -229,12 +231,12 @@ int enmSetBasics(enumerator *en, primeInfo *pi, exmo *algebra, exmo *profile) {
 }
 
 int enmSetSignature(enumerator *en, exmo *sig) {
-    enmDestroyEffList(en);
     if (NULL == sig) 
         memset(&(en->signature), 0, sizeof(exmo));
     else                  
         copyExmo(&(en->signature), sig);
-    /* sigideg & sigedeg are determined when efflist is recreated */
+    enmDestroyEffList(en);
+    /* sigideg & sigedeg are determined when Efflist is recreated */
     return SUCCESS;
 }
 
@@ -245,9 +247,24 @@ int enmSetTridegree(enumerator *en, int ideg, int edeg, int hdeg) {
 }
 
 int enmSetGenlist(enumerator *en, int *gl, int num) {
+    int i;
     enmDestroyGenList(en);
     en->genList = gl; 
     en->numgens = num;
+    /* find max/min ideg/edeg */
+    if (0 == num) {
+        en->maxideg = en->minideg = en->maxedeg = en->minedeg = 0;
+    } else {
+        en->maxideg = en->maxedeg = -9999; en->minideg = en->minedeg = 9999;
+    }
+    en->maxgenid = 0;
+    for (i=num;i--;gl+=4) {
+        en->maxideg = MAX(en->maxideg, gl[1]);
+        en->minideg = MIN(en->minideg, gl[1]);
+        en->maxedeg = MAX(en->maxedeg, gl[2]);
+        en->minedeg = MIN(en->minedeg, gl[2]);
+        en->maxgenid = MAX(en->maxgenid, gl[0]);
+    }
     if (ENLOG) printf("set genlist (%d gens)\n", num);
     return SUCCESS;
 }
@@ -533,6 +550,55 @@ int nextRedmon(enumerator *en) {
     ++(en->gencnt);
     return nextRedmonAux(en);
 }
+
+/**** SIGNATURE ENUMERATION **************************************************/
+
+int nextSignature(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
+    int _sideg, _sedeg, i, maxi, maxe, remi, tpmo;
+    int maxext, newext;
+    if ((NULL == sideg) || (NULL == sedeg)) {
+        sideg = &_sideg; sedeg = &_sedeg;
+        enmUpdateSigInfo(en, sig, sideg, sedeg);
+    }
+    maxi = en->ideg - en->minideg;
+    maxe = en->edeg - en->minedeg;
+    tpmo = en->pi->tpmo;
+    remi = maxi - *sideg; /* remaining degree */
+    for (i=0;i<NALG;i++) {
+        int coldeg = tpmo * en->pi->reddegs[i];
+        int nval = sig->dat[i] + 1;
+        /* see if we can advance this entry */
+        if ((coldeg <= remi) 
+            && (nval < en->algebra.dat[i]) 
+            && (nval < en->profile.dat[i])) {
+            sig->dat[i]++; *sideg += coldeg; 
+            return 1;
+        }   
+        /* reset entry */
+        *sideg -= coldeg * (--nval); sig->dat[i] = 0;
+    }
+    /* reduced part has been reset; try to advance exterior component */
+    maxext = getMaxExterior(en->pi, &(en->algebra), &(en->profile), remi);
+    newext = sig->ext;
+    while (++newext <= maxext) {
+        if (newext == (newext & en->algebra.ext & en->profile.ext)) {
+            sig->ext = newext;
+            *sideg = extdeg(en->pi, newext);
+            *sedeg = BITCOUNT(newext);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int enmIncrementSig(enumerator *en) {
+    int res = nextSignature(en, &(en->signature), &(en->sigideg), &(en->sigedeg));
+    enmDestroyEffList(en);
+    return res;
+}
+
+
+
 
 polyType enumPolyType = {
 #if 0

@@ -47,10 +47,10 @@ proc rint {max} { return [expr int(rand()*$max)] }
 proc relem {lst} { return [lindex $lst [rint [llength $lst]]] }
 
 
-while 1 {
+while 0 {
     set p [relem {2 3 5 7 11 23}]
-    #set p 3
-    set dim [rint [lindex [prime::primpows $p] 4]]
+    set p 5
+    set dim [rint [lindex [prime::primpows $p] 5]]
     set dim [expr int($dim / [prime::tpmo $p]) * [prime::tpmo $p]]
 
     if 0 {
@@ -61,7 +61,9 @@ while 1 {
     }
 
     #puts "prime $p, degree $dim"
-    x configure -prime $p -ideg $dim
+    x configure -prime $p -ideg $dim -genlist 0
+    #x configure -genlist {{0 0} {1 50} {2 -50}}
+    #x configure -profile {0 0 {1 0 5} 0} -edeg 0
     set basis [x basis]
     
     set cnt 0
@@ -71,10 +73,29 @@ while 1 {
         #puts "$sqn"
         if {$cnt!=$sqn} { 
             puts "prime $p, degree $dim"
-            puts "seqno($ex) = $cnt, should be $sqn"
+            puts "seqno($ex) = $sqn, should be $cnt"
             error "inconsistency found!!" 
         }
         incr cnt
     }
-    puts "basis with $cnt elements checked (prime $p, degree $dim)"
+    puts [format "basis with %8d elements checked (prime %2d, degree %d)" $cnt $p $dim]
 }
+
+
+if 1 {
+    # test signature enumeration 
+
+    x conf -prime 2 -profile {0 6 {2 0 1} 0} -ideg 50
+
+
+    puts "profile = [x cget -pro]"
+    x sigre ; puts "signature [x cget -sig]"
+
+    set cnt 0
+    while {[x sign]} {
+        #puts [incr cnt]
+        puts "signature [x cget -sig]" 
+    }
+    puts [x siglist]
+}
+

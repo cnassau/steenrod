@@ -18,6 +18,17 @@
 #include "tenum.h"
 #include "enum.h"
 
+/* "needsUpdate" is used to indicate that configuration parameters need to
+ * be recreated. We cannot use NULL, since that indicates the empty default. */
+char nup[] = "parameter needs update";
+#define needsUpdate ((Tcl_Obj *) nup)
+
+/* "defaultParameter" is used to indicate that an empty value was given for 
+ * a configuration parameter. We cannot use NULL, since that indicates that
+ * no parameter was given. */
+char dfp[] = "default parameter";
+#define defaultParameter ((Tcl_Obj *) dfp)
+
 #define RETERR(errmsg) \
 { if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
 
@@ -36,7 +47,8 @@ typedef struct {
     enumerator *enm;
 } tclEnum;
 
-#define TRYFREEOBJ(obj) { if (NULL != (obj)) Tcl_DecrRefCount(obj); }
+#define TRYFREEOBJ(obj) \
+{ if ((NULL != (obj)) && (needsUpdate != (obj))) Tcl_DecrRefCount(obj); }
 
 #define FREERESRET { freex(res); return NULL; }
 #define FREERESRETERR(msg) \
@@ -152,6 +164,15 @@ int Tcl_EnumConfigureCmd(ClientData cd, Tcl_Interp *ip,
     if (0 == objc) {
         Tcl_Obj *(co[2]), *res = Tcl_NewListObj(0, NULL);
 
+        /* describe current configuration status */
+
+        if (needsUpdate == te->sig) {
+            te->sig = Tcl_NewExmoCopyObj(&(te->enm->signature));
+            Tcl_IncrRefCount(te->sig);
+        } 
+
+        /* TODO: recreate genlist from enum if that has been changed by addgen cmd */
+
 #define APPENDOPT(name, obj) {                                          \
 co[0] = Tcl_NewStringObj(name,strlen(name));                            \
 co[1] = (NULL != (obj)) ? (obj) : Tcl_NewObj();                         \
@@ -159,7 +180,6 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
    { Tcl_DecrRefCount(res); return TCL_ERROR; };                        \
 }
 
-        /* return configuration */
         APPENDOPT("-prime", te->prime);
         APPENDOPT("-algebra", te->alg);
         APPENDOPT("-profile", te->pro);
@@ -167,7 +187,6 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
         APPENDOPT("-ideg", te->ideg);
         APPENDOPT("-edeg", te->edeg);
         APPENDOPT("-hdeg", te->hdeg);
-        /* TODO: recreate genlist from enum if that has been changed by addgen cmd */
         APPENDOPT("-genlist", te->genlist);
         Tcl_SetObjResult(ip, res);
         return TCL_OK;
@@ -179,40 +198,49 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
     if (0 != (objc & 1)) RETERR("option/value pairs excpected");
 
     for (; objc; objc-=2,objv+=2) {
+        Tcl_Obj *value; int length;
         result = Tcl_GetIndexFromObj(ip, objv[0], optNames, "option", 0, &index);
         if (TCL_OK != result) return result;
+
+        /* value agrees with objv[1], unless that is an empty string in
+         * which case value signals "defaultParameter"; we use objv[1] 
+         * instead of value if a default parameter is not accepted. */
+
+        value = objv[1]; Tcl_GetStringFromObj(value, &length);
+        if (0 == length) value = defaultParameter;
+
         switch (optmap[index]) {
             case PRIME:
-                if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[1], &pi)) 
+                aux.prime = value; if (defaultParameter == value) break;
+                if (TCL_OK != Tcl_GetPrimeInfo(ip, value, &pi)) 
                     return TCL_ERROR;
-                aux.prime = objv[1];
                 break;
             case ALGEBRA:
-                if (TCL_OK != Tcl_ConvertToExmo(ip, objv[1])) return TCL_ERROR;
-                aux.alg = objv[1];
+                aux.alg = value; if (defaultParameter == value) break;
+                if (TCL_OK != Tcl_ConvertToExmo(ip, value)) return TCL_ERROR;
                 break;
             case PROFILE:
-                if (TCL_OK != Tcl_ConvertToExmo(ip, objv[1])) return TCL_ERROR;
-                aux.pro = objv[1];
+                aux.pro = value; if (defaultParameter == value) break;
+                if (TCL_OK != Tcl_ConvertToExmo(ip, value)) return TCL_ERROR;
                 break;
             case SIGNATURE:
-                if (TCL_OK != Tcl_ConvertToExmo(ip, objv[1])) return TCL_ERROR;
-                aux.sig = objv[1];
+                aux.sig = value; if (defaultParameter == value) break;
+                if (TCL_OK != Tcl_ConvertToExmo(ip, value)) return TCL_ERROR;
                 break;
             case IDEG:
-                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[1], &(aux.cideg))) 
+                aux.ideg = value; if (defaultParameter == value) break;
+                if (TCL_OK != Tcl_GetIntFromObj(ip, value, &(aux.cideg))) 
                     return TCL_ERROR;
-                aux.ideg = objv[1]; 
                 break;
             case EDEG:
-                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[1], &(aux.cedeg))) 
+                aux.edeg = value; if (defaultParameter == value) break;
+                if (TCL_OK != Tcl_GetIntFromObj(ip, value, &(aux.cedeg))) 
                     return TCL_ERROR;
-                aux.edeg = objv[1];
                 break;
             case HDEG:
-                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[1], &(aux.chdeg))) 
+                aux.hdeg = value; if (defaultParameter == value) break;
+                if (TCL_OK != Tcl_GetIntFromObj(ip, value, &(aux.chdeg))) 
                     return TCL_ERROR;
-                aux.hdeg = objv[1]; 
                 break;
             case GENLIST:
                 if (objv[1] == te->genlist) break;
@@ -226,18 +254,27 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
 
     /* now check which options are new */
     if (NULL != aux.prime) {
-        primeInfo *pi2 = NULL;
-        if (NULL != te->prime) Tcl_GetPrimeInfo(ip, te->prime, &pi2); 
-        if ((NULL == te->prime) || (pi2 != pi)) {
+        if (defaultParameter == aux.prime) {
             TRYFREEOBJ(te->prime); 
-            te->prime = aux.prime; 
-            Tcl_IncrRefCount(te->prime);
+            te->prime = NULL;
             te->cprime = 1;
+        } else { 
+            primeInfo *pi2 = NULL;
+            if (NULL != te->prime) Tcl_GetPrimeInfo(ip, te->prime, &pi2); 
+            if ((NULL == te->prime) || (pi2 != pi)) {
+                TRYFREEOBJ(te->prime); 
+                te->prime = aux.prime; 
+                Tcl_IncrRefCount(te->prime);
+                te->cprime = 1;
+            }
         }
     }
 
-#define SETOPT(old,new,flag) \
-if (NULL != new) { TRYFREEOBJ(old); old = new; Tcl_IncrRefCount(old); flag = 1; }
+#define SETOPT(old,new,flag)                                           \
+if (NULL != (new)) {                                                   \
+   if (defaultParameter != (new)) {                                    \
+      TRYFREEOBJ(old); (old) = (new); Tcl_IncrRefCount(old); flag = 1; \
+   } else { TRYFREEOBJ(old); (old) = NULL; flag = 1; } }
 
     SETOPT(te->alg, aux.alg, te->calg);
     SETOPT(te->pro, aux.pro, te->cpro);
@@ -260,6 +297,7 @@ int Tcl_EnumCgetCmd(ClientData cd, Tcl_Interp *ip,
                     int objc, Tcl_Obj * const objv[]) {
     tclEnum *te = (tclEnum *) cd;
     int result, index;
+    Tcl_Obj *auxobj;
 
     if (objc != 3) {
         Tcl_WrongNumArgs(ip, 2, objv, "option");
@@ -275,7 +313,12 @@ int Tcl_EnumCgetCmd(ClientData cd, Tcl_Interp *ip,
         case PRIME:     SETRESRET(te->prime);
         case ALGEBRA:   SETRESRET(te->alg);
         case PROFILE:   SETRESRET(te->pro);
-        case SIGNATURE: SETRESRET(te->sig);
+        case SIGNATURE:       
+            if (needsUpdate == te->sig) {
+                auxobj = Tcl_NewExmoCopyObj(&(te->enm->signature));
+                SETRESRET(auxobj);
+            } 
+            SETRESRET(te->sig);
         case IDEG:      SETRESRET(te->ideg);
         case EDEG:      SETRESRET(te->edeg);
         case HDEG:      SETRESRET(te->hdeg);
@@ -328,19 +371,49 @@ int Tcl_EnumSeqnoCmd(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 } 
 
-typedef enum { CGET, CONFIGURE, BASIS, SEQNO } enumcmdcode;
+int Tcl_EnumSiglistCmd(ClientData cd, Tcl_Interp *ip, 
+                      int objc, Tcl_Obj * const objv[]) {
+    tclEnum *te = (tclEnum *) cd;
+    exmo sig; int sideg, sedeg; 
+    void *poly;
+
+    if (objc != 2) RETERR("wrong number of arguments");
+
+    if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
+
+    memset(&sig, 0, sizeof(exmo));
+    sideg = sedeg = 0;
+    if (NULL == (poly = PLcreate(stdpoly))) 
+        RETERR("out of memory");
+    do {
+        if (SUCCESS != PLappendExmo(stdpoly, poly, &sig)) {
+            PLfree(stdpoly, poly);
+            RETERR("out of memory");
+        }
+    } while (nextSignature(te->enm, &sig, &sideg, &sedeg));
+
+    Tcl_SetObjResult(ip, Tcl_NewPolyObj(stdpoly, poly));
+    return TCL_OK;
+}
+
+typedef enum { CGET, CONFIGURE, BASIS, SEQNO, 
+               SIGRESET, SIGNEXT, SIGLIST } enumcmdcode;
 
 static CONST char *cmdNames[] = { "cget", "configure", 
                                   "basis", "seqno", 
+                                  "sigreset", "signext", "siglist",
                                   (char *) NULL };
 
-static enumcmdcode cmdmap[] = { CGET, CONFIGURE, BASIS, SEQNO };
+static enumcmdcode cmdmap[] = { CGET, CONFIGURE, BASIS, 
+                                SEQNO, SIGRESET, SIGNEXT, SIGLIST };
 
 int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip, 
                       int objc, Tcl_Obj * const objv[]) {
 
-    int result;
-    int index;
+    tclEnum *te = (tclEnum *) cd;
+    Tcl_Obj *auxobj;
+    exmo ex;
+    int result, index;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
@@ -359,6 +432,22 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             return Tcl_EnumBasisCmd(cd, ip, objc, objv);
         case SEQNO:
             return Tcl_EnumSeqnoCmd(cd, ip, objc, objv);
+        case SIGRESET:
+            if (objc != 2) RETERR("wrong number of arguments");
+            memset(&ex, 0, sizeof(exmo));
+            auxobj = Tcl_NewExmoCopyObj(&ex);
+            SETOPT(te->sig, auxobj, te->csig);
+            return TCL_OK;
+        case SIGNEXT: 
+            if (objc != 2) RETERR("wrong number of arguments");
+            if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
+            result = enmIncrementSig(te->enm);
+            TRYFREEOBJ(te->sig); 
+            te->sig = needsUpdate;
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(result));
+            return TCL_OK;
+        case SIGLIST:
+            return Tcl_EnumSiglistCmd(cd, ip, objc, objv);
     }
 
     Tcl_SetResult(ip, "internal error in Tcl_EnumWidgetCmd", TCL_STATIC);
