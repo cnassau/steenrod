@@ -11,6 +11,8 @@
  *
  */
 
+#define DBGPOLY if (0)
+
 #include "tptr.h"
 #include "tpoly.h"
 #include "tprime.h"
@@ -165,7 +167,6 @@ int Tcl_ConvertToPoly(Tcl_Interp *ip, Tcl_Obj *obj) {
     return Tcl_ConvertToType(ip, obj, &tclPoly);
 }
 
-#define DBGPOLY if (0)
 #define LOGPOLY(obj) \
 DBGPOLY printf("  typePtr = %p, polyPtr = %p, isShared = %d\n", \
    PTR1(obj), PTR2(obj), Tcl_IsShared(obj)); 
@@ -204,6 +205,7 @@ void PolyFreeInternalRepProc(Tcl_Obj *obj) {
     DBGPOLY printf("PolyFreeInternalRepProc obj = %p\n",obj);
     LOGPOLY(obj);
     PLfree((polyType *) PTR1(obj),PTR2(obj));
+    DBGPOLY printf("Leaving PolyFreeInternalRepProc\n");
 }
 
 /* try to turn objPtr into a Poly */
@@ -572,7 +574,7 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
 /**** The Combi Command */
 
 typedef enum { 
-    TPEXMO, TPPOLY, 
+    TPUNSHARE, TPEXMO, TPPOLY, 
     TPINFO, TPGETCOEFF,
     TPCANCEL, TPSHIFT, TPREFLECT, TPSCALE, TPAPPEND, TPCOMPARE,
     TPNEGMULT, TPPOSMULT, TPSTMULT, TPSPLIT, TPVARSPLIT,
@@ -587,7 +589,14 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
     primeInfo *pi;
 
     switch (cdi) {
-       case TPEXMO:
+        case TPUNSHARE:
+            ENSUREARGS1(TP_ANY);
+            obj = objv[1];
+            if (Tcl_IsShared(obj)) 
+                obj = Tcl_DuplicateObj(obj);
+            Tcl_SetObjResult(ip,obj);
+            return TCL_OK;
+        case TPEXMO:
             ENSUREARGS1(TP_EXMO);
             Tcl_InvalidateStringRep(objv[1]);
             Tcl_SetObjResult(ip, objv[1]);
@@ -823,6 +832,8 @@ int Tpoly_Init(Tcl_Interp *ip) {
         
         Tpoly_HaveTypes = 1;
     }
+
+    CREATECMD(POLYNSP "unshare",     TPUNSHARE);
 
     CREATECMD(POLYNSP "exmocheck",   TPEXMO);
     CREATECMD(POLYNSP "polycheck",   TPPOLY);
