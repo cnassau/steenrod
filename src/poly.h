@@ -56,15 +56,6 @@ int polyAppendMult(poly *r, poly *a, poly *b, monoCompTwoFunc fnc) ;
 int polyCompCopy(poly *tar, poly *src, monoCompOneFunc fnc) ;
 void monoReflect(mono *tar, mono *src) ;
 
-/* the bitcount macro from the fortune database */
-#define BITCOUNT(x)     (((BX_(x)+(BX_(x)>>4)) & 0x0F0F0F0F) % 255)
-#define  BX_(x)         ((x) - (((x)>>1)&0x77777777)                    \
-                             - (((x)>>2)&0x33333333)                    \
-                             - (((x)>>3)&0x11111111))
-
-/* SIGNFUNC computess the sign difference between a*b and a^b */
-int SIGNFUNC(int a, int b);
-
 typedef void (*multCBfunc)(void *, mono *m);
 
 void multCBaddToPoly(void *poly, mono *m);
