@@ -64,32 +64,33 @@ int getTarget(Tcl_Interp *ip, mapgen *mpg) {
 /* implementation of getSumData */
 int getSumData(Tcl_Interp *ip, mapsum *mps) {
     Tcl_Obj **obptr;
-    Tcl_Obj *res;
+    Tcl_Obj *(res[6]), *rval;
     int i,j,k, sz;
     cint *cptr = mps->cdat; 
     xint *xptr = mps->xdat;
-    sz = 5 + (mps->num * (mps->len + 1));
+    sz = mps->num * (mps->len + 1);
     obptr = malloc(sz * sizeof(Tcl_Obj *));
     if (NULL == obptr) RETERR("Out of memory");
-    obptr[0] = Tcl_NewIntObj(mps->gen);
-    obptr[1] = Tcl_NewIntObj(mps->edat);
-    obptr[2] = Tcl_NewIntObj(mps->pad);
-    obptr[3] = Tcl_NewIntObj(mps->len);
-    obptr[4] = Tcl_NewIntObj(0);
-    for (i=0,j=5;i<mps->num;i++) { 
+    res[0] = Tcl_NewIntObj(mps->gen);
+    res[1] = Tcl_NewIntObj(mps->edat);
+    res[2] = Tcl_NewIntObj(mps->pad);
+    res[3] = Tcl_NewIntObj(mps->len);
+    res[4] = Tcl_NewIntObj(0);
+    for (i=0,j=0;i<mps->num;i++) { 
         obptr[j++] = Tcl_NewIntObj(*cptr++);
         for (k=0;k<mps->len;k++) 
             obptr[j++] = Tcl_NewIntObj(*xptr++);
     }
-    res = Tcl_NewListObj(sz, obptr);
+    res[5] = Tcl_NewListObj(sz, obptr);
     free(obptr);
-    Tcl_SetObjResult(ip, res);
+    rval   = Tcl_NewListObj(6, res);
+    Tcl_SetObjResult(ip, rval);
     return TCL_OK;
 }
 
 
 typedef enum {
-    MP_CREATE, MP_DESTROY, MP_INFO, MP_GETNUM,
+    MP_CREATE, MP_DESTROY, MP_INFO, MP_GETNUM, MP_GETMAXGEN,
     GEN_CREATE, GEN_FIND, 
     GEN_SETIDEGREE, GEN_SETEDEGREE, 
     GEN_GETIDEGREE, GEN_GETEDEGREE,
@@ -123,6 +124,10 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
             ENSUREARGS1(TP_MAP);
             mp = (map *) TPtr_GetPtr(objv[1]);
             RETINT(mp->num);
+        case MP_GETMAXGEN:
+            ENSUREARGS1(TP_MAP);
+            mp = (map *) TPtr_GetPtr(objv[1]);
+            RETINT(mp->maxgen);
         case MP_INFO:
             ENSUREARGS1(TP_MAP);
             mp = (map *) TPtr_GetPtr(objv[1]);
@@ -226,6 +231,7 @@ Tcl_CreateObjCommand(ip,name,tMapCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND(NSM "destroyMap",     MP_DESTROY);
     CREATECOMMAND(NSM "infoMap",        MP_INFO);
     CREATECOMMAND(NSM "getNumGens",     MP_GETNUM);
+    CREATECOMMAND(NSM "getMaxGen",      MP_GETMAXGEN);
     CREATECOMMAND(NSM "createGen",      GEN_CREATE);
     CREATECOMMAND(NSM "genGetId",       GEN_GETID);
     CREATECOMMAND(NSM "genSetIDegree",  GEN_SETIDEGREE);

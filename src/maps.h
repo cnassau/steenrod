@@ -50,6 +50,7 @@ typedef struct {
     int num; 
     int alloc;
     mapgen *dat;
+    int maxgen;   /* suggested number of next generator */
 } map;
 
 void mapsumInit(mapsum *mps);

@@ -170,7 +170,7 @@ mapsum *mapgenFindSum(mapgen *mpi, int gen, int edat) {
 map *mapCreate(void) {
     map *res = malloc(sizeof(map));
     if (NULL == res) return NULL;
-    res->num = res->alloc = 0; res->dat = NULL;
+    res->num = res->alloc = 0; res->dat = NULL; res->maxgen = 0;
     return res;
 }
 
@@ -215,6 +215,7 @@ int mapAddGen(map *mp, int id) {
     res = &(mp->dat[mp->num++]);
     mapgenInit(res);
     res->id = id;
+    if (id >= mp->maxgen) mp->maxgen = id + 1;
     qsort(mp->dat, mp->num, sizeof(mapgen), mpgSortFunc);
     return SUCCESS;
 }
