@@ -23,6 +23,7 @@ array set options {
     -usegui  0
     -maxdim  40
     -maxs    50
+    -dbg     0
 }
 
 foreach {opt val} $argv {
@@ -49,25 +50,25 @@ rename x ""
 set p   $options(-prime)
 set alg $options(-algebra)
 
-if {![scan $options(-maxdim) %d maxdim]} { 
-    puts "expected integer, found $options(-maxdim)" 
-    exit 1
+proc tryscan {opt var} {
+    global options
+    upvar $var x
+    if {![scan $options($opt) %d x]} { 
+        puts "'$opt' needs integer argument (from '$opt $options($opt)')" 
+        exit 1
+    }
 }
 
-if {![scan $options(-maxs) %d maxs]} { 
-    puts "expected integer, found $options(-maxs)" 
-    exit 1
-}
-
-if {![scan $options(-usegui) %d usegui]} { 
-    puts "expected integer, found $options(-usegui)" 
-    exit 1
-}
+tryscan -maxdim maxdim
+tryscan -maxs maxs
+tryscan -usegui usegui
 
 # debugging aids: 
 
-set dbgflag 1
+set dbgflag "to-be-overwritten"
 set errinf {}
+
+tryscan -dbg dbgflag
 
 proc dbgclear {} { 
     global errinf
@@ -77,7 +78,7 @@ proc dbgclear {} {
 proc dbgprint {} {
     global errinf dbgflag
     if {!$dbgflag} { 
-        puts "debug logging not enabled (set dbgflag)"
+        puts "debug logging not enabled (rerun with '-dbg 1')"
     } else {
         puts [join $errinf \n]
     }
@@ -140,13 +141,15 @@ proc maxUpperProfile {prime algebra s ideg edeg} {
     set rdegs [prime::reddegs $prime]
     set tpmo  [prime::tpmo $prime]
 
+    set NALG [llength $rdegs]
+
     set edat 0
     set rdat {}
 
     foreach dg $rdegs {
         set slope [expr $tpmo * $dg]
         if {[expr $slope * $s > $ideg]} { 
-            lappend rdat 666
+            lappend rdat $NALG
         } else {
             lappend rdat 0
         }
@@ -166,7 +169,7 @@ proc maxUpperProfile {prime algebra s ideg edeg} {
 
 proc maxLowerProfile {prime algebra s ideg edeg} { 
     incr s 1
-
+    return {0 0 0 0}
     if {$algebra=={}} { 
         set aux {}
         foreach dg [prime::reddegs $prime] { lappend aux 666 }
@@ -441,17 +444,11 @@ for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
             }
 
             # check that error terms really are zero
-            if 1 {
-                foreach row $errterms {
-                    foreach entry $row {
-                        if {$entry} {
-                            dbgadd { "final state: errterms=$errterms, newdiffs = $newdiffs" }
-                            dbgprint
-                            #vwait forever
-                            error "errorterms not reduced to zero"
-                        }
-                    }
-                }
+            if {![matrix iszero $errterms]} {
+                dbgadd { "final state: errterms=$errterms, newdiffs = $newdiffs" }
+                dbgprint
+                #vwait forever
+                error "errorterms not reduced to zero"
             }
 
             # introduce new generators:

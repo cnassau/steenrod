@@ -49,7 +49,7 @@ pack $cvf -side top -expand 1 -fill both
 
 wm geometry . 1240x900
 
-set scale 4
+set scale 5
 
 proc tocoord x { return [expr $x*$::scale]m }
 
@@ -164,3 +164,9 @@ proc newgen {id s e i diff} {
 }
 
 update
+
+rename ::error error.orig
+proc error {msg} {
+    after idle [list error.orig $msg]
+    update
+}
