@@ -61,4 +61,9 @@ _res ;})
 #define MIN(x,y) (((x)>(y)) ? (y) : (x))
 #define MAX(x,y) (((x)>(y)) ? (x) : (y))
 
+/* the following trick is from the cpp info page on stringification: */
+#define TOSTRING(s) _cxstr(s)
+#define _cxstr(s) #s
+
+
 #endif
