@@ -23,4 +23,11 @@
 #define FAILIMPOSSIBLE  3  /* operation not possible */
 #define FAILUNTRUE      4  /* another word for "no" */
 
+/* allocation wrappers */
+#ifndef mallox 
+#  define mallox  malloc
+#  define reallox realloc
+#  define freex   free
+#endif
+
 #endif

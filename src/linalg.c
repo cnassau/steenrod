@@ -128,7 +128,7 @@ void matrix_collect(matrix *m, int r) {
 int matrix_resize(matrix *m, int newrows) {
     int nsz = m->nomcols * sizeof(cint) * newrows;
     cint *nw;
-    nw = creallox(m->data, nsz);
+    nw = reallox(m->data, nsz);
     if ((NULL!=nw) || (0 == nsz)) {
         m->data = nw; m->rows = newrows;
         return 0;

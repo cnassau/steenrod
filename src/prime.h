@@ -14,6 +14,8 @@
 #ifndef PRIME_DEF
 #define PRIME_DEF
 
+#include "common.h"
+
 #define NALG 9
 
 #include <stdlib.h>
