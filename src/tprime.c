@@ -161,7 +161,7 @@ int Tcl_GetPrimeInfo(Tcl_Interp *ip, Tcl_Obj *obj, primeInfo **pi) {
 }
 
 /* our namespace */
-#define NSP "primestuff::"
+#define NSP "prime::"
 
 int Tprime_HaveType; 
 
