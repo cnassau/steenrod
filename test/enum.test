@@ -55,9 +55,10 @@ proc do-test {name cmdlist} {
                 if {$expct != $signum} { lappend RES [list [::ENU conf] sigfail-1] }
                 ::ENU sigreset
                 set cnt 1
-puts "siglist = $siglist"
-                while {[::ENU signext]} { puts "[::ENU cget -signa ]" ; incr cnt }
-                if {$cnt != $signum} { lappend RES [list [::ENU conf] sigfail-$cnt-vs-$signum] }
+                while {[::ENU signext]} { incr cnt }
+                if {$cnt != $signum} { 
+                    lappend RES [list [::ENU conf] sigfail-$cnt-vs-$signum] 
+                }
                 # restore signature
                 ::ENU configure -signature $sig
             }
