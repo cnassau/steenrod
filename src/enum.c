@@ -38,14 +38,14 @@ void enmDestroyAlgPair(enumerator *en) {
     en->pi = NULL;
 }
 
-void enmDestroySeqList(enumerator *en) {
+void enmDestroySeqOff(enumerator *en) {
     FREEPTR(en->seqoff);
 }
 
 void enmDestroyEffList(enumerator *en) {
     FREEPTR(en->efflist);
     en->efflen = 0;
-    enmDestroySeqList(en);
+    enmDestroySeqOff(en);
 }
 
 void enmDestroyGenList(enumerator *en) {
@@ -225,6 +225,10 @@ int algSeqnoWithRDegree(enumerator *en, exmo *ex, int deg) {
     return res;
 }
 
+int algDimension(enumerator *en, int rdim) {
+    return en->dimtab[NALG-1][rdim];
+}
+
 int SeqnoFromEnum(enumerator *en, exmo *ex) {
     effgen aux, *res; 
     int cnt;
@@ -238,6 +242,23 @@ int SeqnoFromEnum(enumerator *en, exmo *ex) {
     return cnt;
 }
 
+int enmCreateSeqoff(enumerator *en) {
+    int cnt, i;
+
+    if (NULL == en->efflist) return FAILIMPOSSIBLE;
+
+    enmDestroySeqOff(en); 
+    
+    if (NULL == (en->seqoff = (int *) mallox(en->efflen * sizeof(int))))
+        return FAILMEM;
+
+    for (cnt=i=0; i<en->efflen; i++) {
+        en->seqoff[i] = cnt;
+        cnt += algDimension(en, en->efflist[i].rrideg);
+    }
+
+    return SUCCESS;
+}
 
 polyType enumPolyType = {
 #if 0
