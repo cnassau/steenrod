@@ -15,6 +15,6 @@ if {![file isdirectory $tcl_platform(os)]} {
     error "Did not find Steenrod library for platform '$tcl_platform(os)'"
 }
 
-load [file join . $tcl_platform(os) libsteenrod.[info sharedlibextension]]
+load [file join . $tcl_platform(os) libsteenrod[info sharedlibextension]]
 
 package provide Steenrod 1.0
