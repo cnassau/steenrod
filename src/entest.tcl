@@ -90,19 +90,41 @@ while 1 {
 #         uplevel 1 puts \"$args\" 
     }
 
+    proc randomizeSignature {exm prof} {
+        set ecore [extmono::getCore $exm]
+        set pe [::procore::getExt $prof]
+        set pr [::procore::getRed $prof]
+        set ee [::procore::getExt $ecore]
+        set er [::procore::getRed $ecore]
+        if {[expr $pe & $ee]} { error "pe=$pe, ee=$ee" }
+        foreach a $pr b $er {
+            set r [rint [expr $a]]
+            set r 0
+            lappend rlist $r
+            lappend x [expr $r + $b]
+        }
+        #puts "perturbation = $rlist"
+        set x [lreplace $x end-1 end]
+        ::procore::set $ecore [expr $ee | ([rint 255] & $pe)] 0 $x
+    }
+
     # for {set dim $mindim} {$dim<$maxdim} {incr dim}     
     while {[rint 100]<99} {
         set dim [expr $mindim + [rint [expr $maxdim-$mindim]]]
         set dim [expr $dim / (2*($prime-1))]
         set dim [expr $dim * (2*($prime-1))]
 
-        set sqn [sqninfo::create $evn $dim]
+        set sqn [sqninfo::create $evn [expr 1 * $dim]]
 
         set cnt 0
         if {[extmono::first $exm $evn $dim]} {
             set goon 1
             while {$goon} {
-                set seqnum [sqninfo::getSeqno $sqn $exm $dim]
+                randomizeSignature $exm $procore 
+
+                set actdeg [expr 2 * ($prime-1) * [procore::getReddeg $exmcore $pi]]
+#puts "$actdeg / $dim" 
+                set seqnum [sqninfo::getSeqno $sqn $exm $actdeg]
                 if {$cnt!=$seqnum} {set cmd puts} else {set cmd xputs}
                 eval [list $cmd [format "%5d (=%5d) : %10s : %s" $cnt $seqnum \
                                      [bitprint [procore::getExt $exmcore]] \
@@ -117,9 +139,10 @@ while 1 {
         set sqdim [sqninfo::getDim $sqn $dim]
         sqninfo::destroy $sqn
         if {$sqdim!=$cnt} {
-            puts "According to seqno, count in dimension $dim should be $sqdim, not $cnt"
+            puts "According to seqno count in dimension $dim should be $sqdim, not $cnt"
             exit 1
-        }
+        }     
+        puts [format "dimension %10d count = %5d" $dim $cnt]
     }
     
 }
