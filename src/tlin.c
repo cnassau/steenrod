@@ -634,7 +634,105 @@ Tcl_Obj *TakeVectorFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
 /**** Encoding and decoding ********************************************************/
 
+typedef enum { ENCHEX } enctype;
+
+static CONST char *encnames[] = { "hex", (char *) NULL };
+
+static enctype encmap[] = { ENCHEX };
+
 int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
+
+    Tcl_Obj **objv;
+    int objc, result, index;
+
+    int nrows, ncols, blocksize, i, j, mask;
+
+    matrixType *mt;
+    void *mdat;
+
+    if (TCL_OK != Tcl_ListObjGetElements(ip, in, &objc, &objv))
+        return TCL_ERROR;
+    
+    if (objc != 5) {
+        Tcl_SetResult(ip, "wrong number of entries in list", TCL_STATIC);
+        return TCL_ERROR;
+    }
+
+    result = Tcl_GetIndexFromObj(ip, objv[0], encnames, "encoding", 0, &index);
+    if (result != TCL_OK) return result;
+    
+    if (TCL_OK != Tcl_GetIntFromObj(ip, objv[1], &blocksize))
+        return TCL_ERROR;
+    
+    switch (blocksize) {
+        case 1: mask = 0x01; break;
+        case 2: mask = 0x03; break;
+        case 4: mask = 0x0f; break;
+        case 8: mask = 0xff; break;
+        default:
+            Tcl_SetResult(ip, "Unsupported blocksize: should be 1, 2, 4, or 8", TCL_STATIC);
+            return TCL_ERROR;
+    }
+
+    if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2], &nrows))
+        return TCL_ERROR;
+    
+    if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &ncols))
+        return TCL_ERROR;
+    
+    if (TCL_OK != Tcl_ListObjLength(ip, objv[4], &index))
+        return TCL_ERROR;
+
+    if(index != nrows) {
+        Tcl_SetResult(ip, "inconsistent number of rows", TCL_STATIC);
+        return TCL_ERROR;
+    }
+
+    mt = stdmatrix;
+    mdat = mt->createMatrix(nrows, ncols);
+    
+    if (NULL == mdat) RETERR("out of memory");
+          
+    for (i=0;i<nrows;i++) {
+        Tcl_Obj *rowPtr;
+        char *row;
+        if (TCL_OK != Tcl_ListObjIndex(ip, objv[4], i, &rowPtr)) 
+            assert( NULL == "unexpected error in TclDecodeCmd (I)" );
+        if (NULL == rowPtr) 
+            assert( NULL == "unexpected error in TclDecodeCmd (II)" );
+        row = Tcl_GetString(rowPtr);
+        
+        for (j=0;j<ncols;) {
+            unsigned char h, l, x, v;
+            if (0 == (h = *row++)) break;
+            if (0 == (l = *row++)) break;
+
+#define FROMHEX(ch) (((ch) >= 'a') ? ((ch) - 'a' + 10) : ((ch) - '0'))
+
+            x = FROMHEX(h); x <<= 4; x |= FROMHEX(l);
+
+#define EXTRACT(sz) {v = (x>>(8-sz))&mask; if (j>=ncols) break; mt->setEntry(mdat,i,j++,v); x<<=sz;}
+
+            switch (blocksize) {
+                case 1:
+                    EXTRACT(1); EXTRACT(1); EXTRACT(1); EXTRACT(1); 
+                    EXTRACT(1); EXTRACT(1); EXTRACT(1); EXTRACT(1); 
+                    break;
+                case 2:
+                    EXTRACT(2); EXTRACT(2); EXTRACT(2); EXTRACT(2);
+                    break;
+                case 4:
+                    EXTRACT(4); EXTRACT(4);
+                    break;
+                case 8:
+                    EXTRACT(8);
+                    break;
+            }
+
+        }
+    }
+               
+    Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt, mdat));
     return TCL_OK;
 }
 
@@ -643,7 +741,7 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
     matrixType *mt;
     void *mdat;
 
-    int blocksize = -1, nrows, ncols, len, entperbyte, i, j, k, val, rcs, mask;
+    int blocksize = -1, nrows, ncols, len, entperbyte, i, j, val, rcs, mask;
     
     Tcl_Obj *res[5];
     char *enc, *wrk;
@@ -656,18 +754,18 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
      * blocksizes are 1, 2, 4, and 8.
      */
  
-    if ((base>=1) && (base<2)) {
+    if ((base>1) && (base<=2)) {
         blocksize = 1;
-    } else if ((base>=2) && (base<4)) {
+    } else if ((base>2) && (base<=4)) {
         blocksize = 2;
-    } else if ((base>=4) && (base<16)) {
+    } else if ((base>4) && (base<=16)) {
         blocksize = 4;
-    } else if ((base>=16) && (base<256)) {
+    } else if ((base>16) && (base<=256)) {
         blocksize = 8;
     }
     
     if (blocksize < 0) {
-        Tcl_SetResult(ip, "base must be between 1 and 255", TCL_STATIC);
+        Tcl_SetResult(ip, "base must be between 2 and 255", TCL_STATIC);
         return TCL_ERROR;
     }
 
@@ -682,7 +780,7 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
     /* Calculate and allocate necessary space */
     
     len  = nrows;                       /* number of spaces as separators + one newline */
-    rcs = (7 + ncols * blocksize) / 4;  /* twice the number of bytes per row */
+    rcs = (3 + ncols * blocksize) / 4;  /* twice the number of bytes per row */
     len += nrows * rcs;
     len++;                              /* trailing zero */
 
@@ -692,34 +790,42 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
     }
 
     wrk = enc;
+ 
+#define TOHEX(z) (((z)<10) ? ('0'+(z)) : ('a'+(z)-10))
     
     for (i=0;i<nrows;i++) {
         if (i) *wrk++ = ' '; 
         
-        for (k=j=0;k<rcs;k+=2) {
-            int u,x;
-            char h,l;
-            for (x=0,u=entperbyte; u--;) {
-                if (j<ncols) {
-                    mt->getEntry( mdat, i, j, &val );
-                    j++;
-                } else {
-                    val = 0;
-                }
-                x <<= blocksize;
-                x |= (val & mask); 
-            }
- 
-#define TOHEX(z) (((z)<10) ? ('0'+(z)) : ('a'+(z)-10))
+        for (j=0;j<ncols;) {
+            unsigned char c, l, h;
+            c = 0;
+            switch (blocksize) {
 
-            l = TOHEX( (x & 0xf) );
-            x >>= 4;
-            h = TOHEX( (x & 0xf) );
+#define NEXT(sz) {c<<=sz; if(j>=ncols) val=0; else mt->getEntry(mdat,i,j++,&val); c |= (val&mask);}  
+
+                case 1: 
+                    NEXT(1); NEXT(1); NEXT(1); NEXT(1); NEXT(1); NEXT(1); NEXT(1); NEXT(1);
+                    break;
+                case 2: 
+                    NEXT(2); NEXT(2); NEXT(2); NEXT(2);
+                    break;
+                case 4: 
+                    NEXT(4); NEXT(4);
+                    break;
+                case 8: 
+                    NEXT(8);
+                    break;       
+            }
+          
+            l = TOHEX( (c & 0xf) );
+            c >>= 4;
+            h = TOHEX( (c & 0xf) );
 
             *wrk++ = h; 
             *wrk++ = l;
         }
     }
+
     *wrk++ = 0;
     
     res[0] = Tcl_NewStringObj( "hex", 3 );
