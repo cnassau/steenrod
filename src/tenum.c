@@ -11,7 +11,7 @@
  *
  */
 
-#include <tclInt.h>   /* for Tcl_GetCommand */
+#include <tcl.h>   
 #include <string.h>
 #include "tprime.h"
 #include "tpoly.h"
@@ -782,16 +782,13 @@ void Tcl_DestroyEnum(ClientData cd) {
 }
 
 enumerator *Tcl_EnumFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
-    Tcl_Command cmd;
     Tcl_CmdInfo info;
     tclEnum *te;
     
-    cmd = Tcl_GetCommandFromObj(ip, obj);
-
-    if (NULL == cmd) Tcl_SetResult(ip, "command not found", TCL_STATIC);
-
-    if (!Tcl_GetCommandInfoFromToken(cmd, &info))
+    if (!Tcl_GetCommandInfo(ip, Tcl_GetString(obj), &info)) {
+        Tcl_SetResult(ip, "command not found", TCL_STATIC);
         return NULL;
+    }
 
     if (info.objProc != Tcl_EnumWidgetCmd) {
         Tcl_SetResult(ip, "enumerator object expected", TCL_STATIC);
