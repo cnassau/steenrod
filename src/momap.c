@@ -21,84 +21,99 @@
 
 #define LOGDATA 0
 
+static Tcl_HashKeyType MomaHashType;
+
+/* cast from (Tcl_HashEntry *) to our (const exmo *) key */
+#define keyFromHE(he) ((Tcl_Obj *) (he)->key.objPtr)
+
+unsigned int momaHashProc(Tcl_HashTable *table, void *key) {
+    exmo *ex = exmoFromTclObj((Tcl_Obj *) key);
+    int res, cnt;
+    
+    res = ex->gen + 17*(ex->ext);
+    for (cnt=0; cnt<NALG; cnt++) 
+	res += (ex->dat[cnt]) << (3*cnt);
+    
+    return res;
+}
+
+int momaCompProc(void *keyPtr, Tcl_HashEntry *hPtr) {
+    exmo *e1 = exmoFromTclObj((Tcl_Obj *) keyPtr);
+    exmo *e2 = exmoFromTclObj((Tcl_Obj *) keyFromHE(hPtr));
+
+    if (e1 == e2) return 1;
+    
+    return compareExmo(e1,e2) ? 0 : 1;
+}
+
 momap *momapCreate(void) {
     momap *res = mallox(sizeof(momap));
     if (NULL == res) return NULL;
-    if (NULL == (res->keys = stdpoly->createCopy(NULL))) {
-        freex(res); return NULL; 
+
+    if (NULL == (res->tab = mallox(sizeof(Tcl_HashTable)))) {
+	freex(res);
+	return NULL;
     }
-    res->values = NULL;
-    res->valloc = 0;
+
+    Tcl_InitCustomHashTable(res->tab, TCL_CUSTOM_PTR_KEYS, &MomaHashType);    
     return res;
 }
 
 void freeValues(momap *mo) {
-    if (NULL != mo->values) { 
-        int i, len = stdpoly->getNumsum(mo->keys);
-        for (i=0;i<len;i++)
-            DECREFCNT(mo->values[i]);
-        freex(mo->values); mo->values = NULL; mo->valloc = 0;
+    Tcl_HashSearch src;
+    Tcl_HashEntry *ent = Tcl_FirstHashEntry(mo->tab, &src);
+    while (NULL != ent) {
+	Tcl_Obj *obj = (Tcl_Obj *) Tcl_GetHashValue(ent);
+	DECREFCNT(obj);
+	DECREFCNT(keyFromHE(ent));
+	ent = Tcl_NextHashEntry(&src);
     }
+    Tcl_DeleteHashTable(mo->tab);
 }
 
 void momapClear(momap *mo) {
     freeValues(mo);
-    stdpoly->clear(mo->keys);
+    Tcl_InitCustomHashTable(mo->tab, TCL_CUSTOM_PTR_KEYS, &MomaHashType);    
 }
 
 void momapDestroy(momap *mo) {
     freeValues(mo);
-    stdpoly->free(mo->keys);
-    freex(mo);
+    freex(mo->tab);
 }
 
-Tcl_Obj **momapGetValPtr(momap *mo, const exmo *key) {
-    int idx = stdpoly->lookup(mo->keys, key, NULL);
-    Tcl_Obj **res;
-    if (idx < 0) res = NULL;
-    else res = &(mo->values[idx]);
-    if (LOGDATA) printf("momapGetValPtr[%d] => %p (points to %p)\n", 
-                        idx, res, (NULL != res) ? *res : NULL);
-    return res;
+Tcl_Obj *momapGetValPtr(momap *mo, Tcl_Obj *key) {
+    Tcl_HashEntry *ent = Tcl_FindHashEntry(mo->tab, (void *) key);
+    if (NULL == ent) return NULL;
+    return (Tcl_Obj *) Tcl_GetHashValue(ent);
 }
 
-int momapRemoveValue(momap *mo, const exmo *key) {
-    int idx = stdpoly->lookup(mo->keys, key, NULL), len;
-    if (idx < 0) return FAILIMPOSSIBLE;
-    stdpoly->remove(mo->keys,idx);  
-    len = stdpoly->getNumsum(mo->keys);
-    memmove(&(mo->values[idx]), &(mo->values[idx+1]), sizeof(Tcl_Obj *) * (len-idx));
+int momapRemoveValue(momap *mo, Tcl_Obj *key) {
+    Tcl_HashEntry *ent;
+    Tcl_Obj *val;
+    if (NULL == (ent = Tcl_FindHashEntry(mo->tab, (void *) key))) 
+	return SUCCESS;
+    val = Tcl_GetHashValue(ent);
+    if (NULL != val) DECREFCNT(val);
+    /* NOTE: "keyFromHE(ent)" and "key" can be different Tcl_Obj'ects (!) */
+    DECREFCNT(keyFromHE(ent));
+    Tcl_DeleteHashEntry(ent);
     return SUCCESS;
 }
 
-#define MOMAPSTEPSIZE 100 
-
-int momapSetValPtr(momap *mo, const exmo *key, Tcl_Obj *val) {
-    Tcl_Obj **aux = momapGetValPtr(mo, key);
-    if (LOGDATA) printf("momapGetValPtr set val %p\n",val);
-    INCREFCNT(val);
-    if (NULL != aux) {
-        DECREFCNT(*aux);
-        *aux = val;
+int momapSetValPtr(momap *mo, Tcl_Obj *key, Tcl_Obj *val) {
+    int newFlag;
+    Tcl_HashEntry *ent = Tcl_CreateHashEntry(mo->tab, (void *) key, &newFlag);
+    
+    if (!newFlag) {
+	Tcl_Obj *aux = Tcl_GetHashValue(ent);
+	if (NULL != aux) DECREFCNT(aux);
     } else {
-        int len = stdpoly->getNumsum(mo->keys);
-        if (mo->valloc < len+1) {
-            void *newptr = reallox(mo->values, 
-                                   (len + MOMAPSTEPSIZE) * sizeof(Tcl_Obj *));
-            if (NULL == newptr) { 
-                DECREFCNT(val);
-                return FAILMEM; 
-            }
-            mo->valloc = len + MOMAPSTEPSIZE; 
-            mo->values = (Tcl_Obj **) newptr;
-        }
-        mo->values[len] = val;
-        stdpoly->appendExmo(mo->keys, key);
-        if (SUCCESS != stdpolySortWithValues(mo->keys, (void **) mo->values)) {
-            momapClear(mo);
-            return FAILMEM;
-        }
+	INCREFCNT(key);
     }
+    
+    Tcl_SetHashValue(ent, (ClientData) val);
+    INCREFCNT(val);
+
     return SUCCESS;
 }
 
@@ -119,8 +134,7 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
     momap *mo = (momap *) cd;
     int result, index;
     int scale, modulo;
-    exmo *ex;
-    Tcl_Obj **auxptr;
+    Tcl_Obj *auxptr;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
@@ -146,8 +160,7 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
            }
            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
                return TCL_ERROR;
-           ex = exmoFromTclObj(objv[2]);
-           result = momapSetValPtr(mo, ex, objv[3]);
+           result = momapSetValPtr(mo, objv[2], objv[3]);
            if (TCL_OK != result) RETERR("out of memory");
            return TCL_OK;
 
@@ -166,31 +179,29 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
                    return TCL_ERROR;
            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
                return TCL_ERROR;
-           ex = exmoFromTclObj(objv[2]);
-           auxptr = momapGetValPtr(mo, ex);
+           auxptr = momapGetValPtr(mo, objv[2]);
            if (NULL == auxptr) {
-               result = momapSetValPtr(mo, ex, objv[3]);
-               if (TCL_OK != result) RETERR("out of memory");
+               result = momapSetValPtr(mo, objv[2], objv[3]);
+               if (SUCCESS != result) RETERR("out of memory");
            } else {
-               if (TCL_OK != Tcl_ConvertToPoly(ip, *auxptr))
+               if (TCL_OK != Tcl_ConvertToPoly(ip, auxptr))
                    RETERR("current value not of polynomial type");
                if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
                    return TCL_ERROR;
-               if (Tcl_IsShared(*auxptr)) {
-                   DECREFCNT(*auxptr);
-                   *auxptr = Tcl_DuplicateObj(*auxptr);
-                   INCREFCNT(*auxptr);
+               if (Tcl_IsShared(auxptr)) {
+		   auxptr= Tcl_DuplicateObj(auxptr);
+		   momapSetValPtr(mo, objv[2], auxptr);
                }
-               Tcl_InvalidateStringRep(*auxptr);
-               if (SUCCESS != PLappendPoly(polyTypeFromTclObj(*auxptr),
-                                           polyFromTclObj(*auxptr),
+               Tcl_InvalidateStringRep(auxptr);
+               if (SUCCESS != PLappendPoly(polyTypeFromTclObj(auxptr),
+                                           polyFromTclObj(auxptr),
                                            polyTypeFromTclObj(objv[3]),
                                            polyFromTclObj(objv[3]),
                                            NULL, 0,
                                            scale,modulo))
                    return TCL_ERROR;
-               if (SUCCESS != PLcancel(polyTypeFromTclObj(*auxptr),
-                                       polyFromTclObj(*auxptr),
+               if (SUCCESS != PLcancel(polyTypeFromTclObj(auxptr),
+                                       polyFromTclObj(auxptr),
                                        modulo))
                    return TCL_ERROR;
                return TCL_OK;
@@ -203,13 +214,12 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
            }
            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
                return TCL_ERROR;
-           ex = exmoFromTclObj(objv[2]);
-           auxptr = momapGetValPtr(mo, ex);
+           auxptr = momapGetValPtr(mo, objv[2]);
            if (NULL == auxptr) {
                Tcl_SetObjResult(ip, Tcl_NewObj());
                return TCL_OK;
            }
-           Tcl_SetObjResult(ip, *auxptr);
+           Tcl_SetObjResult(ip, auxptr);
            return TCL_OK;
 
        case LIST:
@@ -217,20 +227,20 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
                Tcl_WrongNumArgs(ip, 2, objv, "");
                return TCL_ERROR;
            }
-           {
-               int i, len = stdpoly->getNumsum(mo->keys);
-               Tcl_Obj **aux = mallox(sizeof(Tcl_Obj *) * len * 2);
-               if (NULL == aux) RETERR("out of memory");
-               for (i=0;i<len;i++) {
-                   exmo *exm; 
-                   stdpoly->getExmoPtr(mo->keys, &exm, i);
-                   aux[i<<1] = Tcl_NewExmoCopyObj(exm);
-                   aux[(i<<1)|1] = mo->values[i];
-               }
-               Tcl_SetObjResult(ip, Tcl_NewListObj(2*len,aux));
-               freex(aux);
-               return TCL_OK;
-           }
+	   {
+	       Tcl_Obj *res = Tcl_NewObj(), *key, *val;
+	       Tcl_HashSearch src;
+	       Tcl_HashEntry *ent = Tcl_FirstHashEntry(mo->tab, &src);
+	       while (NULL != ent) {
+		   val = (Tcl_Obj *) Tcl_GetHashValue(ent);
+		   key = keyFromHE(ent);
+		   Tcl_ListObjAppendElement(ip, res, key);
+		   Tcl_ListObjAppendElement(ip, res, val);
+		   ent = Tcl_NextHashEntry(&src);
+	       }
+	       Tcl_SetObjResult(ip, res);
+	       return TCL_OK;
+	   }
 
        case UNSET:
            if (objc != 3) {
@@ -239,8 +249,7 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
            }
            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
                return TCL_ERROR;
-           ex = exmoFromTclObj(objv[2]);
-           momapRemoveValue(mo, ex);
+           momapRemoveValue(mo, objv[2]);
            return TCL_OK;
    }
 
@@ -296,6 +305,14 @@ int Momap_Init(Tcl_Interp *ip) {
     
     Tcl_CreateObjCommand(ip, POLYNSP "monomap",
                          Tcl_CreateMomaCmd, (ClientData) 0, NULL);
+
+
+    MomaHashType.version = TCL_HASH_KEY_TYPE_VERSION;
+    MomaHashType.flags = 0;
+    MomaHashType.hashKeyProc = momaHashProc;
+    MomaHashType.compareKeysProc = momaCompProc;
+    MomaHashType.allocEntryProc = NULL; /* momaAllocProc; */
+    MomaHashType.freeEntryProc = NULL; /* momaFreeProc; */
     
     return TCL_OK;
 }

@@ -21,14 +21,15 @@ typedef struct {
     void     *keys;       /* a stdpoly polynomial */
     Tcl_Obj **values;     /* array of Tcl_Obj */
     int       valloc;     /* space allocated for values */
+    Tcl_HashTable *tab;
 } momap;
 
 momap *momapCreate(void); 
 void   momapClear(momap *mo);
 void   momapDestroy(momap *mo);
 
-Tcl_Obj **momapGetValPtr(momap *mo, const exmo *key);
-int momapSetValPtr(momap *mo, const exmo *key, Tcl_Obj *val);
+Tcl_Obj *momapGetValPtr(momap *mo, Tcl_Obj *key);
+int momapSetValPtr(momap *mo, Tcl_Obj *key, Tcl_Obj *val);
 
 int Momap_Init(Tcl_Interp *ip) ;
 
