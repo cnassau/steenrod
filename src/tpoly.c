@@ -305,8 +305,12 @@ Tcl_Obj *Tcl_PolyObjScaleMod(Tcl_Obj *obj, int scale, int mod) {
 }
 
 Tcl_Obj *Tcl_PolyObjAppend(Tcl_Obj *obj, Tcl_Obj *pol2) {
-    if (Tcl_IsShared(obj)) 
-        obj = Tcl_DuplicateObj(obj);
+    Tcl_IncrRefCount(obj);
+    if (Tcl_IsShared(obj)) {    
+        Tcl_DecrRefCount(obj);
+        obj = Tcl_DuplicateObj(obj);    
+        Tcl_IncrRefCount(obj);
+    }
     if (SUCCESS != PLappendPoly(PTR1(obj),PTR2(obj),PTR1(pol2),PTR2(pol2),NULL,0,1,0))
         return NULL;
     Tcl_InvalidateStringRep(obj);
@@ -317,8 +321,14 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
     int rval, rcode, ash, bsh;
     Tcl_Obj *ac = a, *bc = b;
 
+    Tcl_IncrRefCount(a);
+    Tcl_IncrRefCount(b);
+
     ash = Tcl_IsShared(a);
     bsh = Tcl_IsShared(b);
+
+    Tcl_DecrRefCount(a);
+    Tcl_DecrRefCount(b);
 
     if (SUCCESS == PLcompare(PTR1(ac),PTR2(ac),
                              PTR1(bc),PTR2(bc), 
@@ -342,12 +352,16 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
 
 Tcl_Obj *Tcl_PolyObjShift(Tcl_Obj *obj, exmo *e, int flags) {
     polyType *tp = PTR1(obj);
-    if (Tcl_IsShared(obj)) 
-        obj = Tcl_DuplicateObj(obj);
+
+    ASSERTUNSHARED(obj, Tcl_PolyObjShift);
+
     if (NULL == tp->shift) 
         Tcl_PolyObjConvert(obj, (tp = stdpoly));
+
     (tp->shift)(PTR2(obj),e,flags);
+
     Tcl_InvalidateStringRep(obj);
+
     return obj;
 }
 
@@ -380,14 +394,24 @@ Tcl_Obj *Tcl_PolyObjSteenrodProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) 
 
 Tcl_Obj *Tcl_PolyObjGetCoeff(Tcl_Obj *obj, Tcl_Obj *exm, int mod) {
     int safeflags = 0, rval;
+
+    Tcl_IncrRefCount(obj);
+
     if (!Tcl_IsShared(obj)) safeflags |= PLF_ALLOWMODIFY;
     if (SUCCESS != PLcollectCoeffs(PTR1(obj),PTR2(obj),
-                                  exmoFromTclObj(exm),&rval,mod,safeflags)) {
-        obj = Tcl_DuplicateObj(obj);
+                                   exmoFromTclObj(exm),&rval,mod,safeflags)) {
+        Tcl_DecrRefCount(obj);
+        obj = Tcl_DuplicateObj(obj);   
+        Tcl_IncrRefCount(obj);
+        
         if (SUCCESS != PLcollectCoeffs(PTR1(obj),PTR2(obj),
-                                      exmoFromTclObj(exm),&rval,mod,PLF_ALLOWMODIFY))
+                                       exmoFromTclObj(exm),&rval,
+                                       mod,PLF_ALLOWMODIFY)) {
+            Tcl_DecrRefCount(obj);
             return NULL;
+        }
     }
+    Tcl_DecrRefCount(obj);
     return Tcl_NewIntObj(rval);
 }
 
@@ -409,24 +433,160 @@ Tcl_Obj *Tcl_PolyObjGetInfo(Tcl_Obj *obj) {
     return NEWSTRINGOBJ(aux);
 }        
 
+/* The Tcl_PolySplitProc 
+ *
+ *  - iterates through the monomials in *src,
+ *  - calls "*proc <mono>" for each monomial,
+ * 
+ * Let x be the result of this call. It determines the next action
+ *      
+ *   x < 0   : append this monomial to *res
+ *   x >= 0  : append this monomial to "$(*objv[x])"
+ *
+ * If x is too big for the objv array the monomial is forgotten. */
+
+int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc, 
+                      Tcl_Obj * CONST objv[], Tcl_Obj **res) {
+    
+    polyType *pt; void *pdat; 
+    int pns, idx, i, x;
+    exmo mono;
+    Tcl_Obj **array; 
+    void **parray;
+    int rcode = SUCCESS, prc; 
+    Tcl_Obj *(cmd[2]);
+
+    if (TCL_OK != Tcl_ConvertToPoly(ip, src))
+        return TCL_ERROR;
+
+    /* First create an array of empty polynomials. We let array[k+1] 
+     * correspond to objv[k] and array[0] to *res. */
+    
+    if (NULL == (array = mallox(sizeof(Tcl_Obj *) * (objc + 1))))
+        RETERR("out of memory");
+    
+    if (NULL == (parray = mallox(sizeof(void *) * (objc + 1)))) {
+        freex(array); 
+        RETERR("out of memory");
+    }
+
+    for (i=0; i<(objc+1); i++) {
+        if (NULL == (parray[i] = PLcreate(stdpoly))) {
+            for (;i--;) Tcl_DecrRefCount(array[i]); 
+            freex(array); freex(parray);
+            RETERR("out of memory");
+        }
+        array[i] = Tcl_NewPolyObj(stdpoly, parray[i]);
+    }
+    
+    *res = array[0];
+
+    /* Now assign array[i] to the variable objv[i]. Once we've done that
+     * we need no longer worry about their refCounts. */
+
+    for (i=0; i<objc; i++) 
+        if (NULL == Tcl_ObjSetVar2(ip, objv[i], NULL,
+                                   array[i+1], TCL_LEAVE_ERR_MSG)) {
+            for (;i<objc;i++) 
+                Tcl_DecrRefCount(array[i+1]);
+            Tcl_DecrRefCount(array[0]);
+            return TCL_ERROR;
+        }
+    
+
+    pt   = polyTypeFromTclObj(src);
+    pdat = polyFromTclObj(src);
+    pns  = PLgetNumsum(pt, pdat);
+
+    cmd[0] = proc; cmd[1] = NULL;
+
+    for (idx=0; idx<pns; idx++) {
+        
+        if (SUCCESS != PLgetExmo(pt, pdat, &mono, idx)) {
+            Tcl_SetResult(ip, "internal error in Tcl_PolySplitProc: "
+                          "PLgetExmo failed", TCL_STATIC);
+            rcode = TCL_ERROR;
+            goto leave;
+        }
+
+        /* invoke filter proc */
+
+        if (NULL != cmd[1]) Tcl_DecrRefCount(cmd[1]); 
+        cmd[1] = Tcl_NewExmoCopyObj(&mono); 
+        Tcl_IncrRefCount(cmd[1]);
+
+        prc = Tcl_EvalObjv(ip, 2, cmd, 0); 
+
+        if (TCL_OK != prc) {
+            if (TCL_CONTINUE == prc) continue;
+            if (TCL_BREAK    == prc) break;
+            if (TCL_ERROR == prc) {
+                Tcl_AddErrorInfo(ip, "\nwhile executing ");
+                Tcl_AddErrorInfo(ip, Tcl_GetString(cmd[0]));
+                Tcl_AddErrorInfo(ip, " {");
+                Tcl_AddErrorInfo(ip, Tcl_GetString(cmd[1]));
+                Tcl_AddErrorInfo(ip, "}");
+                rcode = TCL_ERROR;
+                goto leave;
+            }
+        }
+
+        /* filter returned TCL_OK */
+
+        if (TCL_OK != Tcl_GetIntFromObj(ip, Tcl_GetObjResult(ip), &x)) {
+            Tcl_AddErrorInfo(ip, "\nwhile executing ");
+            Tcl_AddErrorInfo(ip, Tcl_GetString(cmd[0]));
+            Tcl_AddErrorInfo(ip, " {");
+            Tcl_AddErrorInfo(ip, Tcl_GetString(cmd[1]));
+            Tcl_AddErrorInfo(ip, "}");
+            rcode = TCL_ERROR;
+            goto leave;
+        }
+
+        if (x>=0) { 
+            if (++x>objc) continue;
+        } else x=0;
+
+        /* append to parray[x] */
+        
+        if (SUCCESS != PLappendExmo(stdpoly, parray[x], &mono)) {
+            Tcl_SetResult(ip, "internal error in Tcl_PolySplitProc: "
+                          "PLappendExmo failed", TCL_STATIC);
+            rcode = TCL_ERROR;
+            goto leave;
+        }
+    }
+
+ leave:
+    if (NULL != cmd[1]) Tcl_DecrRefCount(cmd[1]); 
+
+    freex(array);
+    freex(parray);
+
+    if (SUCCESS != rcode) 
+        Tcl_DecrRefCount(*res);
+
+    return rcode;
+}
+
 /**** The Combi Command */
 
 typedef enum { 
     TPEXMO, TPPOLY, 
     TPINFO, TPGETCOEFF,
     TPCANCEL, TPSHIFT, TPREFLECT, TPSCALE, TPAPPEND, TPCOMPARE,
-    TPNEGMULT, TPPOSMULT, TPSTMULT
+    TPNEGMULT, TPPOSMULT, TPSTMULT, TPSPLIT, TPVARSPLIT
 } PolyCmdCode;
 
 int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip, 
                   int objc, Tcl_Obj * CONST objv[]) {
     PolyCmdCode cdi = (PolyCmdCode) cd;
     int ivar, ivar2;
-    Tcl_Obj *obj1;
+    Tcl_Obj *obj, *obj1;
     primeInfo *pi;
 
     switch (cdi) {
-        case TPEXMO:
+       case TPEXMO:
             ENSUREARGS1(TP_EXMO);
             Tcl_InvalidateStringRep(objv[1]);
             Tcl_SetObjResult(ip, objv[1]);
@@ -451,8 +611,20 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
                 Tcl_GetIntFromObj(ip, objv[3], &ivar);
             else 
                 ivar = 0;
-            Tcl_SetObjResult(ip, Tcl_PolyObjShift(objv[1], 
+
+            obj = objv[1];
+
+            Tcl_IncrRefCount(obj);
+            if (Tcl_IsShared(obj)) {
+                Tcl_DecrRefCount(obj);
+                obj = Tcl_DuplicateObj(obj);
+                Tcl_IncrRefCount(obj);
+            }
+    
+            Tcl_SetObjResult(ip, Tcl_PolyObjShift(obj, 
                                                   exmoFromTclObj(objv[2]), ivar));
+
+            Tcl_DecrRefCount(obj);
             return TCL_OK;
         case TPCANCEL:
             ENSUREARGS3(TP_POLY,TP_OPTIONAL,TP_INT);
@@ -520,6 +692,64 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
                 RETERR("PLcollectCoeff failed");
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;            
+        case TPSPLIT:
+            if (objc < 3) {
+                Tcl_WrongNumArgs(ip, 1, objv, 
+                                 "<polynomial> <filter proc> ?var0? ?var1? ...");
+                return TCL_ERROR;
+            }
+
+            ENSUREARGS3(TP_POLY,TP_PROCNAME,TP_VARARGS);
+
+            if (TCL_OK != Tcl_PolySplitProc(ip, objc-3, objv[1], 
+                                            objv[2], objv+3, &obj1)) 
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;
+
+        case TPVARSPLIT:
+            if (objc < 3) {
+                Tcl_WrongNumArgs(ip, 1, objv, 
+                                 "<variable> <filter proc> ?var0? ?var1? ...");
+                return TCL_ERROR;
+            }
+            ENSUREARGS3(TP_VARNAME,TP_PROCNAME,TP_VARARGS);
+            
+            obj = Tcl_ObjGetVar2(ip, objv[1], NULL, TCL_LEAVE_ERR_MSG);
+            if (NULL == obj) return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, obj))
+                return TCL_ERROR;
+            
+            Tcl_IncrRefCount(obj);
+            if (NULL == Tcl_ObjSetVar2(ip, objv[1], NULL,
+                                       Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
+                Tcl_DecrRefCount(obj);
+                return TCL_ERROR;
+            }
+
+            if (Tcl_IsShared(obj)) {
+                Tcl_DecrRefCount(obj);
+                obj = Tcl_DuplicateObj(obj);
+                Tcl_IncrRefCount(obj);
+            }
+
+            if (TCL_OK != Tcl_PolySplitProc(ip, objc-3, obj, objv[2], 
+                                            objv+3, &obj1)) {
+                Tcl_DecrRefCount(obj);
+                return TCL_ERROR;
+            }
+            
+            if (NULL == Tcl_ObjSetVar2(ip, objv[1], NULL,
+                                       obj1, TCL_LEAVE_ERR_MSG)) {
+                return TCL_ERROR;
+            }
+
+            Tcl_DecrRefCount(obj);
+            
+            Tcl_ResetResult(ip);
+            return TCL_OK;
     }
 
     RETERR("tPolyCombiCmd: internal error");
@@ -572,6 +802,9 @@ int Tpoly_Init(Tcl_Interp *ip) {
     CREATECMD(POLYNSP "negmult", TPNEGMULT);
     CREATECMD(POLYNSP "posmult", TPPOSMULT);
     CREATECMD(POLYNSP "stmult",  TPSTMULT);
+
+    CREATECMD(POLYNSP "split",    TPSPLIT);
+    CREATECMD(POLYNSP "varsplit", TPVARSPLIT);
 
     CREATECMD(POLYNSP "coeff",  TPGETCOEFF);
     CREATECMD(POLYNSP "info",  TPINFO);
