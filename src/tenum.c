@@ -172,7 +172,7 @@ if (NULL != (obj))                                       \
     }
    
     if (te->cgenlist) {
-        if (SUCCESS != enmSetGenlist(te->enm, te->gl, (te->gllength) / 4))
+        if (SUCCESS != enmSetGenlist(te->enm, te->gl, (te->gllength) / 1))
             RETERR("duplicate generator id");
         te->gl = NULL; te->gllength = 0;
         te->cgenlist = 0;
