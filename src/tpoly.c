@@ -302,6 +302,24 @@ Tcl_Obj *Tcl_PolyObjPosProduct(Tcl_Obj *obj, Tcl_Obj *pol2, int mod) {
     return Tcl_NewPolyObj(rtp,res);
 }
 
+Tcl_Obj *Tcl_PolyObjNegProduct(Tcl_Obj *obj, Tcl_Obj *pol2, int mod) {
+    polyType *rtp; void *res;
+    if (SUCCESS != PLnegMultiply(&rtp,&res,
+                                 PTR1(obj),PTR2(obj),
+                                 PTR1(pol2),PTR2(pol2),mod))
+        return NULL;
+    return Tcl_NewPolyObj(rtp,res);
+}
+
+Tcl_Obj *Tcl_PolyObjSteenrodProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) {
+    polyType *rtp; void *res;
+    if (SUCCESS != PLsteenrodMultiply(&rtp,&res,
+                                      PTR1(obj),PTR2(obj),
+                                      PTR1(pol2),PTR2(pol2),pi))
+        return NULL;
+    return Tcl_NewPolyObj(rtp,res);
+}
+
 /**** The Combi Command */
 
 typedef enum { 
@@ -315,6 +333,7 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
     PolyCmdCode cdi = (PolyCmdCode) cd;
     int ivar, ivar2;
     Tcl_Obj *obj1;
+    primeInfo *pi;
 
     switch (cdi) {
         case TPEXMO:
@@ -371,6 +390,24 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
                 ivar = 0;
             if (NULL == (obj1 = Tcl_PolyObjPosProduct(objv[1], objv[2], ivar)))
                 RETERR("PLposMultiply failed");
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;            
+        case TPNEGMULT:
+            ENSUREARGS4(TP_POLY,TP_POLY,TP_OPTIONAL,TP_INT);
+            if (4 == objc) 
+                Tcl_GetIntFromObj(ip, objv[3], &ivar);
+            else 
+                ivar = 0;
+            if (NULL == (obj1 = Tcl_PolyObjNegProduct(objv[1], objv[2], ivar)))
+                RETERR("PLnegMultiply failed");
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;            
+        case TPSTMULT:
+            ENSUREARGS3(TP_PRIME,TP_POLY,TP_POLY);
+            if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[1],&pi))
+                return TCL_ERROR;
+            if (NULL == (obj1 = Tcl_PolyObjSteenrodProduct(objv[2], objv[3], pi)))
+                RETERR("PLsteenrodMultiply failed");
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;            
     }

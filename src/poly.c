@@ -43,6 +43,8 @@ void shiftExmo(exmo *e, const exmo *s, int flags) {
     for (i=NALG;i--;) 
         e->dat[i] += s->dat[i];
     /* TODO: signs not yet implemented */
+    if (0 != (flags & ADJUSTSIGNS)) 
+        if (0 != (e->ext & s->ext)) e->coeff = 0;
     e->ext ^= s->ext;
 }
 
@@ -377,7 +379,7 @@ int PLnegMultiply(polyType **rtp, void **res,
 
 int PLsteenrodMultiply(polyType **rtp, void **res,
                        polyType *fftp, void *ff,
-                       polyType *sftp, void *sf, int mod) {
+                       polyType *sftp, void *sf, primeInfo *pi) {
     
     return FAILIMPOSSIBLE;
 }

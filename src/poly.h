@@ -131,7 +131,7 @@ int   PLnegMultiply(polyType **rtp, void **res,
                     polyType *sftp, void *sf, int mod);
 int   PLsteenrodMultiply(polyType **rtp, void **res,
                          polyType *fftp, void *ff,
-                         polyType *sftp, void *sf, int mod);
+                         polyType *sftp, void *sf, primeInfo *pi);
 
 #ifndef POLYC
 extern polyType stdPolyType;
