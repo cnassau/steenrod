@@ -43,6 +43,8 @@ typedef struct {
     int  (*add)(void *v1, void *v2, int scale, int mod);
 
     int  (*reduce)(void *mat, int prime);
+
+    int  (*iszero)(void *mat);
 } vectorType;
 
 typedef struct {
@@ -68,7 +70,9 @@ typedef struct {
 
     int  (*reduce)(void *mat, int prime);
 
-    int (*shrinkRows)(void *mat, int *idx, int num);
+    int  (*iszero)(void *mat);
+
+    int  (*shrinkRows)(void *mat, int *idx, int num);
 
     int  (*add)(void *v1, void *v2, int scale, int mod);
 
@@ -95,6 +99,9 @@ int LAVadd(vectorType **vt1, void **vec1,
 
 int LAMadd(matrixType **vt1, void **vec1, 
            matrixType *vt2, void *vec2, int scale, int mod);
+
+int vectorIsZero(vectorType *vt, void *vdat);
+int matrixIsZero(matrixType *mt, void *mdat);
 
 #endif
 

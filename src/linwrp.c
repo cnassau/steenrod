@@ -283,8 +283,31 @@ int LAMadd(matrixType **vt1, void **vdat1,
     assert(NULL == "LAMadd needs to be enhanced");
 
     return FAIL;
-
-
 }
 
+int vectorIsZero(vectorType *vt, void *vdat) {
+    int i, num;
+    if (NULL != vt->iszero)
+        return vt->iszero(vdat);
+    num = vt->getLength(vdat);
+    for (i=num;i--;) {
+        int val;
+        vt->getEntry(vdat, i, &val);
+        if (val) return 0;
+    }
+    return 1;
+}
 
+int matrixIsZero(matrixType *mt, void *mdat) {
+    int i,j,r,c;
+    if (NULL != mt->iszero)
+        return mt->iszero(mdat);
+    mt->getDimensions(mdat, &r, &c);
+    for (i=r;i--;)
+        for (j=c;j--;) {
+            int val;
+            mt->getEntry(mdat, i, j, &val);
+            if (val) return 0;
+        }
+    return 1;
+}
