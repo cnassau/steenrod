@@ -57,7 +57,7 @@ int mapsumSetLen(mapsum *mp, int len) {
     }
     min = len; max = mp->len;
     if (min>max) { min = mp->len; max = len; }  
-    nxd = malloc(len * mp->alloc * sizeof(xint));
+    nxd = mallox(len * mp->alloc * sizeof(xint));
     if (NULL == nxd) return FAILMEM;
     for (dst=nxd,src=mp->xdat,i=mp->num;i--;dst+=len,src+=mp->len) {
       for (j=0;j<min;j++) dst[j] = src[j];
@@ -72,11 +72,11 @@ int mapsumSetLen(mapsum *mp, int len) {
 int mapsumRealloc(mapsum *mp, int nalloc) {
     cint *ncd; xint *nxd;
     if (nalloc < mp->num) nalloc = mp->num;
-    if (NULL == (ncd = realloc(mp->cdat, nalloc * sizeof(cint)))) {
+    if (NULL == (ncd = reallox(mp->cdat, nalloc * sizeof(cint)))) {
         return FAILMEM;
     }
     mp->cdat = ncd;
-    if (NULL == (nxd = realloc(mp->xdat, mp->len * nalloc * sizeof(xint)))) {
+    if (NULL == (nxd = reallox(mp->xdat, mp->len * nalloc * sizeof(xint)))) {
         return FAILMEM;
     }    
     mp->xdat = nxd;
@@ -133,7 +133,7 @@ void mapgenInit(mapgen *res) {
 int mapgenRealloc(mapgen *mim, int nalloc) {
     mapsum *ndat; 
     if (nalloc < mim->num) nalloc = mim->num;
-    ndat = realloc(mim->dat, nalloc * sizeof(mapsum)); 
+    ndat = reallox(mim->dat, nalloc * sizeof(mapsum)); 
     if (NULL == ndat) return FAILMEM;
     mim->alloc = nalloc;
     mim->dat = ndat;
@@ -168,7 +168,7 @@ mapsum *mapgenFindSum(mapgen *mpi, int gen, int edat) {
 }
 
 map *mapCreate(void) {
-    map *res = malloc(sizeof(map));
+    map *res = mallox(sizeof(map));
     if (NULL == res) return NULL;
     memset(res, 0, sizeof(map));
     return res;
@@ -177,7 +177,7 @@ map *mapCreate(void) {
 int mapRealloc(map *mp, int nalloc) {
     mapgen *mpi;
     if (nalloc < mp->num) nalloc = mp->num;
-    mpi = realloc(mp->dat, nalloc * sizeof(mapgen));
+    mpi = reallox(mp->dat, nalloc * sizeof(mapgen));
     if (NULL == mpi) return FAILMEM;
     mp->dat = mpi;
     mp->alloc = nalloc;
@@ -249,11 +249,11 @@ int cmpMpSI(const void *aa, const void *bb) {
     return 0;
 }
 
-int mapsqndatarealloc(mapsqndata *mps, int nalloc) {
+int mapsqndatareallox(mapsqndata *mps, int nalloc) {
     mapsqnitem *mpi;
 
     if (nalloc < mps->num) nalloc = mps->num;
-    mpi = realloc(mps->dat, nalloc * sizeof(mapsqnitem));
+    mpi = reallox(mps->dat, nalloc * sizeof(mapsqnitem));
     if (NULL == mpi) return FAILMEM;
     mps->dat = mpi; mps->alloc = nalloc;
     return SUCCESS;
@@ -262,7 +262,7 @@ int mapsqndatarealloc(mapsqndata *mps, int nalloc) {
 mapsqnitem *newMapSqnItm(mapsqndata *mps) {
     mapsqnitem *res;
     if (mps->num >= mps->alloc) 
-        if (SUCCESS != mapsqndatarealloc(mps, mps->alloc + 100)) 
+        if (SUCCESS != mapsqndatareallox(mps, mps->alloc + 100)) 
             return NULL;
     res = &(mps->dat[mps->num]);
     ++(mps->num); 

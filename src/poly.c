@@ -197,12 +197,12 @@ int stdGetInfo(void *src, polyInfo *pli) {
 void *stdCreateCopy(void *src) {
     stp *s = (stp *) src, *n;
     LOGSTD("CreateCopy");
-    if (NULL == (n = (stp *) malloc(sizeof(stp)))) return NULL;
+    if (NULL == (n = (stp *) mallox(sizeof(stp)))) return NULL;
     if (NULL == s) {
         n->num = n->nalloc = 0; n->dat = NULL;
         return n;
     }
-    if (NULL == (n->dat = (exmo *) malloc(sizeof(exmo) * s->num))) {
+    if (NULL == (n->dat = (exmo *) mallox(sizeof(exmo) * s->num))) {
         free(n); return NULL; 
     }
     n->num = n->nalloc = s->num;
@@ -246,7 +246,7 @@ int stdRealloc(void *self, int nalloc) {
     exmo *ndat;
     LOGSTD("Realloc");
     if (nalloc < s->num) nalloc = s->num;
-    if (NULL == (ndat = realloc(s->dat,sizeof(exmo) * nalloc))) 
+    if (NULL == (ndat = reallox(s->dat,sizeof(exmo) * nalloc))) 
         return FAILMEM;
     s->dat = ndat; s->nalloc = nalloc;
     return SUCCESS;

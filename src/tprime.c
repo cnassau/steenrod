@@ -98,7 +98,7 @@ int findPrimeInfo(int prime, primeInfo **pi) {
     int rcode;
     for (; NULL != *nextp; nextp = &((*nextp)->next)) 
         if (prime == (*nextp)->pi.prime) { *pi = &((*nextp)->pi); return PI_OK; }
-    if (NULL == ((*nextp) = malloc(sizeof(piList)))) return PI_NOMEM;
+    if (NULL == ((*nextp) = mallox(sizeof(piList)))) return PI_NOMEM;
     if (PI_OK != (rcode = makePrimeInfo(&((*nextp)->pi), prime))) { 
         free(*nextp); 
         *nextp = NULL; 

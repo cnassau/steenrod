@@ -51,7 +51,7 @@ void makeFullProfile(profile *pro, primeInfo *pi, int maxdim) {
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro) {
-    enumEnv *res = malloc(sizeof(enumEnv)); 
+    enumEnv *res = mallox(sizeof(enumEnv)); 
     if (NULL==res) return NULL;
     /* we keep references to our parameters (not copies) */
     res->pi = pi;
@@ -221,13 +221,13 @@ seqnoInfo *createSeqno(enumEnv *env, int maxdim) {
     reddim   = 1 + maxdim / pi->tpmo;
 
     for (i=NPRO+1;i--;)
-        if (NULL == (res->dimtab[i] = malloc(sizeof(int) * (reddim+1)))) {
+        if (NULL == (res->dimtab[i] = mallox(sizeof(int) * (reddim+1)))) {
             destroySeqno(res);
             return NULL;
         }
 
     for (i=NPRO+1;i--;)
-        if (NULL == (res->seqtab[i] = malloc(sizeof(int) * (reddim+1)))) {
+        if (NULL == (res->seqtab[i] = mallox(sizeof(int) * (reddim+1)))) {
             destroySeqno(res);
             return NULL;
         }

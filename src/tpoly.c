@@ -61,7 +61,7 @@ Tcl_Obj *Tcl_NewExmoObj(exmo *ex) {
 }
 
 Tcl_Obj *Tcl_NewExmoCopyObj(exmo *ex) {
-    exmo *x = malloc(sizeof(exmo));
+    exmo *x = mallox(sizeof(exmo));
     TCLMEMASSERT(x);
     copyExmo(x,ex);
     return Tcl_NewExmoObj(x);
@@ -88,7 +88,7 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         return TCL_ERROR;
     if (4 != objc) 
         RETERR("malformed monomial: wrong number of entries");
-   if (NULL == (e = (exmo *) malloc(sizeof(exmo))))
+   if (NULL == (e = (exmo *) mallox(sizeof(exmo))))
         RETERR("out of memory");
     if (TCL_OK != Tcl_GetIntFromObj(ip,objv[0],&(e->coeff))) 
         FREEEANDRETERR;
@@ -145,7 +145,7 @@ void ExmoUpdateStringProc(Tcl_Obj *objPtr) {
 
 /* create copy */
 void ExmoDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
-    exmo *new = (exmo *) malloc(sizeof(exmo));
+    exmo *new = (exmo *) mallox(sizeof(exmo));
     TCLMEMASSERT(new); 
     memcpy(new, PTR1(srcPtr), sizeof(exmo));
     PTR1(dupPtr) = new;

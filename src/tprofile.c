@@ -89,7 +89,7 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
             return TCL_OK;
         case PR_CREATE:
             ENSUREARGS0;
-            prof = (profile *) malloc(sizeof(profile)); 
+            prof = (profile *) mallox(sizeof(profile)); 
             Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_PROFILE, prof));
             return TCL_OK;
         case PR_DESTROY: 
@@ -146,7 +146,7 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
             return TCL_OK;
         case EXM_CREATE:
             ENSUREARGS0;
-            exmo = malloc(sizeof(exmon));
+            exmo = mallox(sizeof(exmon));
             Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_EXMON, exmo));
             return TCL_OK;
         case EXM_DISPOSE:

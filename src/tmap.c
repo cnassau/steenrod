@@ -37,7 +37,7 @@ int mkGenList(Tcl_Interp *ip, map *mp) {
     Tcl_Obj **obptr;
     Tcl_Obj *res;
     int i;
-    obptr = malloc(mp->num * sizeof(Tcl_Obj *));
+    obptr = mallox(mp->num * sizeof(Tcl_Obj *));
     if (NULL == obptr) RETERR("Out of memory");
     for (i=0;i<mp->num;i++) 
         obptr[i] = Tcl_NewTPtr(TP_MAPGEN, &(mp->dat[i]));
@@ -52,7 +52,7 @@ int getTarget(Tcl_Interp *ip, mapgen *mpg) {
     Tcl_Obj **obptr;
     Tcl_Obj *res;
     int i;
-    obptr = malloc(mpg->num * sizeof(Tcl_Obj *));
+    obptr = mallox(mpg->num * sizeof(Tcl_Obj *));
     if (NULL == obptr) RETERR("Out of memory");
     for (i=0;i<mpg->num;i++) 
         obptr[i] = Tcl_NewTPtr(TP_MAPSUM, &(mpg->dat[i]));
@@ -70,7 +70,7 @@ int getSumData(Tcl_Interp *ip, mapsum *mps) {
     cint *cptr = mps->cdat; 
     xint *xptr = mps->xdat;
     sz = mps->num * (mps->len + 1);
-    obptr = malloc(sz * sizeof(Tcl_Obj *));
+    obptr = mallox(sz * sizeof(Tcl_Obj *));
     if (NULL == obptr) RETERR("Out of memory");
     res[0] = Tcl_NewIntObj(mps->gen);
     res[1] = Tcl_NewIntObj(mps->edat);
