@@ -166,7 +166,7 @@ proc newgen {id s e i diff} {
 }
 
 # we arrange to call update during computations
-set steenrod::progvar ::ourProgVar
+set steenrod::_progvarname ::ourProgVar
 proc myupdate {args} { update }
 trace add variable ::ourProgVar write myupdate
 
