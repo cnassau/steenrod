@@ -10,6 +10,8 @@
 
 SYSTEM = Unix
 
+TCLSH = tclsh
+
 ifeq ($(SYSTEM),Windows)
   CC     = gcc -mdll -mno-cygwin
   CFLAGS = -O2 -g -Wall -I.  -DDLLBUILD
@@ -25,7 +27,7 @@ else
   TCLINCDIR = /home/cn/selfmade-tcl/include/
   TCLLIBDIR = /home/cn/selfmade-tcl/lib/
   TCLSTUBLIB = tclstub8.4
-  STUBLINK = cc -shared -L$(TCLLIBDIR)
+  STUBLINK = gcc -shared -L$(TCLLIBDIR)
 endif
 
 CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT
@@ -51,7 +53,7 @@ objects: $(OBJS)
 libraries: $(LIBS)
 
 install: libraries
-	instlib.tcl $(LIBS)
+	$(TCLSH) instlib.tcl $(LIBS)
 
 %.c : %.nw
 	$(NOTANGLE) -L -R$*.c $(NOWEBFILES) > $*.c
