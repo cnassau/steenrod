@@ -42,6 +42,9 @@ typedef struct {
     procore core;
 } profile;
 
+void makeZeroProfile(profile *pro);
+void makeFullProfile(profile *pro, primeInfo *pi, int maxdim);
+
 /* information that's needed by the seqno routine */
 typedef struct {
     int maxdim;    /* maximal dimension for the tables below */

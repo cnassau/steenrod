@@ -15,6 +15,27 @@
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
+void makeZeroProfile(profile *pro) {
+    int i;
+    pro->core.edat = 0;
+    for (i=NPRO;i--;) pro->core.rdat[i]=1;
+}
+
+
+void makeFullProfile(profile *pro, primeInfo *pi, int maxdim) {
+    int i, val;
+    pro->core.edat = ~0;
+    for (i=pi->N; i && (pi->extdegs[i] > maxdim);) 
+        i--;
+    val = i;
+    for (i=0; i<NPRO; i++) {
+        pro->core.rdat[i] = pi->primpows[val]; 
+        if (val) val--;
+    }
+}
+
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+
 enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro) {
     enumEnv *res = cmalloc(sizeof(enumEnv)); 
     if (NULL==res) return NULL;
@@ -81,7 +102,7 @@ int firstRedmon(exmon *ex, enumEnv *env, int deg) {
     for (i=NPRO;i--;) {
         int nval = deg / env->pi->reddegs[i];
         /* restrict redpows to env->alg */
-        if (nval>env->alg->core.rdat[i]) nval=env->alg->core.rdat[i];
+        if (nval>env->alg->core.rdat[i]-1) nval=env->alg->core.rdat[i]-1;
         /* remove part forbidden by env->pro */
         nval /= env->pro->core.rdat[i]; nval *= env->pro->core.rdat[i];
         ex->core.rdat[i] = nval;
@@ -102,7 +123,7 @@ int nextRedmon(exmon *ex, enumEnv *env) {
         for (;i--;) {
             int nval = rem / env->pi->reddegs[i];
             /* restrict redpows to env->alg */
-            if (nval>env->alg->core.rdat[i]) nval=env->alg->core.rdat[i];
+            if (nval>env->alg->core.rdat[i]-1) nval=env->alg->core.rdat[i]-1;
             /* remove part forbidden by env->pro */
             nval /= env->pro->core.rdat[i]; nval *= env->pro->core.rdat[i];
             ex->core.rdat[i] = nval;

@@ -4,7 +4,7 @@
 # expands tabs and removes (some) awkward spaces near parentheses 
 
 for i in $* ; do 
-    sed "s/\t/    /" $i | sed "s/( /(/" | sed "s/ )/)/" > refmt.aux
+    sed "s/\t/    /" $i | sed "s/( /(/" | sed "s/ )/)/" | sed "s/ ,/,/" > refmt.aux
     diff refmt.aux $i > /dev/null
  
     if [ $? -ge 1 ]

@@ -43,6 +43,8 @@ void TPtr_RegType(int type, const char *name);
 #define TP_INT       -1    /* Tcl_Int */
 #define TP_STRING    -2    /* Create up to date string rep. */
 #define TP_PTR       -3    /* any TPtr is allowed */
+#define TP_LIST      -4    /* Tcl_ListObj */
+#define TP_INTLIST   -5    /* Tcl_ListObj consisitng of ints */
 
 /* More predefined types, which are actually instructions for TPtr_CheckArgs */
 #define TP_END       -1111 /* end of argument list */

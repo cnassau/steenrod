@@ -18,7 +18,7 @@ NOWEAVE  = noweave
 
 NOWEBFILES = 
 SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c \
-       tpoly.c profile.c
+       tpoly.c profile.c tprofile.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -82,3 +82,4 @@ tptr.o: tptr.h
 tptrtest.o: tptr.h
 tpoly.o: tptr.h tpoly.h tprime.h poly.h prime.h
 profile.o: ./profile.h prime.h
+tprofile.o: tptr.h tprofile.h ./profile.h prime.h

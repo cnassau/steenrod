@@ -77,17 +77,19 @@ int Tptr_Init(Tcl_Interp *ip) {
     Tcl_InitStubs(ip, "8.0", 0) ;
 
     /* set up type and register */
-    TPtr.name = "typed pointer";
-    TPtr.freeIntRepProc = NULL;
-    TPtr.dupIntRepProc = TPtr_DupInternalRepProc;
-    TPtr.updateStringProc =  TPtr_UpdateStringProc;
-    TPtr.setFromAnyProc = TPtr_SetFromAnyProc;
+    TPtr.name                  = "typed pointer";
+    TPtr.freeIntRepProc        = NULL;
+    TPtr.dupIntRepProc         = TPtr_DupInternalRepProc;
+    TPtr.updateStringProc      = TPtr_UpdateStringProc;
+    TPtr.setFromAnyProc        = TPtr_SetFromAnyProc;
     Tcl_RegisterObjType(&TPtr);
     
-    TPtr_RegType(TP_ANY, "anything");
-    TPtr_RegType(TP_INT, "integer");
-    TPtr_RegType(TP_STRING, "string");
-    TPtr_RegType(TP_PTR, "typed pointer");
+    TPtr_RegType(TP_ANY,     "anything");
+    TPtr_RegType(TP_INT,     "integer");
+    TPtr_RegType(TP_LIST,    "list");
+    TPtr_RegType(TP_INTLIST, "list of integers");
+    TPtr_RegType(TP_STRING,  "string");
+    TPtr_RegType(TP_PTR,     "typed pointer");
     TPtr_RegType(TP_VARARGS , "...");
 
     return TCL_OK;
@@ -209,6 +211,20 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
         case TP_INT:
         if (TCL_OK != Tcl_GetIntFromObj(ip, *objv, &aux))
             CHCKARGSERR(NULL); 
+        continue;
+        case TP_LIST:
+        case TP_INTLIST:
+        if (TCL_OK != Tcl_ConvertToType(ip, *objv, &tclListType))
+            CHCKARGSERR(NULL); 
+        if (TP_LIST == type) continue;
+        {
+            int obc, i; Tcl_Object **obv;
+            /* check list members:*/
+            Tcl_ListObjGetElements(ip, *objv, &obc, &obv);
+            for (i=0;i<obc;i++)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, obv[i], &aux))
+                    CHCKARGSERR(NULL);     
+        }
         continue;
         case TP_PTR:
         if (TCL_OK != Tcl_ConvertToType(ip, *objv, &TPtr)) 
