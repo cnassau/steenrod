@@ -8,23 +8,37 @@
 # it under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
 
-CC      = gcc -fPIC
-CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS
+SYSTEM = unix
 
-TCLDIR = /home/cn/selfmade-tcl/include/
+ifeq ($(SYSTEM),Windows)
+  CC     = gcc -fPIC
+  CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS
+
+  TCLINCDIR = /home/cn/selfmade-tcl/include/
+  TCLLIBDIR = /home/cn/selfmade-tcl/lib/
+  TCLSTUBLIB = tclstub8.4
+  STUBLINK = cc -shared -L$(TCLLIBDIR)
+else
+  CC     = gcc -fPIC
+  CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS
+
+  TCLINCDIR = /home/cn/selfmade-tcl/include/
+  TCLLIBDIR = /home/cn/selfmade-tcl/lib/
+  TCLSTUBLIB = tclstub8.4
+  STUBLINK = cc -shared -L$(TCLLIBDIR)
+endif
 
 NOTANGLE = notangle
 NOWEAVE  = noweave
 
 NOWEBFILES = mult.nw
+
 SRCS = adlin.c linalg.c linwrp.c tlin.c prime.c tprime.c tptr.c \
        poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c common.c
 
 OBJS = $(SRCS:.c=.o)
 
 LIBS = libsteenrod.so
-
-LINKSTUB = cc -shared -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
 
 .PHONY: depend all clean distclean objects libraries install
 
@@ -44,7 +58,7 @@ install: libraries
 	$(NOTANGLE) -L -R$*.h $(NOWEBFILES) > $*.h
 
 %.o : %.c
-	$(CC) $(CFLAGS) -I$(TCLDIR) -c $*.c
+	$(CC) $(CFLAGS) -I$(TCLINCDIR) -c $*.c
 
 %.ps : %.dvi
 	dvips $*.dvi
@@ -61,7 +75,7 @@ depend:
 	makedepend -Y -- $(CFLAGS) -- $(SRCS) 2> /dev/null
 
 libsteenrod.so : $(OBJS)
-	$(LINKSTUB) -o libsteenrod.so $(OBJS)
+	$(STUBLINK) -o libsteenrod.so $(OBJS) -l$(TCLSTUBLIB)
 
 clean:
 	$(RM) $(OBJS) $(LIBS) 2> /dev/null
