@@ -16,6 +16,7 @@ TCLDIR = /home/cn/selfmade-tcl/include/
 NOTANGLE = notangle
 NOWEAVE  = noweave
 
+NOWEBFILES = 
 SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c tpoly.c
 OBJS = $(SRCS:.c=.o)
 
