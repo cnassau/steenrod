@@ -18,7 +18,7 @@ NOWEAVE  = noweave
 
 NOWEBFILES = mult.nw
 SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c \
-       tpoly.c profile.c tprofile.c maps.c tmap.c mult.c
+       tpoly.c profile.c tprofile.c maps.c tmap.c mult.c linwrp.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -63,8 +63,8 @@ libtptrtest.so : tptr.o tptrtest.o
 libtprime.so: tprime.o tptr.o prime.o
 	$(LINKSTUB) -o libtprime.so tptr.o prime.o tprime.o
 
-libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o
-	$(LINKSTUB) -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o 
+libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o linwrp.o
+	$(LINKSTUB) -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o linwrp.o
 
 libtpoly.so: prime.o tptr.o tprime.o tpoly.o poly.o mult.o
 	$(LINKSTUB) -o libtpoly.so prime.o tptr.o tprime.o tpoly.o poly.o mult.o

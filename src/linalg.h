@@ -40,14 +40,18 @@ void vector_copy(vector *v, vector *w);
 void vector_add(vector *dst, vector *src, cint coeff, cint prime);
 void vector_add_entry(vector *dst, int off, cint dat, cint prime);
 cint vector_get_entry(vector *src, int off);
+void vector_set_entry(vector *src, int off, cint val);
 void vector_randomize(vector *v, cint prime);
 
 matrix *matrix_create(int rows, int cols);
+matrix *matrix_copy(matrix *mat);
 void matrix_destroy(matrix *mat);
 void matrix_clear(matrix *mat);    /* clear matrix */
 void matrix_unit(matrix *mat);     /* make unit matrix */
 int  matrix_resize(matrix *m, int newrows); /* reallocate space */
 void matrix_randomize(matrix *m, cint prime);
+cint matrix_get_entry(matrix *m, int r, int c);
+void matrix_set_entry(matrix *m, int r, int c, cint val);
 
 /* matrix_collect is used whenever we want to throw away some
  * of the rows; for this we first set m->rows = 0, then call 

@@ -26,7 +26,7 @@ typedef struct {
 /* I'm too (fucking) tired right now, to put comments into this code! */
 
 typedef struct {
-    int  (*getEntry)(void *vec, int idx);
+    int  (*getEntry)(void *vec, int idx, int *val);
  
     int  (*setEntry)(void *vec, int idx, int val);
 
@@ -40,7 +40,7 @@ typedef struct {
 } vectorType;
 
 typedef struct {
-    int  (*getEntry)(void *mat, int row, int col); 
+    int  (*getEntry)(void *mat, int row, int col, int *val); 
 
     int  (*setEntry)(void *mat, int row, int col, int val);
 
@@ -70,6 +70,9 @@ extern vectorType stdVectorType;
 
 #define stdmatrix (&(stdMatrixType))
 #define stdvector (&(stdVectorType))
+
+void *createStdMatrixCopy(matrixType *mt, void *mat);
+void *createStdVectorCopy(vectorType *vt, void *vec);
 
 #endif
 

@@ -60,6 +60,10 @@ cint vector_get_entry(vector *src, int off) {
     return src->data[off];
 }
 
+void vector_set_entry(vector *src, int off, cint val) {
+    src->data[off] = val;
+}
+
 void vector_randomize(vector *v, cint prime) {
     int k; cint *dat;
     for (k=v->num, dat=v->data; k--;)
@@ -89,6 +93,13 @@ void matrix_destroy(matrix *mat) {
     freex(mat->data); freex(mat);
 }
 
+matrix *matrix_copy(matrix *mat) {
+    matrix *res = matrix_create(mat->rows, mat->cols);
+    if (NULL == res) return NULL;
+    memcpy(res->data, mat->data, sizeof(cint) * mat->nomcols * mat->rows);
+    return res;
+}
+
 void matrix_clear(matrix *mat) {
     memset(mat->data, 0, sizeof(cint) * mat->nomcols * mat->rows);
 }
@@ -109,6 +120,16 @@ vector *matrix_get_row(matrix *m, int r) {
     res->num = m->cols;
     res->data = m->data + (m->nomcols * r);
     return res;
+}
+
+cint matrix_get_entry(matrix *m, int r, int c) {
+    cint *rowptr = m->data + (m->nomcols * r);
+    return rowptr[c];
+}
+
+void matrix_set_entry(matrix *m, int r, int c, cint val) {
+    cint *rowptr = m->data + (m->nomcols * r);
+    rowptr[c] = val; 
 }
 
 void matrix_collect(matrix *m, int r) {

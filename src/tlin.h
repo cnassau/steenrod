@@ -17,7 +17,20 @@
 #include <tcl.h>
 #include "tptr.h"
 #include "tprime.h"
-#include "adlin.h"
+#include "linwrp.h"
+
+int Tcl_ConvertToVector(Tcl_Interp *ip, Tcl_Obj *obj);
+int Tcl_ObjIsVector(Tcl_Obj *obj);
+vectorType *vectorTypeFromTclObj(Tcl_Obj *obj);
+void       *vectorFromTclObj(Tcl_Obj *obj);
+
+int Tcl_ConvertToMatrix(Tcl_Interp *ip, Tcl_Obj *obj);
+int Tcl_ObjIsMatrix(Tcl_Obj *obj);
+matrixType *matrixTypeFromTclObj(Tcl_Obj *obj);
+void       *matrixFromTclObj(Tcl_Obj *obj);
+
+Tcl_Obj *Tcl_NewMatrixObj(matrixType *tp, void *data);
+Tcl_Obj *Tcl_NewVectorObj(vectorType *tp, void *data);
 
 /* ids of the types that we register */
 #define TP_VECTOR 13
