@@ -333,12 +333,41 @@ Tcl_Obj *Tcl_PolyObjSteenrodProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) 
     return Tcl_NewPolyObj(rtp,res);
 }
 
+Tcl_Obj *Tcl_PolyObjGetCoeff(Tcl_Obj *obj, Tcl_Obj *exm, int mod) {
+    int safeflags = 0, rval;
+    if (!Tcl_IsShared(obj)) safeflags |= PLF_ALLOWMODIFY;
+    if (SUCCESS != PLcollectCoeffs(PTR1(obj),PTR2(obj),
+                                  exmoFromTclObj(exm),&rval,mod,safeflags)) {
+        obj = Tcl_DuplicateObj(obj);
+        if (SUCCESS != PLcollectCoeffs(PTR1(obj),PTR2(obj),
+                                      exmoFromTclObj(exm),&rval,mod,PLF_ALLOWMODIFY))
+            return NULL;
+    }
+    return Tcl_NewIntObj(rval);
+}
+
+#define NEWSTRINGOBJ(strg) Tcl_NewStringObj(strg,strlen(strg))
+Tcl_Obj *Tcl_PolyObjGetInfo(Tcl_Obj *obj) {
+    polyInfo poli;
+    char aux[500], *wrk=aux;;
+    if (SUCCESS != PLgetInfo(PTR1(obj),PTR2(obj),&poli))
+        return Tcl_NewObj();
+
+    wrk += sprintf(wrk,"{implementation {%s}} "
+                   "{{allocated bytes} %d} {{bytes used} %d}",
+                   poli.name ? poli.name : "unknown",
+                   (unsigned) poli.bytesAllocated, (unsigned) poli.bytesUsed);
+
+    return NEWSTRINGOBJ(aux);
+}        
+
 /**** The Combi Command */
 
 typedef enum { 
     TPEXMO, TPPOLY, 
+    TPINFO, TPGETCOEFF,
     TPCANCEL, TPSHIFT, TPREFLECT, TPSCALE, TPAPPEND, TPCOMPARE,
-    TPNEGMULT, TPPOSMULT, TPSTMULT 
+    TPNEGMULT, TPPOSMULT, TPSTMULT
 } PolyCmdCode;
 
 int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip, 
@@ -429,6 +458,20 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
                 RETERR("PLsteenrodMultiply failed");
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;            
+        case TPINFO:
+            ENSUREARGS1(TP_POLY);
+            Tcl_SetObjResult(ip, Tcl_PolyObjGetInfo(objv[1]));
+            return TCL_OK;
+        case TPGETCOEFF:
+            ENSUREARGS4(TP_POLY,TP_EXMO,TP_OPTIONAL,TP_INT);
+            if (4 == objc) 
+                Tcl_GetIntFromObj(ip, objv[3], &ivar);
+            else 
+                ivar = 0;
+            if (NULL == (obj1 = Tcl_PolyObjGetCoeff(objv[1], objv[2], ivar)))
+                RETERR("PLcollectCoeff failed");
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;            
     }
 
     Tcl_SetResult(ip, "tPolyCombiCmd: internal error", TCL_STATIC);
@@ -476,6 +519,9 @@ int Tpoly_Init(Tcl_Interp *ip) {
     CREATECMD("negmult", TPNEGMULT);
     CREATECMD("posmult", TPPOSMULT);
     CREATECMD("stmult",  TPSTMULT);
+
+    CREATECMD("coeff",  TPGETCOEFF);
+    CREATECMD("info",  TPINFO);
 
     return TCL_OK;
 }
