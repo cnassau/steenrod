@@ -12,6 +12,8 @@
  */
 
 #include "tlin.h"
+#include <time.h>
+#include <stdlib.h>
 
 #define NSP "linalg::"
 
@@ -42,9 +44,8 @@ int tLinComboCmd(ClientData cd, Tcl_Interp *ip,
     LinalgCmdCode cdi = (LinalgCmdCode) cd;
     int a, b, c;
     primeInfo *pi;
-    char *err;
     vector *vec;
-    matrix *mat, *mat2;
+    matrix *mat, *mat2, *mat3;
     Tcl_Obj *obp[2];
 
     if (NULL==ip) return TCL_ERROR; 
@@ -149,7 +150,24 @@ int tLinComboCmd(ClientData cd, Tcl_Interp *ip,
 	    Tcl_SetObjResult(ip,Tcl_NewTPtr(TP_MATRIX,mat2));
 	    return TCL_OK;
 	case LIN_MATLIFT: 
-	case LIN_MATQUOT:   
+	    ENSUREARGS4(TP_MATRIX,TP_MATRIX,TP_PRINFO,TP_INT);
+	    Tcl_GetIntFromObj(ip, objv[4], &a);
+	    mat = (matrix *) TPtr_GetPtr(objv[1]);
+	    mat2 = (matrix *) TPtr_GetPtr(objv[2]);
+	    pi = (primeInfo *) TPtr_GetPtr(objv[3]); 
+	    mat3 = matrix_lift(pi,mat,mat2,ip,a);
+	    if (NULL==mat3) return TCL_ERROR;
+	    Tcl_SetObjResult(ip,Tcl_NewTPtr(TP_MATRIX,mat3));
+	    return TCL_OK;
+	case LIN_MATQUOT:  
+	    ENSUREARGS4(TP_MATRIX,TP_MATRIX,TP_PRINFO,TP_INT);
+	    Tcl_GetIntFromObj(ip, objv[4], &a);
+	    mat = (matrix *) TPtr_GetPtr(objv[1]);
+	    mat2 = (matrix *) TPtr_GetPtr(objv[2]);
+	    pi = (primeInfo *) TPtr_GetPtr(objv[3]); 
+	    if (TCL_OK!=matrix_quotient(pi,mat,mat2,ip,a))
+		return TCL_ERROR;
+	    return TCL_OK;
     }
 
     return TCL_OK;
@@ -161,6 +179,7 @@ int Tlin_Init(Tcl_Interp *ip) {
 
     Tprime_Init(ip);
     
+    srandom(time(NULL));
 
 #define CREATECOMMAND(name, code) \
 Tcl_CreateObjCommand(ip,NSP name,tLinComboCmd,(ClientData) code, NULL);
