@@ -285,7 +285,8 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
                 if (ISDEFAULTARG(aux.sig)) break;
                 return TCL_ERROR;
             case TYPE:
-                if (TCL_OK != checkForType(ip, value, &result))
+                if (TCL_OK != checkForType(ip, value, &result)) 
+                    return TCL_ERROR;
                 aux.ispos = result ? ourPosObj : ourNegObj;
                 break;
             case IDEG:
