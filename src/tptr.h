@@ -57,8 +57,19 @@ void TPtr_RegType(int type, const char *name);
  */
 int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[], ...);
 
-/* a few helper functions */
+/* a few helper functions & macros */
 Tcl_Obj *Tcl_ListFromArray(int *list, int len) ;
+
+#define ENSUREARGS0 \
+if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_END)) return TCL_ERROR;
+#define ENSUREARGS1(T1) \
+if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,TP_END)) return TCL_ERROR;
+#define ENSUREARGS2(T1,T2) \
+if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,TP_END)) return TCL_ERROR;
+#define ENSUREARGS3(T1,T2,T3) \
+if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,T3,TP_END)) return TCL_ERROR;
+#define ENSUREARGS4(T1,T2,T3,T4) \
+if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,T3,T4,TP_END)) return TCL_ERROR;
 
 #endif
 
