@@ -13,16 +13,16 @@
 
 #include "prime.h"
 
-/*::: Basic stuff ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*::: Basic stuff ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 /* primpows, extdegs, reddegs */
 int piiBasic( primeInfo *pi ) {
     int i, N;
     for ( i=1, N=1; i<=pi->maxdeg; i*=pi->prime, N++) pi->N = N;
     pi->tpmo = ( pi->prime - 1 ) << 1;
-    if ( NULL == ( pi->primpows = cmalloc( sizeof(int) * pi->N ) ) ) return PI_NOMEM;
-    if ( NULL == ( pi->extdegs  = cmalloc( sizeof(int) * pi->N ) ) ) return PI_NOMEM;
-    if ( NULL == ( pi->reddegs  = cmalloc( sizeof(int) * pi->N ) ) ) return PI_NOMEM;
+    if (NULL==(pi->primpows = cmalloc(sizeof(int) * pi->N))) return PI_NOMEM;
+    if (NULL==(pi->extdegs  = cmalloc(sizeof(int) * pi->N))) return PI_NOMEM;
+    if (NULL==(pi->reddegs  = cmalloc(sizeof(int) * pi->N))) return PI_NOMEM;
     pi->primpows[0] = 1;
     pi->extdegs[0] = 1;
     pi->reddegs[0] = 1;
@@ -41,7 +41,7 @@ int pidBasic( primeInfo *pi ) {
     return PI_OK;
 } 
 
-/*::: Inverses :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*::: Inverses :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 cint naiveInverse( int i, cint prime ) {
     int j;
@@ -68,12 +68,12 @@ int pidInv( primeInfo *pi ) {
     return PI_OK;
 }
 
-/*::: Binomials ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*::: Binomials ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 int piiBinom( primeInfo *pi ) {
     int a,b, prime = pi->prime;
     cint *dat;
-    if ( NULL == ( dat = pi->binom = cmalloc( sizeof(cint) * pi->prime * pi->prime ) ) ) 
+    if (NULL==(dat=pi->binom=cmalloc(sizeof(cint) * pi->prime * pi->prime))) 
 	return PI_NOMEM;
 
     for (a=prime;a--;) dat[a] = 0;
@@ -122,7 +122,7 @@ cint binomp( primeInfo *pi, int l, int m ) {
     return bin;
 }
 
-/*::: Control structure ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*::: Control structure ::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 typedef int (*piFunc) ( primeInfo *pi );  /* return nonzero on failure */
 
@@ -131,7 +131,7 @@ typedef struct {
     piFunc done;  /* destructor */
 } piProcEntry;
 
-/* list of constructor / destructor pairs for the creation of primeInfo structs */
+/* constructor/destructor pairs for the creation of primeInfo structs */
 piProcEntry piList[] = {
     { piiBasic, pidBasic },  /* primpows, extdegs, reddegs */
     { piiInv,   pidInv,  },

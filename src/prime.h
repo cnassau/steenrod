@@ -21,7 +21,8 @@
 /* cint ist the integer type that we use for elements of F_p */
 typedef char cint; 
 
-#define CINTMULT(a,b,prime) ((cint) (( (short (a)) * (short (b)) ) % ((short) prime)))
+#define CINTMULT(a,b,prime) \
+   ((cint) (( (short (a)) * (short (b)) ) % ((short) prime)))
 
 typedef struct {
     cint prime;
