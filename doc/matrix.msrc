@@ -51,7 +51,7 @@ The next three commands carry out more advanced tasks. Since these can take
 a long time to complete it is advisable to arrange the use of a progress 
 indicator variable. By putting an appropriate write trace on that variable
 one can ensure that user interaction will remain possible during the computation.   
-An exmaple is shown below.
+An example is shown below.
 
 [list_begin definitions]
 
