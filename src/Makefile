@@ -74,8 +74,8 @@ refmt: reformat
 
 adlin.o: adlin.h linalg.h prime.h common.h
 linalg.o: linalg.h prime.h common.h
-linwrp.o: ./linwrp.h prime.h common.h linalg.h adlin.h
-tlin.o: tlin.h tptr.h common.h tprime.h prime.h ./linwrp.h
+linwrp.o: linwrp.h prime.h common.h linalg.h adlin.h
+tlin.o: tlin.h tptr.h common.h tprime.h prime.h linwrp.h
 prime.o: prime.h common.h
 tprime.o: tprime.h prime.h common.h tptr.h
 tptr.o: tptr.h common.h
@@ -83,7 +83,8 @@ poly.o: poly.h common.h prime.h mult.h
 tpoly.o: tptr.h common.h tpoly.h poly.h prime.h tprime.h mult.h
 mult.o: mult.h common.h prime.h poly.h
 enum.o: enum.h poly.h common.h prime.h
-tenum.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tenum.h enum.h
+tenum.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h linwrp.h
+tenum.o: tenum.h enum.h
 momap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h momap.h
-steenrod.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h ./linwrp.h
+steenrod.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h linwrp.h
 steenrod.o: steenrod.h momap.h tenum.h enum.h mult.h

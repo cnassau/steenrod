@@ -13,10 +13,9 @@
 
 #define LINWRPC
 
-#include <linwrp.h>
-
-#include <linalg.h>
-#include <adlin.h>
+#include "linwrp.h"
+#include "linalg.h"
+#include "adlin.h"
 
 /* The standard matrix type. This is just a wrapper around the 
  * stuff from linalg.c */
