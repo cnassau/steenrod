@@ -254,6 +254,7 @@ int enmRecreateEfflist(enumerator *en) {
 
 int enmSetBasics(enumerator *en, primeInfo *pi, 
                  exmo *algebra, exmo *profile, int ispos) {
+    int i;
     enmDestroyEffList(en);
     enmDestroySeqtab(en);
     en->pi = pi;
@@ -268,6 +269,10 @@ int enmSetBasics(enumerator *en, primeInfo *pi,
         exmoSetMinAlg(pi, &(en->profile));
     else                  
         copyExpExmo(pi, &(en->profile), profile); 
+
+    en->profile.ext &= en->algebra.ext;
+    for (i=NALG; i--; )
+        en->profile.dat[i] = MIN(en->profile.dat[i], en->algebra.dat[i]);
 
     return SUCCESS;
 }
@@ -452,7 +457,7 @@ int algSeqnoWithRDegree(enumerator *en, exmo *ex, int deg) {
     if (ENLOG) printf("algSeqnoWithRDegree deg = %d, startk = %d\n", deg, startk);
     for (k=startk; k--;) {
         int prd, maxdeg, actdeg, exo;
-        prd = en->profile.dat[k];
+        prd = MIN(en->profile.dat[k], en->algebra.dat[k]); 
         maxdeg = (en->algebra.dat[k] - prd) * en->pi->reddegs[k];
         exo = en->ispos ? ex->dat[k] : (-1 - ex->dat[k]); 
         exo /= en->profile.dat[k]; exo *= en->profile.dat[k];
@@ -628,6 +633,7 @@ int nextSignature(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
     for (i=0;i<NALG;i++) {
         int coldeg = tpmo * en->pi->reddegs[i];
         int nval = sig->dat[i] + 1;
+        int aux;
         /* see if we can advance this entry */
         if ((coldeg <= remi) 
             && (nval < en->algebra.dat[i]) 
@@ -636,7 +642,8 @@ int nextSignature(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
             return 1;
         }   
         /* reset entry */
-        *sideg -= coldeg * (--nval); sig->dat[i] = 0;
+        aux = coldeg * (--nval);
+        *sideg -= aux; remi += aux; sig->dat[i] = 0;
     }
     /* reduced part has been reset; try to advance exterior component */
     newext = sig->ext;
