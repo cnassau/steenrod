@@ -164,12 +164,9 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
-int Tlin_IsInitialized;
+int Tlin_HaveType;
 
 int Tlin_Init(Tcl_Interp *ip) {
-
-    if (Tlin_IsInitialized) return TCL_OK;
-    Tlin_IsInitialized = 1;
 
     if (NULL == Tcl_InitStubs(ip, "8.0", 0)) return TCL_ERROR;
 
@@ -180,8 +177,12 @@ int Tlin_Init(Tcl_Interp *ip) {
 #define CREATECOMMAND(name, code) \
 Tcl_CreateObjCommand(ip,NSP name,tLinCombiCmd,(ClientData) code, NULL);
 
-    TPtr_RegType(TP_VECTOR, "vector");
-    TPtr_RegType(TP_MATRIX, "matrix");
+    if (!Tlin_HaveType) {
+        Tptr_Init(ip);
+        TPtr_RegType(TP_VECTOR, "vector");
+        TPtr_RegType(TP_MATRIX, "matrix");
+        Tlin_HaveType = 1;
+    }
 
     /* basic commands */
     CREATECOMMAND("createVector", LIN_CREATE_VECTOR);

@@ -113,18 +113,18 @@ Tcl_SetObjResult(ip,Tcl_ListFromArray(len,list)); return TCL_OK
 /* our namespace */
 #define NSP "primeinfo::"
 
-int Tprime_IsInitialized; 
+int Tprime_HaveType; 
 
 int Tprime_Init(Tcl_Interp *ip) {
-
-    if (Tprime_IsInitialized) return TCL_OK;
-    Tprime_IsInitialized = 1;
 
     if (NULL == Tcl_InitStubs(ip, "8.0", 0)) return TCL_ERROR;
     
     Tptr_Init(ip);
 
-    TPtr_RegType(TP_PRINFO, "primeinfo");
+    if (!Tprime_HaveType) {
+        TPtr_RegType(TP_PRINFO, "primeinfo");
+        Tprime_HaveType = 1;
+    }
 
 #define CREATECOMMAND(name, code) \
 Tcl_CreateObjCommand(ip,NSP name,tPrInfo,(ClientData) code, NULL);

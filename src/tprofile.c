@@ -174,22 +174,22 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
 }
 
 
-int Tprofile_IsInitialized;
+int Tprofile_HaveType;
 
 int Tprofile_Init(Tcl_Interp *ip) {
-
-    if (Tprofile_IsInitialized) return TCL_OK;
-    Tprofile_IsInitialized = 1;
     
     if (NULL == Tcl_InitStubs(ip, "8.0", 0)) return TCL_ERROR;
     
     Tptr_Init(ip);
     Tprime_Init(ip);
 
-    TPtr_RegType(TP_PROCORE, "procore");
-    TPtr_RegType(TP_PROFILE, "profile");
-    TPtr_RegType(TP_EXMON,   "extended monomial");
-    TPtr_RegType(TP_ENENV,   "environment");
+    if (!Tprofile_HaveType) {
+        TPtr_RegType(TP_PROCORE, "procore");
+        TPtr_RegType(TP_PROFILE, "profile");
+        TPtr_RegType(TP_EXMON,   "extended monomial");
+        TPtr_RegType(TP_ENENV,   "environment");
+        Tprofile_HaveType = 1;
+    }
 
 #define CREATECOMMAND(name, code) \
 Tcl_CreateObjCommand(ip,name,tProfileCombiCmd,(ClientData) code, NULL);
