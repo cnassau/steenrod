@@ -26,11 +26,12 @@ namespace import ::poly::*
 enumerator ENU
 set RES {}
 
-set XXX 1     ;# if 1 we create new test data 
+set XXX 0     ;# if 1 we create new test data 
 set NTD   {}  ;# holds new test data
 
-proc do-test {name cmdlist} {
-    global RES NTD XXX
+proc do-test {name} {
+    global RES NTD XXX enumtestdata
+    set cmdlist $enumtestdata($name)
     set RES [set NDATA {}]
     # create fresh enumerator for this test
     rename ::ENU ""
@@ -122,7 +123,7 @@ source [file join [file dirname [info script]] enum.data]
 # carry out the tests 
 
 foreach name [lsort [array names enumtestdata]] {
-    test enum-auto $name [list do-test $name $enumtestdata($name)] {}
+    test enum-$name {} BIGTEST [list do-test $name] {}
 }
 
 if {$XXX} { 
