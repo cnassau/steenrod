@@ -74,37 +74,56 @@ Tcl_Obj *Tcl_NewTPtr( int type, void *ptr ) {
   return res;
 }
 
-void ckArgsErr( Tcl_Interp *ip, va_list ap, int pos, char *msg ) {
+void printTypename( char *buf, int type ) {
+    switch (type) {
+	case TP_ANY    : sprintf( buf, "<anything>" ); break; 
+	case TP_INT    : sprintf( buf, "<integer>" ); break; 
+	case TP_STRING : sprintf( buf, "<string>" ); break; 
+	case TP_PTR    : sprintf( buf, "<typed pointer>" ); break; 
+	case TP_VARARGS : sprintf( buf, "<whatever...>"  ); break; 
+	default : sprintf( buf, "<pointer of type %d>", type ); break;
+    }
+}
+
+void ckArgsErr( Tcl_Interp *ip, char *name, va_list *ap, int pos, char *msg ) {
   char err[500], *wrk = err;
-  const char *c = ": ";
+  char typename[100];
   int type; 
-  if ( NULL == ip ) return ;
-  wrk += sprintf( wrk, "ckArgsErr" );
-  if ( NULL != msg ) wrk += sprintf( wrk, "(%s)", msg );
-  while ( 0 != (type = va_arg( ap, int )) ) {
-    wrk += sprintf( wrk, "%s%d", c, type );
-    c = " ,";
+  int optional = 0;
+  if ( NULL == ip )   return ;
+  if ( NULL != msg )  wrk += sprintf( wrk, "%s", msg );
+  else                wrk += sprintf( wrk, "problem with arg #%d", pos );
+  if ( NULL != name ) wrk += sprintf( wrk, "\nusage: %s", name );
+  while ( TP_END != (type = va_arg( *ap, int )) ) {
+      if ( TP_OPTIONAL == type ) { 
+	  optional = 1; 
+	  wrk += sprintf( wrk, " [ " );
+      }
+      printTypename( typename, type );
+      wrk += sprintf( wrk, " %s", typename );
   }
+  if (optional) wrk += sprintf( wrk, " ]" );
   Tcl_SetResult( ip, err, TCL_VOLATILE );
 }
 
 #define CHCKARGSERR( msg ) \
-do { va_end( ap ); va_start( ap, objv ); ckArgsErr( ip, ap, pos, msg ); va_end( ap ); return TCL_ERROR; } while (0)
+do { va_end( ap ); va_start( ap, objv ); ckArgsErr( ip, Tcl_GetString( *objvorig ), &ap, pos, msg ); va_end( ap ); return TCL_ERROR; } while (0)
 
-int TPtr_CheckArgs( Tcl_Interp *ip, int objc, Tcl_Obj *(objv[]), ... ) {
+int TPtr_CheckArgs( Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ... ) {
   va_list ap;
   int type; 
   int pos = 0;
   int optional = 0;
   int aux;
-
+  
+  Tcl_Obj * CONST *objvorig = objv; /* backup copy */
+  
   /* skip program name */
   objc--; objv++;
 
   va_start( ap, objv );
 
-  for ( pos=1; 0 != (type = va_arg( ap, int )); objc--, objv++, pos++ ) {
-
+  for ( pos=1; TP_END != (type = va_arg( ap, int )); objc--, objv++, pos++ ) {
     /* process control args */
     if ( TP_VARARGS   == type ) { va_end( ap ); return TCL_OK; }
     if ( TP_OPTIONAL  == type ) { optional = 1; continue; }
@@ -142,7 +161,7 @@ int TPtr_CheckArgs( Tcl_Interp *ip, int objc, Tcl_Obj *(objv[]), ... ) {
   }
 
   if ( objc ) /* too many args */
-    CHCKARGSERR( "too many arguments given" ); 
+    CHCKARGSERR( "too many arguments" ); 
 
   va_end( ap );
 

@@ -44,6 +44,7 @@ void TPtr_RegType( int type, const char *name );
 #define TP_PTR       -3    /* any TPtr is allowed */
 
 /* More predefined types, which are actually instructions for TPtr_CheckArgs */
+#define TP_END       -1111 /* end of argument list */
 #define TP_ANY       -10   /* allow anything: argument isn't touched. */
 #define TP_VARARGS   -11   /* allow arbitrary args from this point on */
 #define TP_OPTIONAL  -100  /* following args are optional */
@@ -53,7 +54,7 @@ void TPtr_RegType( int type, const char *name );
  * types given as extra args. On failure it leaves an error message 
  * in ip's result variable. 
  */
-int TPtr_CheckArgs( Tcl_Interp *ip, int objc, Tcl_Obj *(objv[]), ... );
+int TPtr_CheckArgs( Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[], ... );
 
 #endif
 
