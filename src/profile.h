@@ -16,7 +16,8 @@
 
 #include "prime.h"
 
-#define NALG 9
+/* here NPRO is the maximum length of exponent sequences: */
+#define NPRO 9
 
 /* the following data type is the core of several other types:
  * profiles, subalgebras, extmonos. It consists of an exponent 
@@ -24,22 +25,53 @@
 
 typedef struct {
     int edat;
-    int rdat[NALG];
+    int rdat[NPRO];
 } procore;
 
-/* a profile */
+/* extended monomials [= monomials with a few helper fields] */
 typedef struct {
     procore core; 
+    int errdeg; 
+    int totdeg;
+    int remdeg;
+    int extdeg;
+} exmon; 
+
+/* the profile of a sub Hopf-algebra */
+typedef struct {
+    procore core;
 } profile;
 
-/* description of a sub Hopf-algebra */
+/* information that's needed by the seqno routine */
 typedef struct {
-    procore core;     
-} subalg;
+    int maxdim;    /* maximal dimension for the tables below */
+    int *(dimtab[NPRO+1]); 
+    int *(seqtab[NPRO+1]);
+} seqnoInfo;
 
-/* extended monomials [= monomials with some (invisible) extra stuff] */
+/* The environment for enumeration purposes: we have two nested sub 
+ * Hopf-algebras *pro <= *alg and the assumption is that enumeration 
+ * is restricted to elements of *alg that have a fixed *pro signature. */
 typedef struct {
-    procore core;     
-} emon; 
+    primeInfo *pi;  
+    profile *alg;
+    profile *pro;
+    profile *seqnoInfo;
+} enumEnv;
+
+/* constructor & destructor */
+enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro);
+void disposeEnumEnv(enumEnv *env);
+
+seqnoInfo *createSeqno(primeInfo *pi, profile *alg, profile *pro, int maxdim);
+void disposeSeqno(seqnoInfo *s);
+
+/* enumeration of exmons of a given degree */
+int firstExmon(exmon *ex, enumEnv *env, int deg);
+int nextExmon(exmon *ex, enumEnv *env, int deg);
+
+/* enumeration again, this time restricted to the reduced part */
+int firstRedmon(exmon *ex, enumEnv *env, int deg);
+int nextRedmon(exmon *ex, enumEnv *env);
 
 #endif

@@ -169,3 +169,11 @@ cint random_cint(cint prime) {
     return (cint) rint;
 }
 
+int extdeg(primeInfo *pi, int msk) {
+    int res=0, i=pi->N, wrk=1<<i;
+    while (i--,wrk>>=1) 
+        if (0 != (wrk&msk))
+            res += pi->extdegs[i];
+    return res;
+}
+

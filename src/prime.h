@@ -57,4 +57,7 @@ cint random_cint(cint max);
 /* compute binomial "l over m" mod pi->prime */
 cint binomp(primeInfo *pi, int l, int m);
 
+/* return degree of msk with respect to pi->extdegs */
+int extdeg(primeInfo *pi, int msk);
+
 #endif

@@ -17,7 +17,9 @@ NOTANGLE = notangle
 NOWEAVE  = noweave
 
 NOWEBFILES = 
-SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c tpoly.c
+SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c \
+       tpoly.c profile.c
+
 OBJS = $(SRCS:.c=.o)
 
 LIBS = libtlin.so libtprime.so libtptrtest.so libtpoly.so
@@ -79,3 +81,4 @@ tprime.o: tprime.h tptr.h prime.h
 tptr.o: tptr.h
 tptrtest.o: tptr.h
 tpoly.o: tptr.h tpoly.h tprime.h poly.h prime.h
+profile.o: ./profile.h prime.h
