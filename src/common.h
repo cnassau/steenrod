@@ -14,10 +14,6 @@
 #ifndef COMMON_DEF
 #define COMMON_DEF
 
-#if 0
-#   include <mcheck.h>
-#endif
-
 #include <assert.h>
 
 /* namespaces */
@@ -32,30 +28,9 @@
 #define FAILUNTRUE      4  /* another word for "no" */
 
 #define DONT_USE_TCL_ALLOC 
-#define DONT_USE_VERB_ALLOC 
-
-#define vbfile stderr
-
-#define vbping \
-({ fprintf(vbfile,"MDBG P alive (" __FILE__ ", " TOSTRING(__LINE__) ")\n"); \
-fflush(vbfile); })
-#define vbfree(p) \
-({ if (1) fprintf(vbfile,"MDBG F %p (" __FILE__ ", " TOSTRING(__LINE__) ")\n",p); fflush(vbfile); free(p); vbping; })
-#define vbmalloc(s) \
-({ size_t _sz = (s); void *_res = malloc(_sz); \
-if (NULL == _res) fprintf(vbfile,"MDBG X %u bytes failed\n", (unsigned) _sz); \
-if (1) fprintf(vbfile,"MDBG M at %p for %u bytes (" __FILE__ ", " TOSTRING(__LINE__)")\n",_res, (unsigned) _sz); \
-fflush(vbfile); _res ;})
 
 /* allocation wrappers */
 #ifndef mallox 
-#  ifdef USE_VERB_ALLOC
-#    include <stdio.h>
-#    define mallox(s)    vbmalloc(s)
-#    define callox(n,s)  calloc(n,s)
-#    define reallox(p,s) realloc(p,s)
-#    define freex(p)     vbfree(p) 
-#  else 
 #    ifdef USE_TCL_ALLOC
 #      include <tcl.h>
 #      define mallox(s)    ((void *) ckalloc(s))
@@ -70,7 +45,6 @@ if (_res) memset(_res, 0,_sz); (void *) _res; })
 #      define reallox(p,s) realloc(p,(s))
 #      define freex(p)     free(p) 
 #    endif
-#  endif
 #endif
 
 #define MIN(x,y) (((x)>(y)) ? (y) : (x))
