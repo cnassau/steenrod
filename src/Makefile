@@ -68,7 +68,7 @@ libtprofile.so: tprime.o tptr.o prime.o profile.o tprofile.o
 	$(LINKSTUB) -o libtprofile.so tprime.o tptr.o prime.o profile.o tprofile.o 
 
 clean:
-	$(RM) $(OBJS) $(LIBS) *~  2> /dev/null
+	$(RM) $(OBJS) $(LIBS) *~ *.bak 2> /dev/null
 
 reformat:
 	refmt.sh *.c *.h 
