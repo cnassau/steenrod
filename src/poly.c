@@ -163,9 +163,9 @@ int PLappendPoly(polyType *dtp, void *dst,
 }
 
 int PLcollectCoeffs(polyType *type, void *self, const exmo *ex, 
-                    int *rval, int mod) {
+                    int *rval, int mod, int flags) {
     if (NULL != type->collectCoeffs)
-        return (type->collectCoeffs)(self, ex, rval, mod);
+        return (type->collectCoeffs)(self, ex, rval, mod, flags);
     
     assert(NULL == "collectCoeff not fully implemented");
     return SUCCESS;
@@ -343,9 +343,11 @@ int stdScaleMod(void *self, int scale, int modulo) {
     return SUCCESS;
 }
 
-int stdCollectCoeffs(void *self, const exmo *e, int *coeff, int mod) {
+int stdCollectCoeffs(void *self, const exmo *e, int *coeff, int mod, int flags) {
     stp *s = (stp *) self;
     const exmo *w,*b,*t;
+    if (0 == (flags & PLF_ALLOWMODIFY)) 
+        return FAILIMPOSSIBLE;
     stdSort(self);
     *coeff = 0;
     if (NULL == (w = bsearch(e,s->dat,s->num,sizeof(exmo),compareExmo))) 

@@ -98,7 +98,8 @@ typedef struct polyType {
     int (*collectCoeffs)(void *self,
                          const exmo *e,
                          int *coeff,
-                         int mod); /* determine coefficient of e modulo mod */
+                         int mod, 
+                         int flags); /* determine coefficient of e modulo mod */
 
     int (*test)(void *self, pprop p);  /* test for property */ 
 
@@ -131,6 +132,9 @@ typedef struct polyType {
 
 } polyType;
 
+/* Some flags values */
+#define PLF_ALLOWMODIFY 1  /* modification allowed */
+
 /* wrappers for the polyType member functions; these check whether 
  * the member function is non-zero, and try to use work-arounds if 
  * a method is not implemented */
@@ -145,7 +149,7 @@ int   PLtest(polyType *tp1, void *pol1, pprop prop);
 int   PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *result);
 int   PLgetExmo(polyType *type, void *self, exmo *exmo, int index);
 int   PLcollectCoeffs(polyType *type, void *self, const exmo *exmo, 
-                      int *rval, int mod);
+                      int *rval, int mod,int flags);
 int   PLappendExmo(polyType *dtp, void *dst, exmo *e);
 int   PLappendPoly(polyType *dtp, void *dst, 
                    polyType *stp, void *src,                      
