@@ -295,84 +295,15 @@ typedef struct {
     int numSummands, numAlloc; 
     hmap_summand **summands;
 
+    /* restrictions */
+    hmap_summand *restrictions;
+
+    /* callback */
+    int (*callback)(void *self);
+    void *callbackdata1;
+    void *callbackdata2;
+
 } hmap;
-
-#if 0
-
-void hmapWorkerFunc(hmap *hm, int modval) {
-    
-    hmap_summand *current, *last, *workptr;
-
-    int NM = hm->numMono, NI, hm->numInt, i;
-
-    current = hm->summands; 
-    last = hm->summands + hm->numSummands;
-
-    /* initialize first partial product to zero: */
-    
-    clearExmo(&(current->source));
-    clearTensor(&(current->pardat));
-
-    while (1) {
-
-        /* We have just increased previous->value, so reset all 
-         * following values. */
-        
-        for (workptr = current; workptr < last; workptr++) 
-            workptr->value = 0;
-        
-        
-        next = current + 1;
-
-        clearExmo(&(next->source));
-        clearTensor(&(next->pardat));
-
-        for (current->value = 0; current->value <= current->maxvalue;) {
-
-            /* go to next value */
-
-            current->value += current->quant;
-            if (current->value > current->maxval) 
-                break;
-            
-            
-            multTensor(&(next->pardat),&(current->sumdat), NM, NI, modval);
-
-            /* find binomial coefficient */
-
-            
-            bin = binom();
-            
-        }
-        
-        /* Increase current->value and go to next summand */
-
-    }
-
-}
-
-
-#endif
-
-int hmapGrow(hmap *hm, int newSumnum) {
-    hmap_summand **new;
-
-    newSumnum++; /* we always need space for one extra summand at the end */
-
-    if (newSumnum <= hm->numAlloc)
-        return SUCCESS;
-    
-    if (newSumnum <= hm->numAlloc+30) 
-        newSumnum = hm->numAlloc+30;
-    
-    if (NULL == (new = reallox(hm->summands, newSumnum * sizeof(hmap_summand *))))
-        return FAILMEM;
-    
-    hm->summands = new;
-    hm->numAlloc = newSumnum;
-
-    return SUCCESS;
-}
 
 void hmapTclTensor(hmap_tensor *h, 
                        Tcl_Obj **a, Tcl_Obj **b, 
@@ -399,6 +330,48 @@ void hmapTclTensor(hmap_tensor *h,
         *b = Tcl_NewListObj(numInt, lst);
         freex(lst);
     }    
+}
+
+int stdTclCallback(void *self) {
+    hmap *hm = (hmap *) self;
+    hmap_summand *result = hm->summands[hm->numSummands];
+    Tcl_Obj *(command[4]);
+    Tcl_Interp *ip = (Tcl_Interp *) hm->callbackdata1;
+    int retval;
+
+    command[0] = (Tcl_Obj *) hm->callbackdata2;
+    command[1] = Tcl_NewExmoCopyObj(&(result->source));
+    hmapTclTensor(&(result->pardat),&(command[2]),&(command[3]),hm->numMono,hm->numInt);
+
+    INCREFCNT(command[1]);
+    INCREFCNT(command[2]);
+    
+    retval = Tcl_EvalObjv(ip, 4, command, 0);
+
+    DECREFCNT(command[1]);
+    DECREFCNT(command[2]);
+
+    return retval;
+}
+
+int hmapGrow(hmap *hm, int newSumnum) {
+    hmap_summand **new;
+
+    newSumnum++; /* we always need space for one extra summand at the end */
+
+    if (newSumnum <= hm->numAlloc)
+        return SUCCESS;
+    
+    if (newSumnum <= hm->numAlloc+30) 
+        newSumnum = hm->numAlloc+30;
+    
+    if (NULL == (new = reallox(hm->summands, newSumnum * sizeof(hmap_summand *))))
+        return FAILMEM;
+    
+    hm->summands = new;
+    hm->numAlloc = newSumnum;
+
+    return SUCCESS;
 }
 
 Tcl_Obj *hmapTclSummand(hmap_summand *h, int numMono, int numInt) {
@@ -434,25 +407,16 @@ Tcl_Obj *hmapTclListing(hmap *hm) {
     return res;
 }
 
-int hmapAddSummand(hmap *hm, Tcl_Interp *ip, Tcl_Obj *obj) {
-    
+int hmapParseSummand(hmap *hm, hmap_summand *nsum,  Tcl_Interp *ip, Tcl_Obj *obj) {
+        
     int cnt, aux;
- 
     Tcl_Obj **lst;
-    hmap_summand *nsum;
+
     char *usage = "wrong format, expected "
         "'E/R <idx> <source> <coeff> <monomial slots> <integer slots> ?<quant>? ?<maxval>?'";
-    
-    if (SUCCESS != hmapGrow(hm, hm->numSummands+1))
-        RETERR("Out of memory");
-
-    if (NULL == (nsum = allocSummand(hm->numMono, hm->numInt))) 
-        RETERR("Out of memory");
 
 #define RETERR2(x) { freeSummand(nsum); RETERR(x); }
 #define RETERR3 { freeSummand(nsum); return TCL_ERROR; }
-
-    hm->summands[hm->numSummands] = nsum;
 
     if (TCL_OK != Tcl_ListObjGetElements(ip, obj, &cnt, &lst))
         return TCL_ERROR;
@@ -504,10 +468,106 @@ int hmapAddSummand(hmap *hm, Tcl_Interp *ip, Tcl_Obj *obj) {
     if (cnt >= 9)
         RETERR2(usage);
 
+    return TCL_OK;    
+}
+
+int hmapAddSummand(hmap *hm, Tcl_Interp *ip, Tcl_Obj *obj) {
+
+    hmap_summand *nsum;
+    
+    if (SUCCESS != hmapGrow(hm, hm->numSummands+1))
+        RETERR("Out of memory");
+
+    if (NULL == (nsum = allocSummand(hm->numMono, hm->numInt))) 
+        RETERR("Out of memory");
+
+    hm->summands[hm->numSummands] = nsum;
+
+    if (TCL_OK != hmapParseSummand(hm, nsum, ip, obj))
+        RETERR3;
+
     hm->numSummands++;
     
     return TCL_OK;
 }
+
+int hmapSelectFunc(hmap *hm, Tcl_Interp *ip, Tcl_Obj *rest, Tcl_Obj *callback) {
+    
+
+    if (TCL_OK != hmapParseSummand(hm, hm->restrictions, ip, rest))
+        return TCL_ERROR;
+
+    hm->callback = stdTclCallback;
+    hm->callbackdata1 = ip;
+    hm->callbackdata2 = callback;
+
+    
+
+    return TCL_OK;
+}
+
+#if 0
+
+void handleSummand(hmap *hm, int numsum) {
+    
+    
+
+
+
+}
+
+void hmapWorkFunc(hmap *hm, int modval) {
+    
+    hmap_summand *current, *last, *workptr;
+
+    int NM = hm->numMono, NI, hm->numInt, i;
+
+    current = hm->summands; 
+    last = hm->summands + hm->numSummands;
+
+    /* initialize first partial product to zero: */
+    
+    clearExmo(&(current->source));
+    clearTensor(&(current->pardat));
+
+    while (1) {
+
+        /* We have just increased previous->value, so reset all 
+         * following values. */
+        
+        for (workptr = current; workptr < last; workptr++) 
+            workptr->value = 0;
+        
+        
+        next = current + 1;
+
+        clearExmo(&(next->source));
+        clearTensor(&(next->pardat));
+
+        for (current->value = 0; current->value <= current->maxvalue;) {
+
+            /* go to next value */
+
+            current->value += current->quant;
+            if (current->value > current->maxval) 
+                break;
+            
+            
+            multTensor(&(next->pardat),&(current->sumdat), NM, NI, modval);
+
+            /* find binomial coefficient */
+
+            
+            bin = binom();
+            
+        }
+        
+        /* Increase current->value and go to next summand */
+
+    }
+
+}
+#endif
 
 hmap *hmapCreate(int numMono, int numInt) {
     hmap *res = mallox(sizeof(hmap));
@@ -522,6 +582,11 @@ hmap *hmapCreate(int numMono, int numInt) {
     res->numAlloc = res->numSummands = 0;
     res->summands = NULL;
 
+    if (NULL == (res->restrictions = allocSummand(numMono, numInt))) {
+        freex(res);
+        return NULL;
+    }
+
     hmapGrow(res, 0); /* make sure there's space for the extra summand */
 
     return res;
@@ -535,6 +600,7 @@ void hmapDestroy(hmap *hm) {
             freeSummand(hm->summands[i]);
             freex(hm->summands[i]);
         }
+        freex(hm->restrictions);
         freex(hm->summands);
     }
 
@@ -543,11 +609,11 @@ void hmapDestroy(hmap *hm) {
 
 /**** TCL INTERFACE **********************************************************/
 
-typedef enum { ADD, LIST } hmapcmdcode;
+typedef enum { ADD, LIST, SELECT } hmapcmdcode;
 
-static CONST char *cmdNames[] = { "add", "list", (char *) NULL };
+static CONST char *cmdNames[] = { "add", "list", "select", (char *) NULL };
 
-static hmapcmdcode cmdmap[] = { ADD, LIST };
+static hmapcmdcode cmdmap[] = { ADD, LIST, SELECT };
 
 int Tcl_HmapWidgetCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
@@ -571,6 +637,14 @@ int Tcl_HmapWidgetCmd(ClientData cd, Tcl_Interp *ip,
                 return TCL_ERROR;
             }
             return hmapAddSummand(hm,ip,objv[2]);
+
+        case SELECT:
+            if (objc != 4) {
+                Tcl_WrongNumArgs(ip, 2, objv, "<restrictions> <callback>");
+                return TCL_ERROR;
+            }
+            
+            return hmapSelectFunc(hm, ip, objv[2], objv[3]);
 
         case LIST:
             if (objc != 2) {
