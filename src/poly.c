@@ -20,6 +20,9 @@
 
 #define LOGSTD(msg) if (0) printf("stdpoly::%s\n", msg) 
 
+#define LOGPL(func) if (0) printf(#func) 
+#define LOGPLFMT(func,fmt,dat) if (0) printf( #func ": " fmt "\n", dat) 
+
 /**** extended monomials ***********************************************************/
 
 int exmoGetLen(exmo *e) {
@@ -101,6 +104,7 @@ int PLgetLength(polyType *type, void *poly) {
 }
 
 void PLfree(polyType *type, void *poly) { 
+    LOGPLFMT(PLfree,"poly=%p",poly);
     CALLIFNONZERO1(type->free,poly); 
 }
 
@@ -114,6 +118,7 @@ void *PLcreate(polyType *type) {
     void *res = NULL;
     if (NULL != type->createCopy) 
         res = (type->createCopy)(NULL);
+    LOGPLFMT(PLcreate,"res=%p",res); 
     return res;
 }
 
@@ -183,7 +188,7 @@ typedef struct {
 
 int stdGetInfo(void *src, polyInfo *pli) {
     stp *s = (stp *) src;
-    pli->name = "standard";
+    pli->name = "expanded";
     pli->bytesAllocated = sizeof(stp) + (s->nalloc * sizeof(exmo));
     pli->bytesUsed      = sizeof(stp) + (s->num * sizeof(exmo));
     return SUCCESS;
@@ -205,11 +210,19 @@ void *stdCreateCopy(void *src) {
     return n;
 }
 
+#define DEADPTR ((exmo *) 0xffdeadff)
+
 void stdFree(void *self) { 
     stp *s = (stp *) self;
-    LOGSTD("Free");
-    if (s->nalloc) { s->nalloc = s->num = 0; free(s->dat); }
-    free(s);
+    LOGSTD("Free"); 
+    printf("nalloc = 0x%x, num = 0x%x, dat = %p\n",s->nalloc,s->num,s->dat);
+    if (s->nalloc) { 
+        s->nalloc = s->num = 0;
+        if (DEADPTR == s->dat) assert(NULL == "stdpoly data freed twice!");
+        free(s->dat); 
+        s->dat = DEADPTR;
+    }
+    free(s); 
 }
 
 void stdSwallow(void *self, void *other) { 
@@ -392,6 +405,7 @@ void *PLcreateStdCopy(polyType *type, void *poly) {
 
 void *PLcreateCopy(polyType *newtype, polyType *type, void *poly) {
     stp *res;
+    LOGPLFMT(PLcreateCopy, "orig at %p",poly);
     if (newtype == type) 
         return (newtype->createCopy)(poly);
     if (NULL == (res = (newtype->createCopy)(NULL)))
@@ -499,7 +513,7 @@ int PLsteenrodMultiply(polyType **rtp, void **res,
     if ((0 == (flen = PLgetLength(fftp,ff)))
         || (0 == (slen = PLgetLength(sftp,sf)))) {
         *rtp = stdpoly; 
-        *res = stdCreateCopy(NULL);
+        *res = PLcreate(*rtp);
         return SUCCESS;
     }
 
@@ -507,7 +521,7 @@ int PLsteenrodMultiply(polyType **rtp, void **res,
     if (fneg && sneg) return FAILIMPOSSIBLE;
     
     *rtp = stdpoly; 
-    *res = stdCreateCopy(NULL);
+    *res = PLcreate(*rtp);
     stdAddProductToPoly(*rtp, *res, fftp, ff, sftp, sf, pi, pro, fpos, spos);
 
     PLcancel(*rtp, *res, pi->prime);

@@ -165,6 +165,10 @@ int Tcl_ConvertToPoly(Tcl_Interp *ip, Tcl_Obj *obj) {
     return Tcl_ConvertToType(ip, obj, &tclPoly);
 }
 
+#define DBGPOLY if (1)
+#define LOGPOLY(obj) DBGPOLY printf("  typePtr = %p, polyPtr = %p\n", PTR1(obj), PTR2(obj)); 
+
+
 int Tcl_ObjIsPoly(Tcl_Obj *obj) { return &tclPoly == obj->typePtr; }
 
 polyType *polyTypeFromTclObj(Tcl_Obj *obj) { return (polyType *) PTR1(obj); }
@@ -176,6 +180,7 @@ Tcl_Obj *Tcl_NewPolyObj(polyType *tp, void *data) {
     PTR2(res) = data;
     res->typePtr = &tclPoly;
     Tcl_InvalidateStringRep(res);
+    DBGPOLY printf("Tcl_NewPolyObj: created poly obj at %p, data at %p\n",res,data);
     return res;
 }
 
@@ -194,6 +199,8 @@ Tcl_Obj *Tcl_NewListFromPoly(Tcl_Obj *obj) {
 
 /* free internal representation */
 void PolyFreeInternalRepProc(Tcl_Obj *obj) {
+    DBGPOLY printf("PolyFreeInternalRepProc obj = %p\n",obj);
+    LOGPOLY(obj);
     PLfree((polyType *) PTR1(obj),PTR2(obj));
 }
 
@@ -202,6 +209,7 @@ int PolySetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     int objc, i;
     void *pol;
     Tcl_Obj **objv;
+    DBGPOLY printf("PolySetFromAnyProc obj = %p\n",objPtr);
     if (TCL_OK != Tcl_ListObjGetElements(ip, objPtr, &objc, &objv))
         return TCL_ERROR;
     for (i=0;i<objc;i++)
@@ -221,19 +229,26 @@ int PolySetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     PTR2(objPtr) = pol;
     objPtr->typePtr = &tclPoly;
 
+    LOGPOLY(objPtr);
+
     return TCL_OK;
 }
 
 /* recreate string representation */
 void PolyUpdateStringProc(Tcl_Obj *objPtr) {
+    DBGPOLY printf("PolyUpdateStringProc obj = %p\n",objPtr);
+    LOGPOLY(objPtr);
     copyStringRep(objPtr, Tcl_NewListFromPoly(objPtr));
 }
 
 /* create copy */
 void PolyDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     polyType *stp = (polyType *) PTR1(srcPtr);
+    DBGPOLY printf("PolyDupInternalRepProc src = %p, dup = %p\n",srcPtr, dupPtr);
+    LOGPOLY(srcPtr);
     PTR1(dupPtr) = (void *) stp;
-    PTR2(dupPtr) = (stp->createCopy)(PTR2(srcPtr));
+    PTR2(dupPtr) = PLcreateCopy(stp,stp,PTR2(srcPtr));
+    DBGPOLY printf("dupPtr poly now at %p\n", PTR2(dupPtr));
     dupPtr->typePtr = &tclPoly;
 }
 
@@ -242,6 +257,7 @@ void PolyDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
 /* for some functions we need to convert the type first */
 Tcl_Obj *Tcl_PolyObjConvert(Tcl_Obj *obj, polyType *newtype) {
     void *aux;
+    DBGPOLY printf("Tcl_PolyObjConvert obj = %p\n", obj);
     if (PTR1(obj) == newtype) return obj;
     if (Tcl_IsShared(obj)) 
         obj = Tcl_DuplicateObj(obj);
