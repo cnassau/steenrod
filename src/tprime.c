@@ -86,7 +86,7 @@ int tPrInfo(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     
 #define RETURNINT(rval) Tcl_SetObjResult(ip,Tcl_NewIntObj(rval)); return TCL_OK
 #define RETURNLIST(list,len) \
-Tcl_SetObjResult(ip,Tcl_ListFromArray(list,len)); return TCL_OK
+Tcl_SetObjResult(ip,Tcl_ListFromArray(len,list)); return TCL_OK
 
     switch (cdi) {
     case CD_BINOM: RETURNINT(binomp(pi, a, b)) ;
