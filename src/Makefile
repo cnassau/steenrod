@@ -8,7 +8,7 @@
 # it under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
 
-CC      = gcc
+CC      = gcc -fPIC
 CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS 
 
 TCLDIR = /home/cn/selfmade-tcl/include/
@@ -18,7 +18,7 @@ NOWEAVE  = noweave
 
 SRCS = adlin.c  linalg.c  prime.c  tlin.c  tprime.c  tptr.c  tptrtest.c
 
-.PHONY: depend all
+.PHONY: depend all clean
 
 %.c : %.nw
 	$(NOTANGLE) -L -R$*.c $(NOWEBFILES) > $*.c
@@ -48,6 +48,9 @@ libtprime.so: tprime.o tptr.o prime.o
 
 libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o
 	cc -shared -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
+
+clean:
+	rm *.o *.so
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 
