@@ -83,15 +83,15 @@ int mapsumCompFunc(const void *aa, const void *bb) {
     return 0;
 }
 
-mapgenimage *mapgenimageCreate(void) {
-    mapgenimage *res = malloc(sizeof(mapgenimage));
+mapgen *mapgenCreate(void) {
+    mapgen *res = malloc(sizeof(mapgen));
     if (NULL == res) return NULL;
     res->num = res->alloc = 0; 
     res->dat = NULL;
     return res;
 }
 
-int mapgenimageRealloc(mapgenimage *mim, int nalloc) {
+int mapgenRealloc(mapgen *mim, int nalloc) {
     mapsum *ndat; 
     if (nalloc < mim->num) nalloc = mim->num;
     ndat = realloc(mim->dat, nalloc * sizeof(mapsum)); 
@@ -100,7 +100,7 @@ int mapgenimageRealloc(mapgenimage *mim, int nalloc) {
     return SUCCESS;
 }
   
-void mapgenimageDestroy(mapgenimage *mim) {
+void mapgenDestroy(mapgen *mim) {
     int i;
     for (i=mim->num;i--;)
         mapsumDestroy(&(mim->dat[i]));
@@ -108,7 +108,7 @@ void mapgenimageDestroy(mapgenimage *mim) {
         free(mim->dat);
 }
 
-mapsum *mapgenimageAddSum(mapgenimage *mpi, int id, int edat) {
+mapsum *mapgenAddSum(mapgen *mpi, int id, int edat) {
     mapsum aux, *res;
     aux.gen = id;
     aux.edat = edat;
@@ -124,9 +124,9 @@ map *mapCreate(void) {
 }
 
 int mapRealloc(map *mp, int nalloc) {
-    mapgenimage *mpi;
+    mapgen *mpi;
     if (nalloc < mp->num) nalloc = mp->num;
-    mpi = realloc(mp->dat, nalloc * sizeof(mapgenimage));
+    mpi = realloc(mp->dat, nalloc * sizeof(mapgen));
     if (NULL == mpi) return FAILMEM;
     mp->dat = mpi;
     mp->alloc = nalloc;
@@ -136,34 +136,34 @@ int mapRealloc(map *mp, int nalloc) {
 void mapDestroy(map *mp) {
     int i;
     for (i=mp->num;i--;) 
-        mapgenimageDestroy(&(mp->dat[i]));
+        mapgenDestroy(&(mp->dat[i]));
     if (mp->alloc) 
         free(mp->dat);
     free(mp);
 }
 
-int compareMapGenById(const mapgenimage *a, const mapgenimage *b) {
+int compareMapGenById(const mapgen *a, const mapgen *b) {
     return a->id - b->id;
 }
 
 int mpgSortFunc (const void *aa, const void *bb) {
-    return compareMapGenById((const mapgenimage *)aa, (const mapgenimage *)bb);
+    return compareMapGenById((const mapgen *)aa, (const mapgen *)bb);
 } 
 
-mapgenimage *mapFindGen(map *mp, int id) {
-    mapgenimage aux, *res;
+mapgen *mapFindGen(map *mp, int id) {
+    mapgen aux, *res;
     aux.id = id;
-    res = bsearch(&aux, mp->dat, mp->num, sizeof(mapgenimage), mpgSortFunc);
+    res = bsearch(&aux, mp->dat, mp->num, sizeof(mapgen), mpgSortFunc);
     return res;
 }
 
 int mapAddGen(map *mp, int id) {
-    mapgenimage *res;
+    mapgen *res;
     if (mp->num == mp->alloc) 
         mapRealloc(mp, mp->num + 10);
     res = &(mp->dat[mp->num++]);
-    mapgenimageInit(res);
+    mapgenInit(res);
     res->id = id;
-    qsort(mp->dat, mp->num, sizeof(mapgenimage), mpgSortFunc);
+    qsort(mp->dat, mp->num, sizeof(mapgen), mpgSortFunc);
     return SUCCESS;
 }

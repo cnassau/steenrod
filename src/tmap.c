@@ -60,7 +60,7 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
     MapCmdCode cdi = (MapCmdCode) cd;
 
     map *mp;
-    mapgenimage *mpg;
+    mapgen *mpg;
 
     int privateInt, ivar1, ivar2, ivar3;
 
@@ -102,27 +102,27 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
             return TCL_OK;
         case GEN_SETIDEGREE:
             ENSUREARGS2(TP_MAPGEN, TP_INT);
-            mpg = (mapgenimage *) TPtr_GetPtr(objv[1]);
+            mpg = (mapgen *) TPtr_GetPtr(objv[1]);
             GETINT(objv[2],ivar1);
             mpg->ideg = ivar1;
             return TCL_OK;            
         case GEN_SETEDEGREE:
             ENSUREARGS2(TP_MAPGEN, TP_INT);
-            mpg = (mapgenimage *) TPtr_GetPtr(objv[1]);
+            mpg = (mapgen *) TPtr_GetPtr(objv[1]);
             GETINT(objv[2],ivar1);
             mpg->edeg = ivar1;
             return TCL_OK;            
         case GEN_GETIDEGREE:
             ENSUREARGS1(TP_MAPGEN); 
-            mpg = (mapgenimage *) TPtr_GetPtr(objv[1]);
+            mpg = (mapgen *) TPtr_GetPtr(objv[1]);
             RETINT(mpg->ideg);
         case GEN_GETEDEGREE:
             ENSUREARGS1(TP_MAPGEN); 
-            mpg = (mapgenimage *) TPtr_GetPtr(objv[1]);
+            mpg = (mapgen *) TPtr_GetPtr(objv[1]);
             RETINT(mpg->edeg);
         case GEN_GETID:
             ENSUREARGS1(TP_MAPGEN); 
-            mpg = (mapgenimage *) TPtr_GetPtr(objv[1]);
+            mpg = (mapgen *) TPtr_GetPtr(objv[1]);
             RETINT(mpg->id);
         case GEN_INFO:
             return TCL_OK;

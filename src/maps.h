@@ -39,16 +39,16 @@ typedef struct {
     int num;         /* number of used mapsum's */
     int alloc;       /* number of allocated mapsum's */
     mapsum *dat; 
-} mapgenimage;
+} mapgen;
 
 /* number of mapsum to add if we run out of space */
 #define MAPGROWSTEP 100
 
-/* finally, the map is a collection of mapgenimage's */
+/* finally, the map is a collection of mapgen's */
 typedef struct {
     int num; 
     int alloc;
-    mapgenimage *dat;
+    mapgen *dat;
 } map;
 
 void mapsumInit(mapsum *mps);
@@ -56,15 +56,15 @@ void mapsumDestroy(mapsum *mp);
 int mapsumSetlen(mapsum *mp, int len);
 int mapsumRealloc(mapsum *mp, int nalloc);
 
-void mapgenimageInit(mapgenimage *mpi);
-int mapgenimageRealloc(mapgenimage *mim, int nalloc);
-void mapgenimageDestroy(mapgenimage *mim);
+void mapgenInit(mapgen *mpi);
+int mapgenRealloc(mapgen *mim, int nalloc);
+void mapgenDestroy(mapgen *mim);
 
 map *mapCreate(void);
 int mapRealloc(map *mp, int nalloc);
 void mapDestroy(map *mp);
 
-mapgenimage *mapFindGen(map *mp, int id);
+mapgen *mapFindGen(map *mp, int id);
 int mapAddGen(map *mp, int id);
 
 #endif
