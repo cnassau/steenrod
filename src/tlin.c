@@ -279,24 +279,35 @@ Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft,
     int krows, kcols, irows, icols;
     void *rdat;
     progressInfo pro;
+
     /* since we cannibalize lft, it must not be shared */
     if (Tcl_IsShared(lft))
         assert(NULL == "lft must not be shared in Tcl_OrthoCmd!");
-    if ((NULL == (mt->liftFunc)) || (mt != mt2)) {
+
+    if ((NULL == (mt->liftFunc)) || (mt != mt2)) 
         assert(NULL == "lift computation not fully implemented");
-    }
+
+    /* Note: a matrix with 0 rows does not have a well defined number 
+     * of columns, since the string representation is always {}. So
+     * we must only complain if (krows != 0). */
+
     Tcl_MatrixGetDimensions(ip, lft, &krows, &kcols);
     Tcl_MatrixGetDimensions(ip, inp, &irows, &icols);
+    if (krows == 0) kcols = icols;
     if (kcols != icols) {
         Tcl_SetResult(ip, "inconsistent dimensions", TCL_STATIC);
         return NULL;
     }
+
     pro.ip = ip;
     pro.progvar = progvar;
     pro.pmsk = pmsk;
+
     Tcl_InvalidateStringRep(lft);
     rdat = (mt->liftFunc)(pi, PTR2(inp), PTR2(lft), (NULL != progvar) ? &pro : NULL);
+
     if (NULL == rdat) return NULL;
+
     return Tcl_NewMatrixObj(mt, rdat);
 }
 
@@ -305,23 +316,33 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp,
     matrixType *mt = PTR1(inp), *mt2 = PTR1(ker);
     int krows, kcols, irows, icols;
     progressInfo pro;
+
     /* since we cannibalize ker, it must not be shared */
     if (Tcl_IsShared(ker))
         assert(NULL == "ker must not be shared in Tcl_QuotCmd!");
-    if ((NULL == (mt->quotFunc)) || (mt != mt2)) {
+
+    if ((NULL == (mt->quotFunc)) || (mt != mt2)) 
         assert(NULL == "quotient computation not fully implemented");
-    }
+
+    /* Note: a matrix with 0 rows does not have a well defined number 
+     * of columns, since the string representation is always {}. So
+     * we must only complain if (irows != 0). */
+
     Tcl_MatrixGetDimensions(ip, ker, &krows, &kcols);
     Tcl_MatrixGetDimensions(ip, inp, &irows, &icols);
+    if (irows == 0) icols = kcols;
     if (kcols != icols) {
         Tcl_SetResult(ip, "inconsistent dimensions", TCL_STATIC);
         return TCL_ERROR;
     }
+
     pro.ip = ip;
     pro.progvar = progvar;
     pro.pmsk = pmsk;
+
     Tcl_InvalidateStringRep(ker);
     (mt->quotFunc)(pi, PTR2(ker), PTR2(inp), (NULL != progvar) ? &pro : NULL);
+
     return TCL_OK;
 }
 
@@ -330,19 +351,27 @@ Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp,
     matrixType *mt = PTR1(inp);
     progressInfo pro;
     void *res;
+
     /* since we cannibalize inp, it must not be shared */
     if (Tcl_IsShared(inp))
         assert(NULL == "inp must not be shared in Tcl_OrthoCmd!");
+
     if (NULL == (mt->orthoFunc)) {
         assert(NULL == "orthonormalization not fully implemented");
     }
+
     pro.ip = ip;
     pro.progvar = progvar;
     pro.pmsk = pmsk;
+
     if (NULL != mt->reduce) (mt->reduce)(PTR2(inp), pi->prime);
+
     res = (mt->orthoFunc)(pi, PTR2(inp), (NULL != progvar) ? &pro : NULL);
+
     if (NULL == res) return NULL;
+
     Tcl_InvalidateStringRep(inp);
+
     return Tcl_NewMatrixObj(mt, res);
 }
 
