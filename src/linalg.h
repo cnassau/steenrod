@@ -52,6 +52,7 @@ int  matrix_resize(matrix *m, int newrows); /* reallocate space */
 void matrix_randomize(matrix *m, cint prime);
 cint matrix_get_entry(matrix *m, int r, int c);
 void matrix_set_entry(matrix *m, int r, int c, cint val);
+void matrix_add(matrix *dst, matrix *src, cint coeff, cint prime);
 
 /* matrix_collect is used whenever we want to throw away some
  * of the rows; for this we first set m->rows = 0, then call 

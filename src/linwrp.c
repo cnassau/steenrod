@@ -119,7 +119,20 @@ void stdQuotFunc(primeInfo *pi, void *ker, void *im, progressInfo *prg) {
     matrix_quotient(pi, (matrix *) ker, (matrix *) im, ip, progvar, pmsk);
 }
 
+int stdMAdd(void *vv1, void *vv2, int scale, int mod) {
+    matrix *v1 = (matrix *) vv1;
+    matrix *v2 = (matrix *) vv2;
+    
+    if ((v1->rows != v2->rows) || (v1->cols != v2->cols)) 
+        return FAILIMPOSSIBLE;
+    
+    matrix_add(v1, v2, scale, mod);
+    
+    return SUCCESS;
+}
+
 matrixType stdMatrixType = {
+    .name          = "stdmatrix",
     .getEntry      = stdGetEntry,
     .setEntry      = stdSetEntry,
     .addToEntry    = stdAddToEntry,
@@ -130,6 +143,7 @@ matrixType stdMatrixType = {
     .clearMatrix   = stdClearMatrix,
     .unitMatrix    = stdUnitMatrix,
     .reduce        = stdReduceMatrix,
+    .add           = stdMAdd,
     .orthoFunc     = stdOrthoFunc,
     .liftFunc      = stdLiftFunc,
     .quotFunc      = stdQuotFunc
@@ -185,14 +199,28 @@ int stdVReduce(void *vec, int prime) {
     return SUCCESS;
 }
 
+int stdVAdd(void *vv1, void *vv2, int scale, int mod) {
+    vector *v1 = (vector *) vv1;
+    vector *v2 = (vector *) vv2;
+    
+    if (v1->num != v2->num) 
+        return FAILIMPOSSIBLE;
+
+    vector_add(v1, v2, scale, mod);
+    
+    return SUCCESS;
+}
+
 vectorType stdVectorType = {
+    .name          = "stdvector",
     .getEntry      = &stdVGetEntry,
     .setEntry      = &stdVSetEntry,
     .getLength     = &stdVGetLength,
     .createVector  = &stdVCreateVector,
     .createCopy    = &stdVCreateCopy,
     .destroyVector = &stdVDestroyVector,
-    .reduce        = &stdVReduce
+    .reduce        = &stdVReduce,
+    .add           = &stdVAdd
 };
 
 void *createStdMatrixCopy(matrixType *mt, void *mat) {
@@ -233,3 +261,29 @@ void *createStdVectorCopy(vectorType *vt, void *vec) {
     }
     return res;
 }
+
+int LAVadd(vectorType **vt1, void **vdat1,
+           vectorType *vt2, void *vdat2, int scale, int mod) {
+
+    if ((vt2 == *vt1) && (NULL != vt2->add)) 
+        return vt2->add(*vdat1, vdat2, scale, mod);
+    
+    assert(NULL == "LAVadd needs to be enhanced");
+
+    return FAIL;
+}
+
+int LAMadd(matrixType **vt1, void **vdat1,
+           matrixType *vt2, void *vdat2, int scale, int mod) {
+
+    if ((vt2 == *vt1) && (NULL != vt2->add)) 
+        return vt2->add(*vdat1, vdat2, scale, mod);
+    
+    assert(NULL == "LAMadd needs to be enhanced");
+
+    return FAIL;
+
+
+}
+
+

@@ -378,15 +378,82 @@ Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp,
     return Tcl_NewMatrixObj(mt, res);
 }
 
-typedef enum {
-    LIN_INVSRP, LIN_INVMAT, 
-    LIN_ISMAT, LIN_ISVEC, 
-    LIN_ORTHO, LIN_QUOT, LIN_LIFT, LIN_DIMS
-} LinalgCmdCode;
-
 #undef RETERR
 #define RETERR(msg) \
 { if (NULL!=ip) Tcl_SetResult(ip,msg,TCL_VOLATILE); return TCL_ERROR; }  
+
+/* VAddCmd tries to do "(*obj1) += (*obj2) mod modval" */
+
+int VAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale, int modval) {
+    vectorType *vt1, *vt2;
+    void *vdat1, *vdat2;
+    int d1, d2;
+
+    if (Tcl_IsShared(obj1)) 
+        assert(NULL == "obj1 must not be shared in VAddCmd");
+
+    vt1 = vectorTypeFromTclObj(obj1);
+    vt2 = vectorTypeFromTclObj(obj2);
+
+    vdat1 = vectorFromTclObj(obj1);
+    vdat2 = vectorFromTclObj(obj2);
+    
+    if (vdat1 == vdat2) 
+        PTR2(obj1) = vdat1 = vt1->createCopy(vdat1);
+
+    d1 = vt1->getLength(vdat1);
+    d2 = vt2->getLength(vdat2);
+
+    if (d1 != d2) RETERR("dimensions don't match");
+
+    Tcl_InvalidateStringRep(obj1);
+
+    if (SUCCESS != LAVadd((vectorType **) &PTR1(obj1), &PTR2(obj1), 
+                          vt2, vdat2, scale, modval)) 
+        RETERR("could not add vectors (LAVadd failed)");
+
+    return TCL_OK;
+}
+
+/* MAddCmd tries to do "(*obj1) += (*obj2) mod modval" */
+
+int MAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale, int modval) {
+    matrixType *mt1, *mt2;
+    void *mdat1, *mdat2;
+    int r1, r2, c1, c2;
+
+    if (Tcl_IsShared(obj1)) 
+        assert(NULL == "obj1 must not be shared in MAddCmd");
+
+    mt1 = matrixTypeFromTclObj(obj1);
+    mt2 = matrixTypeFromTclObj(obj2);
+
+    mdat1 = matrixFromTclObj(obj1);
+    mdat2 = matrixFromTclObj(obj2);
+
+    if (mdat1 == mdat2) 
+        PTR2(obj1) = mdat1 = mt1->createCopy(mdat1);
+
+    mt1->getDimensions(mdat1, &r1, &c1);
+    mt2->getDimensions(mdat2, &r2, &c2);
+    
+    if ((r1 != r2) || (c1 != c2)) RETERR("dimensions don't match");
+
+    Tcl_InvalidateStringRep(obj1);
+
+    if (SUCCESS != LAMadd((matrixType **) &PTR1(obj1), &PTR2(obj1), 
+                          mt2, mdat2, scale, modval)) 
+        RETERR("could not add matrices (LAMadd failed)");
+
+    return TCL_OK;
+}
+
+typedef enum {
+    LIN_INVSRP, LIN_INVMAT, 
+    LIN_ISMAT, LIN_ISVEC, 
+    LIN_ADDV, LIN_ADDM, LIN_EXTRACT,
+    LIN_ORTHO, LIN_QUOT, LIN_LIFT, LIN_DIMS
+} LinalgCmdCode;
 
 #define ENSURERANGE(bot,a,top) \
 if (((a)<(bot))||((a)>=(top))) RETERR("index out of range"); 
@@ -396,9 +463,9 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
     LinalgCmdCode cdi = (LinalgCmdCode) cd;
     primeInfo *pi;
     int r, c;
-    Tcl_Obj *varp[4];
+    Tcl_Obj *varp[4], *res;
     const char *progvar;
-    int pmsk;
+    int pmsk, modval;
 
     if (NULL == ip) return TCL_ERROR; 
 
@@ -411,6 +478,7 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
                 r = 0;
             Tcl_SetObjResult(ip, Tcl_NewBooleanObj(r));
             return TCL_OK;
+
         case LIN_ISVEC:
             ENSUREARGS1(TP_ANY);
             if (TCL_OK == Tcl_ConvertToVector(ip, objv[1]))
@@ -419,16 +487,19 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
                 r = 0;
             Tcl_SetObjResult(ip, Tcl_NewBooleanObj(r));
             return TCL_OK;
+
         case LIN_INVSRP: 
             ENSUREARGS1(TP_VECTOR);
             Tcl_InvalidateStringRep(objv[1]);
             Tcl_SetObjResult(ip, objv[1]);
             return TCL_OK;
+
         case LIN_INVMAT: 
             ENSUREARGS1(TP_MATRIX);
             Tcl_InvalidateStringRep(objv[1]);
             Tcl_SetObjResult(ip, objv[1]);
             return TCL_OK;
+
         case LIN_DIMS:
             ENSUREARGS1(TP_MATRIX);
             if (TCL_OK != Tcl_MatrixGetDimensions(ip, objv[1], &r, &c))
@@ -436,6 +507,58 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
             varp[0] = Tcl_NewIntObj(r);
             varp[1] = Tcl_NewIntObj(c);
             Tcl_SetObjResult(ip, Tcl_NewListObj(2, varp));
+            return TCL_OK;
+
+        case LIN_ADDM:
+            ENSUREARGS4(TP_MATRIX,TP_MATRIX,TP_OPTIONAL,TP_INT);
+
+            modval = 0;
+            if (objc > 3) 
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &modval))
+                    return TCL_ERROR;
+
+            res = objv[1];
+
+            /* make private copy of res */
+            Tcl_IncrRefCount(res);
+            if (Tcl_IsShared(res)) {
+                Tcl_DecrRefCount(res);
+                res = Tcl_DuplicateObj(res);
+                Tcl_IncrRefCount(res);
+            }
+
+            if (TCL_OK != MAddCmd(ip, res, objv[2], 1, modval)) {
+                Tcl_DecrRefCount(res);
+                return TCL_ERROR;
+            }
+
+            Tcl_SetObjResult(ip, res);
+            return TCL_OK;
+
+        case LIN_ADDV:
+            ENSUREARGS4(TP_VECTOR,TP_VECTOR,TP_OPTIONAL,TP_INT);
+
+            modval = 0;
+            if (objc > 3) 
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &modval))
+                    return TCL_ERROR;
+
+            res = objv[1];
+
+            /* make private copy of res */
+            Tcl_IncrRefCount(res);
+            if (Tcl_IsShared(res)) {
+                Tcl_DecrRefCount(res);
+                res = Tcl_DuplicateObj(res);
+                Tcl_IncrRefCount(res);
+            }
+
+            if (TCL_OK != VAddCmd(ip, res, objv[2], 1, modval)) {
+                Tcl_DecrRefCount(res);
+                return TCL_ERROR;
+            }
+
+            Tcl_SetObjResult(ip, res);
             return TCL_OK;
 
         case LIN_ORTHO:
@@ -647,6 +770,11 @@ Tcl_CreateObjCommand(ip,NSP name,tLinCombiCmd,(ClientData) code, NULL);
 
     CREATECOMMAND("ismatrix", LIN_ISMAT);
     CREATECOMMAND("isvector", LIN_ISVEC);
+
+    CREATECOMMAND("addmatrix", LIN_ADDM);
+    CREATECOMMAND("addvector", LIN_ADDV);
+
+    CREATECOMMAND("extract", LIN_EXTRACT);
 
     CREATECOMMAND("getdims", LIN_DIMS);
     CREATECOMMAND("ortho",   LIN_ORTHO);

@@ -46,14 +46,14 @@ void vector_copy(vector *v, vector *w) {
 void vector_add(vector *dst, vector *src, cint coeff, cint prime) {
     int k; cint *ddat, *sdat;
     for (k=dst->num, ddat=dst->data, sdat=src->data; k--; ddat++, sdat++) {
-    *ddat += CINTMULT(coeff, *sdat, prime);
-        *ddat %= prime;
+        *ddat += CINTMULT(coeff, *sdat, prime);
+        if (prime) *ddat %= prime;
     }
 }
 
 void vector_add_entry(vector *dst, int off, cint dat, cint prime) {
     dst->data[off] += dat;
-    dst->data[off] %= prime;
+    if (prime) dst->data[off] %= prime;
 }
 
 cint vector_get_entry(vector *src, int off) {
@@ -130,6 +130,13 @@ cint matrix_get_entry(matrix *m, int r, int c) {
 void matrix_set_entry(matrix *m, int r, int c, cint val) {
     cint *rowptr = m->data + (m->nomcols * r);
     rowptr[c] = val; 
+}
+
+void matrix_add(matrix *dst, matrix *src, cint coeff, cint prime) {
+    int i;
+    if ((dst->rows != src->rows) || (dst->cols != src->cols)) return;
+    for (i=dst->rows; i--; ) 
+        vector_add( matrix_get_row(dst, i), matrix_get_row(src, i), coeff, prime ); 
 }
 
 void matrix_collect(matrix *m, int r) {

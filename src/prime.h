@@ -28,7 +28,8 @@ typedef char cint;   /* data type for elements of F_p  */
 typedef short xint;  /* data type for exponents        */
 
 #define CINTMULT(a,b,prime) \
-   ((cint) ((((short) (a)) * ((short) (b))) % ((short) prime)))
+   ((prime) ? ((cint) ((((short) (a)) * ((short) (b))) % ((short) prime))) \
+            : ((cint) ((((short) (a)) * ((short) (b))))))
 
 typedef struct {
     cint prime;

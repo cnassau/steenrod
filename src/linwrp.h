@@ -26,6 +26,8 @@ typedef struct {
 /* I'm too (fucking) tired right now, to put comments into this code! */
 
 typedef struct {
+    const char *name;
+
     int  (*getEntry)(void *vec, int idx, int *val);
  
     int  (*setEntry)(void *vec, int idx, int val);
@@ -38,10 +40,14 @@ typedef struct {
 
     void (*destroyVector)(void *vec);    
 
+    int  (*add)(void *v1, void *v2, int scale, int mod);
+
     int  (*reduce)(void *mat, int prime);
 } vectorType;
 
 typedef struct {
+    const char *name;
+
     int  (*getEntry)(void *mat, int row, int col, int *val); 
 
     int  (*setEntry)(void *mat, int row, int col, int val);
@@ -62,6 +68,8 @@ typedef struct {
 
     int  (*reduce)(void *mat, int prime);
 
+    int  (*add)(void *v1, void *v2, int scale, int mod);
+
     void *(*orthoFunc)(primeInfo *pi, void *inp, progressInfo *prg);
 
     void *(*liftFunc)(primeInfo *pi, void *inp, void *lft, progressInfo *prg);
@@ -79,6 +87,12 @@ extern vectorType stdVectorType;
 
 void *createStdMatrixCopy(matrixType *mt, void *mat);
 void *createStdVectorCopy(vectorType *vt, void *vec);
+
+int LAVadd(vectorType **vt1, void **vec1, 
+           vectorType *vt2, void *vec2, int scale, int mod);
+
+int LAMadd(matrixType **vt1, void **vec1, 
+           matrixType *vt2, void *vec2, int scale, int mod);
 
 #endif
 
