@@ -46,13 +46,55 @@ int mkGenList(Tcl_Interp *ip, map *mp) {
     return TCL_OK;
 }
 
+/* implementation of the getTarget command */
+int getTarget(Tcl_Interp *ip, mapgen *mpg) {
+    Tcl_Obj **obptr;
+    Tcl_Obj *res;
+    int i;
+    obptr = malloc(mpg->num * sizeof(Tcl_Obj *));
+    if (NULL == obptr) RETERR("Out of memory");
+    for (i=0;i<mpg->num;i++) 
+        obptr[i] = Tcl_NewTPtr(TP_MAPSUM, &(mpg->dat[i]));
+    res = Tcl_NewListObj(mpg->num, obptr);
+    free(obptr);
+    Tcl_SetObjResult(ip, res);
+    return TCL_OK;
+}
+
+/* implementation of getSumData */
+int getSumData(Tcl_Interp *ip, mapsum *mps) {
+    Tcl_Obj **obptr;
+    Tcl_Obj *res;
+    int i,j,k, sz;
+    cint *cptr = mps->cdat; 
+    xint *xptr = mps->xdat;
+    sz = 5 + (mps->num * (mps->len + 1));
+    obptr = malloc(sz * sizeof(Tcl_Obj *));
+    if (NULL == obptr) RETERR("Out of memory");
+    obptr[0] = Tcl_NewIntObj(mps->gen);
+    obptr[1] = Tcl_NewIntObj(mps->edat);
+    obptr[2] = Tcl_NewIntObj(mps->pad);
+    obptr[3] = Tcl_NewIntObj(mps->len);
+    obptr[4] = Tcl_NewIntObj(0);
+    for (i=0,j=5;i<mps->num;i++) { 
+        obptr[j++] = Tcl_NewIntObj(*cptr++);
+        for (k=0;k<mps->len;k++) 
+            obptr[j++] = Tcl_NewIntObj(*xptr++);
+    }
+    res = Tcl_NewListObj(sz, obptr);
+    free(obptr);
+    Tcl_SetObjResult(ip, res);
+    return TCL_OK;
+}
+
+
 typedef enum {
     MP_CREATE, MP_DESTROY, MP_INFO, MP_GETNUM,
-    GEN_CREATE, GEN_FIND, GEN_INFO,
+    GEN_CREATE, GEN_FIND, 
     GEN_SETIDEGREE, GEN_SETEDEGREE, 
     GEN_GETIDEGREE, GEN_GETEDEGREE,
-    GEN_GETID, 
-    SUM_INFO
+    GEN_GETID, GEN_GETTARGET, GEN_APPENDTARGET,
+    SUM_GETDATA
 } MapCmdCode;
 
 int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
@@ -61,8 +103,9 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
 
     map *mp;
     mapgen *mpg;
+    mapsum *mps;
 
-    int privateInt, ivar1, ivar2, ivar3;
+    int privateInt, ivar1, ivar2;
 
     switch (cdi) {
         case MP_CREATE:    
@@ -124,11 +167,34 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
             ENSUREARGS1(TP_MAPGEN); 
             mpg = (mapgen *) TPtr_GetPtr(objv[1]);
             RETINT(mpg->id);
-        case GEN_INFO:
-            return TCL_OK;
-        case SUM_INFO:
-            return TCL_OK;
-        case 550:
+        case GEN_GETTARGET: 
+            ENSUREARGS1(TP_MAPGEN);
+            mpg = (mapgen *) TPtr_GetPtr(objv[1]);
+            return getTarget(ip, mpg);
+        case SUM_GETDATA: 
+            ENSUREARGS1(TP_MAPSUM);
+            mps = (mapsum *) TPtr_GetPtr(objv[1]);
+            return getSumData(ip, mps);
+        case GEN_APPENDTARGET:
+            ENSUREARGS7(TP_MAPGEN,TP_INT,TP_INT,TP_INT,TP_INT,TP_INT,TP_INTLIST);
+            mpg = (mapgen *) TPtr_GetPtr(objv[1]);
+            GETINT(objv[2],ivar1); /* target gen */
+            GETINT(objv[3],ivar2); /* exterior data */
+            mps = mapgenFindSum(mpg, ivar1, ivar2);
+            if (NULL == mps) mps = mapgenCreateSum(mpg, ivar1, ivar2);
+            if (NULL == mps) RETERR("could not create target component");
+            GETINT(objv[4],ivar1); /* pad */
+            if (SUCCESS != mapsumSetPad(mps, ivar1)) RETERR("padding conflict");
+            GETINT(objv[5],ivar2); /* len */
+            GETINT(objv[6],ivar1); /* data format */
+            if (0 != ivar1) RETERR("unknown data format");
+            {
+                int obc; Tcl_Obj **obv; int len = ivar2;
+                Tcl_ListObjGetElements(ip, objv[7], &obc, &obv);
+                if (0 != (obc % (len + 1))) RETERR("number of ints inconsistent");
+                if (SUCCESS != mapsumAppendFromList(mps, len, obc, obv))
+                    RETERR("mapsumAppendFromList failed");
+            }
             return TCL_OK;
     }
 
@@ -156,9 +222,9 @@ Tcl_CreateObjCommand(ip,name,tMapCombiCmd,(ClientData) code, NULL);
 
 #define NSM "_map::"
 
-    CREATECOMMAND(NSM "createMap",  MP_CREATE);
-    CREATECOMMAND(NSM "destroyMap", MP_DESTROY);
-    CREATECOMMAND(NSM "infoMap",    MP_INFO);
+    CREATECOMMAND(NSM "createMap",      MP_CREATE);
+    CREATECOMMAND(NSM "destroyMap",     MP_DESTROY);
+    CREATECOMMAND(NSM "infoMap",        MP_INFO);
     CREATECOMMAND(NSM "getNumGens",     MP_GETNUM);
     CREATECOMMAND(NSM "createGen",      GEN_CREATE);
     CREATECOMMAND(NSM "genGetId",       GEN_GETID);
@@ -166,8 +232,10 @@ Tcl_CreateObjCommand(ip,name,tMapCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND(NSM "genSetEDegree",  GEN_SETEDEGREE);
     CREATECOMMAND(NSM "genGetIDegree",  GEN_GETIDEGREE);
     CREATECOMMAND(NSM "genGetEDegree",  GEN_GETEDEGREE);
-    CREATECOMMAND(NSM "findGen",    GEN_FIND);
-    CREATECOMMAND(NSM "infoGen",    GEN_INFO);
+    CREATECOMMAND(NSM "findGen",        GEN_FIND);
+    CREATECOMMAND(NSM "getTarget",      GEN_GETTARGET);
+    CREATECOMMAND(NSM "appendTarget",   GEN_APPENDTARGET);
+    CREATECOMMAND(NSM "getSumData",     SUM_GETDATA);
 
     return TCL_OK;
 }

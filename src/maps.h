@@ -14,6 +14,7 @@
 #ifndef MAPS_DEF
 #define MAPS_DEF
 
+#include <tcl.h>
 #include <common.h>
 #include <prime.h>
 
@@ -53,12 +54,17 @@ typedef struct {
 
 void mapsumInit(mapsum *mps);
 void mapsumDestroy(mapsum *mp);
-int mapsumSetlen(mapsum *mp, int len);
+int mapsumSetLen(mapsum *mp, int len);
+int mapsumSetPad(mapsum *mp, int pad);
 int mapsumRealloc(mapsum *mp, int nalloc);
+int mapsumAppendFromList(mapsum *mps, int len, int obc, Tcl_Obj **obv);
 
 void mapgenInit(mapgen *mpi);
 int mapgenRealloc(mapgen *mim, int nalloc);
 void mapgenDestroy(mapgen *mim);
+
+mapsum *mapgenFindSum(mapgen *mpg, int gen, int edat);
+mapsum *mapgenCreateSum(mapgen *mpg, int gen, int edat);
 
 map *mapCreate(void);
 int mapRealloc(map *mp, int nalloc);

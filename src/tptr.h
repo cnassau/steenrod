@@ -72,6 +72,12 @@ if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,TP_END)) return TCL_ERROR;
 if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,T3,TP_END)) return TCL_ERROR;
 #define ENSUREARGS4(T1,T2,T3,T4) \
 if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,T3,T4,TP_END)) return TCL_ERROR;
+#define ENSUREARGS5(T1,T2,T3,T4,T5) \
+if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,T3,T4,T5,TP_END)) return TCL_ERROR;
+#define ENSUREARGS6(T1,T2,T3,T4,T5,T6) \
+if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,T3,T4,T5,T6,TP_END)) return TCL_ERROR;
+#define ENSUREARGS7(T1,T2,T3,T4,T5,T6,T7) \
+if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,T3,T4,T5,T6,T7,TP_END)) return TCL_ERROR;
 
 #endif
 

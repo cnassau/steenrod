@@ -12,6 +12,7 @@
  */
 
 #include <string.h>
+#include <tcl.h>
 #include "maps.h"
 
 void mapsumInit(mapsum *res) {
@@ -27,7 +28,16 @@ void mapsumDestroy(mapsum *mp) {
     }
 }
 
-int mapsumSetlen(mapsum *mp, int len) {
+int mapsumSetPad(mapsum *mps, int pad) {
+    if (0 == mps->num) { 
+        mps->pad = pad;
+        return SUCCESS;
+    }
+    if (mps->pad != pad) return FAILIMPOSSIBLE;
+    return SUCCESS;
+}
+
+int mapsumSetLen(mapsum *mp, int len) {
     xint *nxd, *src, *dst; 
     int i, j, min, max;
     if (mp->len == len) return SUCCESS;
@@ -83,12 +93,41 @@ int mapsumCompFunc(const void *aa, const void *bb) {
     return 0;
 }
 
-mapgen *mapgenCreate(void) {
-    mapgen *res = malloc(sizeof(mapgen));
-    if (NULL == res) return NULL;
+/* We can assume that each Tcl_obj in the array can be converted to int. */
+int mapsumAppendFromList(mapsum *mps, int len, int obc, Tcl_Obj **obv) {
+    int num, pad, i, ivar;
+    Tcl_Interp *ip = NULL; 
+    cint *cptr; xint *xptr; 
+    if (0 != (obc % (len + 1))) return FAILIMPOSSIBLE;
+    num = obc / (len + 1);
+    if (len > mps->len) 
+        if (SUCCESS != mapsumSetLen(mps, len))
+            return FAILIMPOSSIBLE;
+    if (mps->num + num > mps->alloc) 
+        if (SUCCESS != mapsumRealloc(mps, mps->num + num))
+            return FAILMEM;
+    cptr = mps->cdat + mps->num; 
+    xptr = mps->xdat + mps->num * mps->len; 
+    pad = mps->pad;
+    mps->num += num;
+    while (num--) {
+        Tcl_GetIntFromObj(ip, *(obv++), &ivar);
+        *cptr++ = ivar;
+        for (i=0;i<len;i++) {
+            Tcl_GetIntFromObj(ip, *(obv++), &ivar);
+            *xptr++ = ivar;
+        }
+        for (;i<mps->len;i++) 
+            *xptr++ = pad;
+    }
+    return SUCCESS;
+}
+
+
+
+void mapgenInit(mapgen *res) {
     res->num = res->alloc = 0; 
     res->dat = NULL;
-    return res;
 }
 
 int mapgenRealloc(mapgen *mim, int nalloc) {
@@ -97,6 +136,7 @@ int mapgenRealloc(mapgen *mim, int nalloc) {
     ndat = realloc(mim->dat, nalloc * sizeof(mapsum)); 
     if (NULL == ndat) return FAILMEM;
     mim->alloc = nalloc;
+    mim->dat = ndat;
     return SUCCESS;
 }
   
@@ -108,9 +148,20 @@ void mapgenDestroy(mapgen *mim) {
         free(mim->dat);
 }
 
-mapsum *mapgenAddSum(mapgen *mpi, int id, int edat) {
+mapsum *mapgenCreateSum(mapgen *mpg, int gen, int edat) {
+    mapsum *res;
+    if (mpg->num == mpg->alloc) 
+        if (SUCCESS != mapgenRealloc(mpg, mpg->alloc + 20))
+            return NULL;
+    res = &(mpg->dat[mpg->num++]);
+    mapsumInit(res);
+    res->gen = gen; res->edat = edat;
+    return res;
+}
+
+mapsum *mapgenFindSum(mapgen *mpi, int gen, int edat) {
     mapsum aux, *res;
-    aux.gen = id;
+    aux.gen = gen;
     aux.edat = edat;
     res = bsearch(&aux, mpi->dat, mpi->num, sizeof(mapsum), mapsumCompFunc);
     return res;
