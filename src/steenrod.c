@@ -120,7 +120,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                progressInfo *pinf, matrixType **mtp, void **mat) {
     
     int srcdim, dstdim;
-    Tcl_Obj **dg = NULL;
+    Tcl_Obj *dg = NULL, *theGObj;
     exmo theG; 
     polyType *dgpolyType;
     void *dgpoly;
@@ -143,13 +143,22 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
         dgispos = 1;
     }
 
+    theGObj = Tcl_NewExmoObj(&theG);
+    INCREFCNT(theGObj);
+
+    /* "theGObj"'s (exmo *) always points to the non-dynamic "theG", so don't free it when done */
+#define RELEASEGOBJ { theGObj->typePtr = NULL; DECREFCNT(theGObj); }
+
     srcdim = mc->srcdim;
     dstdim = DimensionFromEnum(dst);
 
     *mtp = stdmatrix;
     *mat = stdmatrix->createMatrix(srcdim, dstdim);
 
-    if (NULL == *mat) RETERR("out of memory");
+    if (NULL == *mat) {
+	RELEASEGOBJ;
+	RETERR("out of memory");
+    }
 
     stdmatrix->clearMatrix(*mat);
 
@@ -195,20 +204,21 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                 /* new generator: need to get its differential dg */
 
                 theG.gen = mc->srcx->gen; 
-                dg = momapGetValPtr(map, &theG);
+                dg = momapGetValPtr(map, theGObj);
                 
                 if (NULL == dg) continue;
 
-                if (TCL_OK != Tcl_ConvertToPoly(ip, *dg)) {
+                if (TCL_OK != Tcl_ConvertToPoly(ip, dg)) {
                     char err[200];
                     sprintf(err,"target of generator #%d not of polynomial type", 
                             theG.gen);
                     PROGVARDONE;
+		    RELEASEGOBJ;
                     RETERR(err);
                 }
 
-                dgpolyType = polyTypeFromTclObj(*dg);
-                dgpoly     = polyFromTclObj(*dg);
+                dgpolyType = polyTypeFromTclObj(dg);
+                dgpoly     = polyFromTclObj(dg);
                 dgnumsum   = PLgetNumsum(dgpolyType, dgpoly);
 
                 if (dgispos) {
@@ -218,6 +228,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                         sprintf(err,"target of generator #%d not positive (?)", 
                                 theG.gen);
                         PROGVARDONE;
+			RELEASEGOBJ;
                         RETERR(err);
                     }
                 } else {
@@ -227,6 +238,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                         sprintf(err,"target of generator #%d not negative (?)", 
                                 theG.gen);
                         PROGVARDONE;
+			RELEASEGOBJ;
                         RETERR(err);
                     }
                 }
@@ -259,13 +271,15 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                     Tcl_AddObjErrorInfo(ip, err, strlen(err));
                 }
                 PROGVARDONE;
+		RELEASEGOBJ;
                 return FAIL;
             }
 
         } while (mc->nextSource(mc));
     
     PROGVARDONE;
-
+    RELEASEGOBJ;
+    
     return SUCCESS;
 }
 
@@ -565,8 +579,7 @@ int GetRefCount(ClientData cd, Tcl_Interp *ip,
                    int objc, Tcl_Obj * CONST objv[]) {
     if (objc != 2) {
         Tcl_SetResult(ip, "usage: ", TCL_STATIC);
-        Tcl_AppendResult(ip, Tcl_GetString(objv[0]));
-        Tcl_AppendResult(ip, " <argument>");
+	Tcl_AppendResult(ip, Tcl_GetString(objv[0]), " <argument>", NULL);
         return TCL_ERROR;
     }
     
