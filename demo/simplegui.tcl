@@ -165,6 +165,11 @@ proc newgen {id s e i diff} {
     update
 }
 
+# we arrange to call update during computations
+set steenrod::progvar ::ourProgVar
+proc myupdate {args} { update }
+trace add variable ::ourProgVar write myupdate
+
 update
 
 rename ::error error.orig
