@@ -19,7 +19,7 @@
 /* client data to distinguish the subcommands */
 #define CD_CREATE      1
 #define CD_DISPOSE     2
-#define CD_MAXDEG      3
+#define CD_MAXPOW      3
 #define CD_TPMO        4
 #define CD_N           5
 #define CD_PRIMPOWS    6
@@ -72,7 +72,7 @@ int tPrInfo(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
             }
             RETURNINT(pi->inverse[a]);
         case CD_PRIME: RETURNINT(pi->prime);
-        case CD_MAXDEG: RETURNINT(pi->maxdeg);
+        case CD_MAXPOW: RETURNINT(pi->maxpowerXintI);
         case CD_N: RETURNINT(NALG);
         case CD_TPMO: RETURNINT(pi->tpmo);
         case CD_REDDEGS: RETURNLIST(pi->reddegs, NALG);
@@ -188,7 +188,7 @@ int Tprime_Init(Tcl_Interp *ip) {
 Tcl_CreateObjCommand(ip,NSP name,tPrInfo,(ClientData) code, NULL);
 
     CREATECOMMAND("primecheck", CD_PRIME);
-    CREATECOMMAND("maxdeg",     CD_MAXDEG);
+    CREATECOMMAND("maxpow",     CD_MAXPOW);
     CREATECOMMAND("tpmo",       CD_TPMO);
     CREATECOMMAND("N",          CD_N);
     CREATECOMMAND("primpows",   CD_PRIMPOWS);
