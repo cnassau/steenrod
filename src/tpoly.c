@@ -282,6 +282,19 @@ Tcl_Obj *Tcl_PolyObjAppend(Tcl_Obj *obj, Tcl_Obj *pol2) {
     return obj;
 }
 
+Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *obj, Tcl_Obj *pol2) {
+    int rval;
+    if (Tcl_IsShared(obj)) 
+        obj = Tcl_DuplicateObj(obj);
+    if (Tcl_IsShared(pol2)) 
+        pol2 = Tcl_DuplicateObj(pol2);
+    if (SUCCESS != PLcompare(PTR1(obj),PTR2(obj),PTR1(pol2),PTR2(pol2), &rval))
+        return NULL;
+    Tcl_InvalidateStringRep(obj);
+    Tcl_InvalidateStringRep(pol2);
+    return Tcl_NewIntObj(rval);
+}
+
 Tcl_Obj *Tcl_PolyObjShift(Tcl_Obj *obj, exmo *e, int flags) {
     polyType *tp = PTR1(obj);
     if (Tcl_IsShared(obj)) 
@@ -324,7 +337,7 @@ Tcl_Obj *Tcl_PolyObjSteenrodProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) 
 
 typedef enum { 
     TPEXMO, TPPOLY, 
-    TPCANCEL, TPSHIFT, TPREFLECT, TPSCALE, TPAPPEND,
+    TPCANCEL, TPSHIFT, TPREFLECT, TPSCALE, TPAPPEND, TPCOMPARE,
     TPNEGMULT, TPPOSMULT, TPSTMULT 
 } PolyCmdCode;
 
@@ -380,6 +393,12 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             ENSUREARGS2(TP_POLY,TP_POLY);
             if (NULL == (obj1 = Tcl_PolyObjAppend(objv[1], objv[2])))
                 RETERR("PLappendPoly failed");
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;
+        case TPCOMPARE:
+            ENSUREARGS2(TP_POLY,TP_POLY);
+            if (NULL == (obj1 = Tcl_PolyObjCompare(objv[1],objv[2])))
+                RETERR("comparison not possible");
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;
         case TPPOSMULT:
@@ -452,6 +471,7 @@ int Tpoly_Init(Tcl_Interp *ip) {
     CREATECMD("reflect", TPREFLECT);
     CREATECMD("scale",   TPSCALE);
     CREATECMD("append",  TPAPPEND);
+    CREATECMD("compare", TPCOMPARE);
     CREATECMD("cancel",  TPCANCEL);
     CREATECMD("negmult", TPNEGMULT);
     CREATECMD("posmult", TPPOSMULT);
