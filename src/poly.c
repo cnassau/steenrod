@@ -46,7 +46,7 @@ int exmoGetLen(exmo *e) {
 }
 
 int exmoGetPad(exmo *e) {
-    return (e->dat[0]<0) ? -1 : 0;
+    return (e->dat[NALG-1] < 0) ? -1 : 0;
 }
 
 void copyExmo(exmo *dest, const exmo *src) {
