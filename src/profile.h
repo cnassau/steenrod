@@ -74,6 +74,9 @@ int nextRedmon(exmon *ex, enumEnv *env);
 void firstSignature(enumEnv *env, exmon *exm, int maxdeg);
 int nextSignature(enumEnv *env, exmon *exm);
 
+/* largest exterior that is contained in *alg and allowed by *pro */
+int getMaxExterior(enumEnv *env, int *deg);
+
 /* information that's needed by the seqno routine */
 typedef struct {
     int maxdim;    /* maximal dimension for the tables below */

@@ -66,7 +66,6 @@ void disposeEnumEnv(enumEnv *env) {
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
-/* largest exterior that is contained in *alg and allowed by *pro */
 int getMaxExterior(enumEnv *env, int *deg) {
     int res=0, wrk=1<<NPRO, i=NPRO;
     while (wrk>>=1,i--) 
