@@ -307,7 +307,11 @@ int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_Eval(ip, "namespace eval " POLYNSP " { namespace export * }");
 
+#if 0
+    /* We need to use a Tcl wrapper for platform specific library
+     * loading, so "package provide" should be done in that wrapper. */
     Tcl_PkgProvide(ip, "Steenrod", "1.0");
+#endif
 
     return TCL_OK;
 }
