@@ -39,6 +39,7 @@ typedef struct {
     int gencnt; /* number of generator in the efflist */
     int yacntr; /* yet another counter - used in the enumpoly routines */
     exmo varex;
+    exmo theex; 
     int errdeg;
     int totdeg;
     int remdeg;
@@ -79,9 +80,11 @@ int enmSetSignature(enumerator *en, exmo *sig);
 int enmSetTridegree(enumerator *en, int ideg, int edeg, int hdeg);
 int enmSetGenlist(enumerator *en, int *gl, int num);
 
-/* enumeration uses these procedures. the enumerated exmo is "varex". */
+/* enumeration uses these procedures. the enumerated exmo is "theex". */
 int firstRedmon(enumerator *en);
 int nextRedmon(enumerator *en);
+
+int SeqnoFromEnum(enumerator *en, exmo *ex);
 
 /* An enumpoly allows to access an enumerator as a polynomial */
 

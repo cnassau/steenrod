@@ -298,7 +298,7 @@ int Tcl_EnumBasisCmd(ClientData cd, Tcl_Interp *ip,
     
     if (firstRedmon(te->enm)) 
         do {
-            Tcl_Obj *aux =  Tcl_NewExmoCopyObj(&(te->enm->varex));
+            Tcl_Obj *aux =  Tcl_NewExmoCopyObj(&(te->enm->theex));
             Tcl_AppendElement(ip, Tcl_GetString(aux));
             Tcl_DecrRefCount(aux);
         } while (nextRedmon(te->enm));
@@ -309,9 +309,22 @@ int Tcl_EnumBasisCmd(ClientData cd, Tcl_Interp *ip,
 int Tcl_EnumSeqnoCmd(ClientData cd, Tcl_Interp *ip, 
                       int objc, Tcl_Obj * const objv[]) {
     tclEnum *te = (tclEnum *) cd;
- 
+    int res;
+
+    if (objc != 3) {
+        Tcl_WrongNumArgs(ip, 2, objv, "<monomial>");
+        return TCL_ERROR;
+    }
+
     if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
-   
+ 
+    if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+        return TCL_ERROR;
+    
+    res = SeqnoFromEnum(te->enm, exmoFromTclObj(objv[2]));
+    
+    Tcl_SetObjResult(ip, Tcl_NewIntObj(res));
+
     return TCL_OK;
 } 
 

@@ -21,13 +21,60 @@ catch {x basis}
 x conf -genlist {8 9}
 
 set gl {}
-for {set i 0} {$i<5} {incr i} { lappend gl [list $i $i] }
+for {set i 0} {$i<1} {incr i} { lappend gl [list $i $i] }
 
 x conf -prime 2 -ideg 16 -genlist $gl
-
-foreach edg {0 1 2 3 4 5} {
-    puts "basis for edeg=$edg"
-    x conf -edeg $edg
-    puts [x basis]
+if 0 {
+    foreach edg {0 1 2 3 4 5} {
+        puts "basis for edeg=$edg"
+        x conf -edeg $edg
+        x conf -profile {0 0 0 0} -signature  {0 0 0 0}
+        puts "profile 0 basis = [x basis]"
+        x conf -profile {0 0 1 0}
+        puts "profile 1 basis = [x basis]"
+        x conf -signature {0 0 1 0}
+        puts "profile 1 sig 1 basis = [x basis]"
+    }
 }
 
+x configure -profile {0 0 0 0} -prime 3 -genlist 0 -ideg 368 -edeg 0
+set basis [x basis]
+#puts "basis = $basis"
+
+# random integer
+proc rint {max} { return [expr int(rand()*$max)] }
+
+proc relem {lst} { return [lindex $lst [rint [llength $lst]]] }
+
+
+while 1 {
+    set p [relem {2 3 5 7 11 23}]
+    #set p 3
+    set dim [rint [lindex [prime::primpows $p] 4]]
+    set dim [expr int($dim / [prime::tpmo $p]) * [prime::tpmo $p]]
+
+    if 0 {
+        x conf -prime 5 -ideg 10
+        set aux [x basis]
+        x conf -prime 3 -ideg 8
+        set aux [x basis]
+    }
+
+    #puts "prime $p, degree $dim"
+    x configure -prime $p -ideg $dim
+    set basis [x basis]
+    
+    set cnt 0
+    foreach ex $basis { 
+        #puts "seqno($ex) = "
+        set sqn [x seqno $ex]
+        #puts "$sqn"
+        if {$cnt!=$sqn} { 
+            puts "prime $p, degree $dim"
+            puts "seqno($ex) = $cnt, should be $sqn"
+            error "inconsistency found!!" 
+        }
+        incr cnt
+    }
+    puts "basis with $cnt elements checked (prime $p, degree $dim)"
+}
