@@ -19,7 +19,7 @@ NOWEAVE  = noweave
 SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c tpoly.c
 OBJS = $(SRCS:.c=.o)
 
-LIBS = libtlin.so libtprime.so libtptrtest.so
+LIBS = libtlin.so libtprime.so libtptrtest.so libtpoly.so
 
 LINKSTUB = cc -shared -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
 
@@ -58,6 +58,8 @@ libtprime.so: tprime.o tptr.o prime.o
 
 libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o
 	$(LINKSTUB) -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o 
+libtpoly.so: tlin.o adlin.o prime.o linalg.o tptr.o tprime.o tpoly.o poly.o
+	$(LINKSTUB) -o libtpoly.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o tpoly.o poly.o
 
 clean:
 	$(RM) $(OBJS) $(LIBS) *~  2> /dev/null

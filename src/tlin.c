@@ -164,7 +164,12 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
+int Tlin_IsInitialized;
+
 int Tlin_Init(Tcl_Interp *ip) {
+
+    if (Tlin_IsInitialized) return TCL_OK;
+    Tlin_IsInitialized = 1;
 
     if (NULL == Tcl_InitStubs(ip, "8.0", 0)) return TCL_ERROR;
 

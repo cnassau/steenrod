@@ -20,6 +20,6 @@
 /* our poly type */
 #define TP_POLY 19
 
-int Tclpoly_Init(Tcl_Interp *ip) ;
+int Tpoly_Init(Tcl_Interp *ip) ;
 
 #endif

@@ -222,12 +222,15 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
 }
 
 #define CREATECMD(name, id) \
-  Tcl_CreateObjCommand(ip, "tclpoly::" name, tPolyCombiCmd, \
+  Tcl_CreateObjCommand(ip, "tpoly::" name, tPolyCombiCmd, \
                        (ClientData) id, NULL)
 
-int Tclpoly_Init(Tcl_Interp *ip) {
+int Tpoly_Init(Tcl_Interp *ip) {
     
     Tcl_InitStubs(ip, "8.0", 0);
+
+    Tptr_Init(ip);
+    Tprime_Init(ip);
 
     TPtr_RegType(TP_POLY, "poly");
     
