@@ -23,18 +23,21 @@
 #define RETERR(errmsg) \
 { if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
 
+#define BINT Tcl_WideInt
+
 static struct {
     int max;
-    int *data;
+    BINT *data;
 } binomTable;
 
 int makeBinomTable(int max) {
-    int size = (max+2)*(max+1) >> 1, *new, *cur, *prv, i,j;
-    
+    int size = (max+2)*(max+1) >> 1, i,j;
+    BINT *new, *cur, *prv;
+
     if (max <= binomTable.max)
         return TCL_OK;
 
-    if (NULL == (new = mallox(sizeof(int) * size))) 
+    if (NULL == (new = mallox(sizeof(BINT) * size))) 
         return TCL_ERROR;
     new[0] = 1;
     for (i=1;i<=max;i++) {
@@ -51,7 +54,7 @@ int makeBinomTable(int max) {
     return TCL_OK;
 }
 
-int binom(int sum, int j) {
+BINT binom(int sum, int j) {
     if (sum >= binomTable.max)
         if (TCL_OK != makeBinomTable(sum+20))
             return -1;
@@ -61,7 +64,8 @@ int binom(int sum, int j) {
 int Tcl_MultinomialCmd(ClientData cd, Tcl_Interp *ip,
                        int objc, Tcl_Obj * const objv[]) {
     
-    int sum=0, aux, i, res = 1;
+    int sum=0, aux, i;
+    BINT res = 1;
 
     for (i=1;i<objc;i++) {
         if (TCL_OK != Tcl_GetIntFromObj(ip,objv[i],&aux))
@@ -76,7 +80,7 @@ int Tcl_MultinomialCmd(ClientData cd, Tcl_Interp *ip,
         res *= binom(sum,aux);
     }
 
-    Tcl_SetObjResult(ip, Tcl_NewIntObj(res));
+    Tcl_SetObjResult(ip, Tcl_NewWideIntObj(res));
     return TCL_OK;
 }
 
@@ -751,7 +755,7 @@ void handleSummand(hmap *hm, int numsum) {
 void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
 
     if (current->gtype == RED) {
-        int sum, newcoeff;
+        BINT sum, newcoeff;
 
         sum = current->source.dat[current->idx] + current->value;
 
