@@ -84,7 +84,7 @@ int Tptr_Init(Tcl_Interp *ip) {
     TPtr.setFromAnyProc        = TPtr_SetFromAnyProc;
     Tcl_RegisterObjType(&TPtr);
     
-    TPtr_RegType(TP_ANY,     "anything");
+    TPtr_RegType(TP_ANY,     "unspecified");
     TPtr_RegType(TP_INT,     "integer");
     TPtr_RegType(TP_LIST,    "list");
     TPtr_RegType(TP_INTLIST, "list of integers");
