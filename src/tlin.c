@@ -135,6 +135,18 @@ void VectorDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
  *
  */
 
+static int matCount;
+
+#if 0
+#  define INCMATCNT \
+  { fprintf(stderr, "matCount = %d (%s, %d)\n", ++matCount, __FILE__, __LINE__); }
+#  define DECMATCNT \
+  { fprintf(stderr, "matCount = %d (%s, %d)\n", --matCount, __FILE__, __LINE__); }
+#else
+#  define INCMATCNT { ++matCount; }
+#  define DECMATCNT { --matCount; }
+#endif
+
 static Tcl_ObjType tclMatrix;
 
 int Tcl_ConvertToMatrix(Tcl_Interp *ip, Tcl_Obj *obj) {
@@ -152,12 +164,14 @@ Tcl_Obj *Tcl_NewMatrixObj(matrixType *mt, void *dat) {
     PTR1(res) = mt;
     PTR2(res) = dat;
     Tcl_InvalidateStringRep(res);
+    INCMATCNT;
     return res;
 }
 
 void MatrixFreeInternalRepProc(Tcl_Obj *obj) {
     matrixType *vt = matrixTypeFromTclObj(obj);
     (vt->destroyMatrix)(matrixFromTclObj(obj));
+    DECMATCNT;
 }
 
 #define FREEMATANDRETERR \
@@ -211,6 +225,7 @@ int MatrixSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     PTR1(objPtr) = stdmatrix;
     PTR2(objPtr) = mat;
     objPtr->typePtr = &tclMatrix;
+    INCMATCNT;
 
     return TCL_OK;
 }
@@ -260,6 +275,7 @@ void MatrixDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     dupPtr->typePtr = srcPtr->typePtr;
     PTR1(dupPtr) = vt;
     PTR2(dupPtr) = (vt->createCopy)(PTR2(srcPtr));
+    INCMATCNT;
 }
 
 /**** utilities */
@@ -551,6 +567,12 @@ Tcl_Obj *TakeMatrixFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
     }
      
     if (Tcl_IsShared(res)) {
+#if 0
+        char cmd [100];
+        sprintf(cmd, "puts \"duplicating matrix at %p in %s (refCount=%d)\";", 
+                res, Tcl_GetString(varname), res->refCount);
+        Tcl_Eval(ip, cmd);
+#endif
         DECREFCNT(res);
         res = Tcl_DuplicateObj(res);
         INCREFCNT(res);
@@ -792,6 +814,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
                 DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
+            DECREFCNT(varp[1]);
 
             Tcl_ResetResult(ip);
             return TCL_OK;
@@ -859,6 +882,7 @@ int Tlin_Init(Tcl_Interp *ip) {
 
     Tcl_LinkVar(ip, NSP "progvar", (char *) &theprogvar, TCL_LINK_STRING);
     Tcl_LinkVar(ip, NSP "progsteps", (char *) &theprogmsk, TCL_LINK_INT);
+    Tcl_LinkVar(ip, NSP "_matCount", (char *) &matCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
     
     theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 100;
         
