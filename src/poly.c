@@ -38,12 +38,32 @@ void copyExmo(exmo *dest, exmo *src) {
     memcpy(dest,src,sizeof(exmo));
 }
 
+void shiftExmo(exmo *e, const exmo *s, int flags) {
+    int i;
+    for (i=NALG;i--;) 
+        e->dat[i] += s->dat[i];
+    /* TODO: signs not yet implemented */
+    e->ext ^= s->ext;
+}
+
+#define COMPRET(x,y) if (0 != (diff = ((x)-(y)))) return diff;
+int compareExmo(const void *aa, const void *bb) {
+    int diff, i;
+    const exmo *a = (const exmo *) aa;
+    const exmo *b = (const exmo *) bb;
+    COMPRET(a->gen,b->gen);
+    COMPRET(a->ext,b->ext);
+    for (i=0;i<NALG;i++)
+        COMPRET(a->dat[i],b->dat[i]);
+    return 0;
+}
+
 /**** generic polynomials *********************************************************/
 
 #define CALLIFNONZERO1(func,arg1) \
 if (NULL != (func)) (func)(arg1);
 
-int   PLgetLength(polyType *type, void *poly) {
+int PLgetLength(polyType *type, void *poly) {
     return (type->getLength)(poly);
 }
 
@@ -63,9 +83,12 @@ void *PLcreate(polyType *type) {
     return res;
 }
 
-int PLcancel(polyType *type, void *poly) { 
-    CALLIFNONZERO1(type->cancel,poly) else return FAILIMPOSSIBLE;
-    return SUCCESS;
+int PLcancel(polyType *type, void *poly, int modulo) { 
+    if (NULL != type->cancel) {
+        (type->cancel)(poly,modulo);
+        return SUCCESS;
+    }
+    return FAILIMPOSSIBLE;
 }
 
 int PLgetExmo(polyType *type, void *self, exmo *ex, int index) {
@@ -84,17 +107,20 @@ int PLappendExmo(polyType *dtp, void *dst, exmo *e) {
     return FAILIMPOSSIBLE;
 }
 
-int PLappendScaledPolyMod(polyType *dtp, void *dst, 
-                          polyType *stp, void *src, 
-                          int scale, int modulo) {
+int PLappendPoly(polyType *dtp, void *dst, 
+                 polyType *stp, void *src,     
+                 const exmo *shift,
+                 int flags,
+                 int scale, int modulo) {
     exmo e; int i, len;
-    if ((dtp == src) && (NULL != dtp->appendScaledPolyMod))
-        return (dtp->appendScaledPolyMod)(dst,src,scale,modulo);
+    if ((dtp == src) && (NULL != dtp->appendPoly))
+        return (dtp->appendPoly)(dst,src,shift,flags,scale,modulo);
     len = (stp->getLength)(src);
     if (modulo) scale %= modulo;
     for (i=0;i<len;i++) {
         if (SUCCESS != PLgetExmo(stp,src,&e,i)) 
             return FAILIMPOSSIBLE;
+        if (NULL != shift) shiftExmo(&e,shift,flags);
         e.coeff *= scale; if (modulo) e.coeff %= modulo;
         if (SUCCESS != PLappendExmo(dtp,dst,&e)) 
             return FAILIMPOSSIBLE;
@@ -134,6 +160,67 @@ void stdFree(void *self) {
     if (s->nalloc) { s->nalloc = s->num = 0; free(s->dat); }
 }
 
+void stdClear(void *self) {
+    stp *s = (stp *) self;
+    LOGSTD("Clear");
+    s->num = 0; 
+}
+
+int stdRealloc(void *self, int nalloc) {
+    stp *s = (stp *) self;
+    exmo *ndat;
+    LOGSTD("Realloc");
+    if (nalloc < s->num) nalloc = s->num;
+    if (NULL == (ndat = realloc(s->dat,sizeof(exmo) * nalloc))) 
+        return FAILMEM;
+    s->dat = ndat; s->nalloc = nalloc;
+    return SUCCESS;
+}
+
+void stdSort(void *self) {
+    stp *s = (stp *) self;
+    LOGSTD("Sort");
+    qsort(s->dat,s->num,sizeof(exmo),compareExmo);
+}
+
+void stdCancel(void *self, int mod) {
+    stp *s = (stp *) self;
+    int i,j,k; double d;
+    LOGSTD("Cancel");
+    stdSort(self);
+    for (k=i=0,j=1;j<=s->num;) 
+        if ((j<s->num) && (0==compareExmo(&(s->dat[i]),&(s->dat[j])))) {
+            s->dat[i].coeff += s->dat[j].coeff;
+            if (mod) s->dat[i].coeff %= mod;
+            j++;
+        } else {
+            if (mod) s->dat[i].coeff %= mod;
+            if (0 != s->dat[i].coeff) {
+                if (k != i) copyExmo(&(s->dat[k]),&(s->dat[i]));
+                k++;
+            }
+            i=j; j=i+1;
+        }
+    s->num = k;
+    if (s->nalloc) { 
+        d = s->num; d /= s->nalloc; 
+        if (0.8 > d) stdRealloc(self, s->num * 1.1);
+    } 
+}
+
+int stdCompare(void *pol1, void *pol2, int *res) {
+    stp *s1 = (stp *) pol1;
+    stp *s2 = (stp *) pol2;
+    LOGSTD("Compare");
+    stdCancel(pol1,0); stdCancel(pol2,0);
+    if (s1->num != s2->num) { 
+        *res = s1->num - s2->num;
+        return SUCCESS;
+    }
+    *res = memcmp(s1->dat,s2->dat,sizeof(exmo) * s1->num);
+    return SUCCESS;
+}
+
 int stdGetExmoPtr(void *self, exmo **ptr, int idx) {
     stp *s = (stp *) self;
     LOGSTD("GetExmoPtr");
@@ -146,17 +233,6 @@ int stdGetLength(void *self) {
     stp *s = (stp *) self;
     LOGSTD("GetLength");
     return s->num;
-}
-
-int stdRealloc(void *self, int nalloc) {
-    stp *s = (stp *) self;
-    exmo *ndat;
-    LOGSTD("Realloc");
-    if (nalloc < s->num) nalloc = s->num;
-    if (NULL == (ndat = realloc(s->dat,sizeof(exmo) * nalloc))) 
-        return FAILMEM;
-    s->dat = ndat; s->nalloc = nalloc;
-    return SUCCESS;
 }
 
 int stdAppendExmo(void *self, exmo *ex) {
@@ -190,6 +266,9 @@ int stdScaleMod(void *self, int scale, int modulo) {
 struct polyType stdPolyType = {
     .createCopy = &stdCreateCopy,
     .free       = &stdFree,
+    .clear      = &stdClear,
+    .cancel     = &stdCancel,
+    .compare    = &stdCompare,
     .getExmoPtr = &stdGetExmoPtr,
     .getLength  = &stdGetLength,
     .appendExmo = &stdAppendExmo,
@@ -197,17 +276,36 @@ struct polyType stdPolyType = {
 };
 
 void *PLcreateStdCopy(polyType *type, void *poly) {
+    return PLcreateCopy(stdpoly,type,poly);
+}
+
+void *PLcreateCopy(polyType *newtype, polyType *type, void *poly) {
     stp *res;
-    if (stdpoly == type) 
-        return stdCreateCopy(poly);
-    if (NULL == (res = stdCreateCopy(NULL)))
+    if (newtype == type) 
+        return (newtype->createCopy)(poly);
+    if (NULL == (res = (newtype->createCopy)(NULL)))
         return NULL;
-    if (SUCCESS != PLappendScaledPolyMod(stdpoly,res,type,poly,1,0)) {
-        stdFree(res); return NULL;
+    if (SUCCESS != PLappendPoly(newtype,res,type,poly,NULL,0,1,0)) {
+        (newtype->free)(res); return NULL;
     }
     return res;
 }
 
+int PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *res) {
+    void *st1, *st2;
+    int rcode;
+    if ((tp1 == tp2) && (NULL != tp1->compare)) 
+        return (tp1->compare)(pol1,pol2,res);
+    /* convert both to stdpoly */
+    if (stdpoly == tp1) st1 = pol1;
+    else st1 = PLcreateCopy(stdpoly,tp1,pol1);
+    if (stdpoly == tp2) st2 = pol2;
+    else st2 = PLcreateCopy(stdpoly,tp2,pol2);
+    rcode = (stdpoly->compare)(st1,st2,res);
+    if (st1 != pol1) PLfree(stdpoly,st1);
+    if (st2 != pol2) PLfree(stdpoly,st2);
+    return rcode;
+}
 
 
 /* old stuff below */
@@ -275,6 +373,7 @@ int appendScaledPoly(poly *p, poly *m, xint scaleFactor) {
     return 1;
 }
 
+#undef COMPRET
 #define COMPRET(x,y) if (0 != (res = (x)-(y))) return res;
 
 int compareMono(const void *bb, const void *aa) {

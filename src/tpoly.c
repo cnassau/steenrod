@@ -288,7 +288,7 @@ int polyToList(Tcl_Interp *ip, poly *p) {
     return TCL_OK;
 }
 
-typedef enum { TPEXMO, TPPLO,
+typedef enum { TPEXMO, TPPLO, TPCANCEL,
     TPCREATE, TPDISPOSE, TPGETNUM, TPGETALLOC, TPGETMCOFF, TPSETMCOFF, 
     TPGETDATA, TPSETDATA, TPSORT, TPCOMPACT, TPREFLECT, TPPOLPOS, 
     TPPOLNEG, TPCLEAR, TPGETNALG, TPCOPY, TPAPPENDDATA, TPSTMULT, 
@@ -427,6 +427,14 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             Tcl_InvalidateStringRep(objv[1]);
             Tcl_SetObjResult(ip, objv[1]);
             return TCL_OK;
+        case TPCANCEL:
+            ENSUREARGS3(TP_PLO,TP_OPTIONAL,TP_INT);
+            if (3 == objc) Tcl_GetIntFromObj(ip, objv[2], &ivar);
+            else ivar = 0;
+            PLcancel(PTR1(objv[1]),PTR2(objv[1]),ivar);
+            Tcl_InvalidateStringRep(objv[1]);
+            Tcl_SetObjResult(ip, objv[1]);
+            return TCL_OK;
     }
 
     Tcl_SetResult(ip, "tPolyCombiCmd: internal error", TCL_STATIC);
@@ -466,6 +474,7 @@ int Tpoly_Init(Tcl_Interp *ip) {
 
     CREATECMD("exmo",TPEXMO);
     CREATECMD("plo",TPPLO);
+    CREATECMD("cancel",TPCANCEL);
 
     CREATECMD("create",   TPCREATE);
     CREATECMD("dispose",  TPDISPOSE);

@@ -20,7 +20,7 @@
 
 /* An extended monomial represents the tuple
  *
- *     ( coefficient, exterior part, exponent sequence, generator id )
+ *     (coefficient, exterior part, exponent sequence, generator id)
  **/
 
 typedef struct {
@@ -39,6 +39,10 @@ int exmoGetPad(exmo *e);
 
 void copyExmo(exmo *dest, exmo *src);
 
+#define ADJUSTSIGNS 1 /* should we just xor the exterior data,
+                       * or should we simulate an exterior algebra? */
+void shiftExmo(exmo *e, const exmo *shft, int flags);
+
 /* A polynomial is an arbitrary collection of extended monomials. 
  * Different realizations are thinkable (compressed vs. uncompressed, 
  * vector vs. list style, etc...), so we try to support many different 
@@ -46,29 +50,49 @@ void copyExmo(exmo *dest, exmo *src);
  * by a polyType structure. */
 
 typedef struct polyType {
-    void *(*createCopy)(void *src);  /* create a copy; if src is NULL, 
-                                      * create a new empty polynomial */
-    void (*clear)(void *self);       /* clear */
+    void *(*createCopy)(void *src);  /* create a copy; if src is NULL a
+                                      * new empty polynomial is created */
+
+    void (*swallow)(void *self, 
+                    void *victim);   /* make self a copy of victim
+                                      * which can be cannibalized  */  
+
+    void (*clear)(void *self);       /* set self to zero */
+
     void (*free)(void *self);        /* free all allocated storage */
+
     int (*getLength)(void *self);    /* return number of summands */
+
     int (*getExmo)(void *self, 
                    exmo *exmo, 
                    int index);       /* retrieve extended monomial 
                                       * from given index */
+
     int (*getExmoPtr)(void *self, 
                       exmo **exmo, 
                       int index);    /* try to get in-place pointer to 
                                       * a summand (read-only pointer!) */
-    void (*cancel)(void *self);      /* cancel as much as possible */
-    int  (*appendScaledPolyMod)(void *self, 
-                                void *other, 
-                                int scale, 
-                                int modulo);    /* append scaled version of another 
-                                                 * poly of the same type */
+
+    void (*cancel)(void *self, int modulo);  /* cancel as much as possible */
+
+    int  (*compare)(void *pol1, 
+                    void *pol2,
+                    int *result);    /* comparison result as in qsort */
+
+    int  (*appendPoly)(void *self, 
+                       void *other, 
+                       const exmo *shift,
+                       int shiftflags,
+                       int scale, 
+                       int modulo);    /* append scaled version of another 
+                                        * poly of the same type, possibly
+                                        * shifted by a given exmo */
+
     int  (*appendExmo)(void *self, exmo *exmo); /* append an extended monomial */
+
     int  (*scaleMod)(void *self, 
                      int scale, 
-                     int modulo);  /* scale polyand reduce if modulo nonzero */
+                     int modulo);  /* scale poly and reduce (if modulo != 0) */
 } polyType;
 
 /* wrappers for the polyType member functions; these check whether 
@@ -77,14 +101,17 @@ typedef struct polyType {
 
 int   PLgetLength(polyType *type, void *poly);
 void  PLfree(polyType *type, void *poly);
-int   PLcancel(polyType *type, void *poly);
+int   PLcancel(polyType *type, void *poly, int modulo);
 int   PLclear(polyType *type, void *poly);
 void *PLcreate(polyType *type);
+int   PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *result);
 int   PLgetExmo(polyType *type, void *self, exmo *exmo, int index);
 int   PLappendExmo(polyType *dtp, void *dst, exmo *e);
-int   PLappendScaledPolyMod(polyType *dtp, void *dst, 
-                            polyType *stp, void *src, 
-                            int scale, int modulo);
+int   PLappendPoly(polyType *dtp, void *dst, 
+                   polyType *stp, void *src,                      
+                   const exmo *shift, int shiftflags,
+                   int scale, int modulo);
+void *PLcreateCopy(polyType *newtype, polyType *oldtype, void *poly);
 
 #ifndef POLYC
 extern polyType stdPolyType;
