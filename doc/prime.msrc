@@ -1,0 +1,36 @@
+[manpage_begin prime n 1.0]
+
+[moddesc {Steenrod Tcl package}]
+
+[titledesc {a collection of constants associated to the prime}]
+
+[copyright "2003 Christian Nassau"]
+
+[require Steenrod 1.0]
+
+[description]
+
+The [cmd prime] command ensemble allows to retrieve certain constants 
+that are often needed by Steenrod algebra computations. 
+
+[usage namespace import steenrod::prime]
+[usage [cmd prime] [arg <prime>] [cmd subcommand] ?arg arg ...?]
+
+[list_begin definitions]
+
+[lst_item "[cmd prime] [arg <integer>] [cmd test]"]
+Tests whether [arg <integer>] is an (acceptable) prime. 
+If the argument is not a prime or is not acceptable for other reasons,
+an error message is returned. Otherwise the result is an empty string. 
+
+[lst_item "[cmd prime] [arg <prime>] [cmd powers]"]
+Returns a list of the first few prime powers. 
+
+[list_end]
+
+
+[see_also enumerator linalg matrix mono monomap poly prime ]
+
+[keywords {Steenrod algebra} {Tcl package} Mathematics]
+
+[manpage_end]
