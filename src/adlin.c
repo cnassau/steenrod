@@ -200,6 +200,8 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
     m1.data = ker->data; m1.nomcols = ker->nomcols; 
     m1.cols = ker->cols; m1.rows= 0;
 
+    if (0 == im->rows) im->cols = ker->cols;
+
     cols = im->cols;
     v1.num = v2.num = cols;
 #if 0
