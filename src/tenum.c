@@ -502,16 +502,19 @@ int Tcl_EnumSiglistCmd(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
-int Tcl_EnumDecodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
+int Tcl_EnumDecodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj, int scale) {
     tclEnum *te = (tclEnum *) cd;   
     vectorType *vt; void *vdat;
     void *pdat;
-    int vdim, edim, idx, val;
+    int vdim, edim, idx, val, prime;
 
     if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
 
     if (!Tcl_ObjIsVector(obj))
         assert(NULL == "Tcl_EnumDecodeCmd expects vector argument");
+
+    prime = te->enm->pi->prime;
+    scale %= prime;
 
     vt   = vectorTypeFromTclObj(obj);
     vdat = vectorFromTclObj(obj);
@@ -541,6 +544,10 @@ int Tcl_EnumDecodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
                 }
                 RETERR("internal error in Tcl_EnumDecodeCmd: vt->getEntry failed");
             }
+
+            val *= scale; 
+            val %= prime; 
+            if (val < 0) val += prime;
 
             if (val) { 
                 te->enm->theex.coeff = val;
@@ -632,7 +639,7 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
     tclEnum *te = (tclEnum *) cd;
     Tcl_Obj *auxobj;
     exmo ex;
-    int result, index;
+    int result, index, scale;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
@@ -670,13 +677,17 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
         case SIGLIST:
             return Tcl_EnumSiglistCmd(cd, ip, objc, objv);
         case DECODE:
-            if (objc != 3) {
-                Tcl_WrongNumArgs(ip, 2, objv, "<vector>");
+            if ((objc < 3) || (objc > 4)) {
+                Tcl_WrongNumArgs(ip, 2, objv, "<vector> ?<scale factor>?");
                 return TCL_ERROR;
             }
             if (TCL_OK != Tcl_ConvertToVector(ip, objv[2])) 
                 return TCL_ERROR;
-            return Tcl_EnumDecodeCmd(cd, ip, objv[2]);
+            scale = 1;
+            if (objc==4) 
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &scale))
+                    return TCL_ERROR;
+            return Tcl_EnumDecodeCmd(cd, ip, objv[2], scale);
         case ENCODE:
             if (objc!=3) {
                 Tcl_WrongNumArgs(ip, 2, objv, "<polynomial>");
