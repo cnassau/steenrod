@@ -34,7 +34,10 @@ int exmoGetRedLen(exmo *e) {
 }
 
 int exmoGetLen(exmo *e) {
-    int pad = exmoGetPad(e), res, ex, j;
+    int pad = exmoGetPad(e), res, ex = e->ext, j;
+    /* check if ext & pad have the same sign */
+    if ((ex<0) && (pad>=0)) return NALG; 
+    if ((ex>=0) && (pad<0)) return NALG; 
     for (res=0, ex=e->ext; pad != ex; res++) ex >>= 1; 
     for (j=res;j<NALG;j++) 
         if (e->dat[j] != pad) 
@@ -536,13 +539,15 @@ int PLposMultiply(polyType **rtp, void **res,
     len = PLgetNumsum(sftp,sf);
     for (i=0;i<len;i++) {
         if (SUCCESS != (rc = PLgetExmo(sftp,sf,&aux,i))) {
-            PLfree(*rtp,*res); return rc;
+            PLfree(*rtp,*res); 
+            return rc;
         }
         if (SUCCESS != (rc = PLappendPoly(*rtp,*res,
                                           fftp,ff,
                                           &aux,ADJUSTSIGNS,
                                           aux.coeff,mod))) {
-            PLfree(*rtp,*res); return rc;
+            PLfree(*rtp,*res); 
+            return rc;
         }
     }
     PLcancel(*rtp,*res,mod);
