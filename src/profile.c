@@ -33,7 +33,7 @@ void makeZeroProfile(profile *pro) {
 void makeFullProfile(profile *pro, primeInfo *pi, int maxdim) {
     int i, val;
     pro->core.edat = ~0;
-    for (i=pi->N; i && (pi->extdegs[i] > maxdim);) 
+    for (i=NALG; i && (pi->extdegs[i] > maxdim);) 
         i--;
     val = i;
     for (i=0; i<NPRO; i++) {

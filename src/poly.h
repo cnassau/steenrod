@@ -17,8 +17,6 @@
 #include "prime.h"
 #include <stdio.h>
 
-#define NALG 4
-
 typedef short xint;
 
 /* monomial = coefficient + exterior part + exponent sequence + generator id */

@@ -99,11 +99,11 @@ Tcl_SetObjResult(ip,Tcl_ListFromArray(len,list)); return TCL_OK
         RETURNINT(pi->inverse[a]);
     case CD_PRIME: RETURNINT(pi->prime);
     case CD_MAXDEG: RETURNINT(pi->maxdeg);
-    case CD_N: RETURNINT(pi->N);
+    case CD_N: RETURNINT(NALG);
     case CD_TPMO: RETURNINT(pi->tpmo);
-    case CD_REDDEGS: RETURNLIST(pi->reddegs, pi->N);
-    case CD_EXTDEGS: RETURNLIST(pi->extdegs, pi->N);
-    case CD_PRIMPOWS: RETURNLIST(pi->primpows, pi->N);
+    case CD_REDDEGS: RETURNLIST(pi->reddegs, NALG);
+    case CD_EXTDEGS: RETURNLIST(pi->extdegs, NALG);
+    case CD_PRIMPOWS: RETURNLIST(pi->primpows, NALG);
     } 
     
     Tcl_SetResult(ip, "internal error in tPtrInfo", TCL_VOLATILE);

@@ -14,6 +14,8 @@
 #ifndef PRIME_DEF
 #define PRIME_DEF
 
+#define NALG 6
+
 #include <stdlib.h>
 #define cmalloc  malloc
 #define cfree    free
@@ -30,7 +32,6 @@ typedef struct {
     cint prime;
     int maxdeg;      /* maximum dimension for which this data is complete */
     /* basic */
-    int N;           /* minimum length of the arrays below: */
     int *primpows;   /* prime powers */
     int *extdegs;    /* exterior degrees */
     int *reddegs;    /* degrees of the reduced part, divided by 2(p-1) */
