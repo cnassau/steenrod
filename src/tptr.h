@@ -39,6 +39,9 @@ Tcl_Obj *Tcl_NewTPtr(int type, void *ptr);
  * are unique. */
 void TPtr_RegType(int type, const char *name);
 
+/* Register a Tcl_ObjType. */
+void TPtr_RegObjType(int type, Tcl_ObjType *obtype);
+
 /* Predefined types; these use negative values */
 #define TP_INT       -1    /* Tcl_Int */
 #define TP_STRING    -2    /* Create up to date string rep. */

@@ -76,15 +76,15 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
             Tcl_SetObjResult(ip, Tcl_ListFromArray(NPRO, core->rdat));
             return TCL_OK;
         case CORE_GETREDDEG:
-            ENSUREARGS2(TP_PROCORE,TP_PRINFO);
+            ENSUREARGS2(TP_PROCORE,TP_PRIME);
             core = (procore *) TPtr_GetPtr(objv[1]);
-            pi   = (primeInfo *) TPtr_GetPtr(objv[2]);
+            if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi)) return TCL_ERROR;
             Tcl_SetObjResult(ip, Tcl_NewIntObj(reddegProcore(core, pi)));
             return TCL_OK;
         case CORE_GETEXTDEG:
-            ENSUREARGS2(TP_PROCORE,TP_PRINFO);
+            ENSUREARGS2(TP_PROCORE,TP_PRIME);
             core = (procore *) TPtr_GetPtr(objv[1]);
-            pi   = (primeInfo *) TPtr_GetPtr(objv[2]);
+            if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi)) return TCL_ERROR;
             Tcl_SetObjResult(ip, Tcl_NewIntObj(extdeg(pi, core->edat)));
             return TCL_OK;
         case PR_CREATE:
@@ -131,8 +131,8 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
                                  SqnInfGetSeqnoWithDegree(sqn, exmo, i1)));
             return TCL_OK;
         case ENV_CREATE:
-            ENSUREARGS3(TP_PRINFO,TP_PROFILE,TP_PROFILE);
-            pi = (primeInfo *) TPtr_GetPtr(objv[1]); 
+            ENSUREARGS3(TP_PRIME,TP_PROFILE,TP_PROFILE);
+            if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[1], &pi)) return TCL_ERROR;
             prof = (profile *) TPtr_GetPtr(objv[2]); 
             alg  = (profile *) TPtr_GetPtr(objv[3]);
             env = createEnumEnv(pi, prof, alg); 

@@ -62,6 +62,9 @@ typedef struct {
 enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro);
 void disposeEnumEnv(enumEnv *env);
 
+/* make *dst a copy of *src, but set signature from *sig */
+void setSignature(exmon *dst, enumEnv *env, exmon *src, exmon *sig); 
+
 /* enumeration of exmons of a given degree */
 int firstExmon(exmon *ex, enumEnv *env, int deg);
 int nextExmon(exmon *ex, enumEnv *env);

@@ -194,6 +194,17 @@ int nextSignature(enumEnv *env, exmon *exm) {
     return nextSignRed(env, exm);
 }
 
+void setSignature(exmon *dst, enumEnv *env, exmon *src, exmon *sig) {
+    int i;
+    dst->core.edat = (env->pro->core.edat & sig->core.edat) 
+        || (~(env->pro->core.edat) & src->core.edat);
+    for (i=NPRO;i--;) {
+        int pd = env->pro->core.rdat[i];
+        dst->core.rdat[i] = (src->core.rdat[i] / pd) * pd + sig->core.rdat[i];
+    }
+    dst->id = src->id;
+}
+
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 seqnoInfo *createSeqno(enumEnv *env, int maxdim) {

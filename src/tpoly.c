@@ -187,8 +187,8 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
         res = (poly *) TPtr_GetPtr(objv[1]);
         return polyFromList(ip, res, objv[2]);
     case TPSTMULT:        
-        ENSUREARGS4(TP_PRINFO,TP_POLY,TP_POLY,TP_POLY);
-        pi   = (primeInfo *) TPtr_GetPtr(objv[1]);
+        ENSUREARGS4(TP_PRIME,TP_POLY,TP_POLY,TP_POLY);
+        if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[1], &pi)) return TCL_ERROR;
         res2 = (poly *) TPtr_GetPtr(objv[2]);
         res3 = (poly *) TPtr_GetPtr(objv[3]);
         res4 = (poly *) TPtr_GetPtr(objv[4]);

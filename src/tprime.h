@@ -15,10 +15,13 @@
 #define TPRIME_DEF
 
 #include <tcl.h>
+#include "prime.h"
 
-/* id of our primeInfo type */
-#define TP_PRINFO 11
+/* TPtr id of our "prime" type */
+#define TP_PRIME 11
 
 int Tprime_Init(Tcl_Interp *ip);
+
+int Tcl_GetPrimeInfo(Tcl_Interp *ip, Tcl_Obj *obj, primeInfo **pi);
 
 #endif

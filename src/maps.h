@@ -84,13 +84,16 @@ typedef struct {
     int gideg;  /* internal degree of the generator */
     int gedeg;  /* external degree of the generator */
     int seqoff; /* sequence number offset */
+    int rideg;  /* remaining internal degree = i.deg - gideg */
 } mapsqnitem;
 
 typedef struct {
     /* an array of mapsqnitems */
     int num;
+    int alloc;
     mapsqnitem *dat;
     /* other enumeration relevant data */
+    exmon      exm;
     enumEnv   *env;
     seqnoInfo *sqn;
 } mapsqndata;
@@ -99,5 +102,8 @@ typedef struct {
 mapsqndata *mapCreateSqnData(map *mp, enumEnv *env, int edeg, int ideg);
 void mapDestroySqnData(mapsqndata *mps);
 
+/* enumeration based on mapsqndat */
+int MSDfirst(mapsqndata *msd, exmon *sig, exmon *var); 
+int MSDnext(mapsqndata *msd, exmon *sig, exmon *var); 
 
 #endif

@@ -239,14 +239,78 @@ int mapGetMaxIdeg(map *mp) {
 
 /*==============================================================================*/
 
+#define COMPRET(x,y) if (0 != (res = (x)-(y))) return res;
+int cmpMpSI(const void *aa, const void *bb) {
+    const mapsqnitem *a = (const mapsqnitem *) aa;
+    const mapsqnitem *b = (const mapsqnitem *) bb;
+    int res;
+    COMPRET(a->gen, b->gen);
+    COMPRET(a->edat, b->edat);
+    return 0;
+}
+
+int mapsqndatarealloc(mapsqndata *mps, int nalloc) {
+    mapsqnitem *mpi;
+
+    if (nalloc < mps->num) nalloc = mps->num;
+    mpi = realloc(mps->dat, nalloc * sizeof(mapsqnitem));
+    if (NULL == mpi) return FAILMEM;
+    mps->dat = mpi; mps->alloc = nalloc;
+    return SUCCESS;
+}
+
+mapsqnitem *newMapSqnItm(mapsqndata *mps) {
+    mapsqnitem *res;
+    if (mps->num >= mps->alloc) 
+        if (SUCCESS != mapsqndatarealloc(mps, mps->alloc + 100)) 
+            return NULL;
+    res = &(mps->dat[mps->num]);
+    ++(mps->num); 
+    printf("newMapSqnItm\n");
+    return res;
+}
+
 mapsqndata *mapCreateSqnData(map *mp, enumEnv *env, int edeg, int ideg) {
     mapsqndata *res;
+    int i;
 
     if (NULL == (res = calloc(1, sizeof(mapsqndata))))
         return NULL;
 
+    res->dat = NULL;
+    res->num = res->alloc = 0;
+
     res->env = env;
     
+    for (i=0;i<mp->num;i++) {
+        mapgen *gen = &(mp->dat[i]);
+        int edegrem = edeg - gen->edeg;
+        int idegrem = ideg - gen->ideg;
+        int edat, deg;
+        printf("gen #%d edeg = %d, ideg = %d, edegrem=%d, idegrem=%d\n",
+               gen->id, gen->edeg, gen->ideg, edegrem, idegrem);
+        if ((edegrem < 0) || (idegrem < 0)) continue;
+        /* find all exteriors in the given subalgebra that have 
+         * the prescribed exterior degree edegrem */
+        deg = idegrem;
+        edat = getMaxExterior(env, &deg);
+        for (;edat>=0;edat--) 
+            if (BITCOUNT(edat) == edegrem) {
+                mapsqnitem *itm;
+                if (NULL == (itm = newMapSqnItm(res))) {
+                    mapDestroySqnData(res);
+                    return NULL;
+                }
+                itm->gen  = gen->id;
+                itm->edat = edat;
+                itm->gideg = gen->ideg;
+                itm->gedeg = gen->edeg;
+                printf("itm rideg = %d\n",idegrem);
+                itm->rideg = idegrem;
+            }
+    }
+
+    qsort(res->dat, res->num, sizeof(mapsqnitem), cmpMpSI);
     return res;
 }
 
@@ -255,4 +319,37 @@ void mapDestroySqnData(mapsqndata *mps) {
     if (NULL != mps->sqn) destroySeqno(mps->sqn);
     free(mps);
 }
+
+/* enumeration based on mapsqndata 
+ *
+ * we here use the exm component of the mapsqndata struct */
+
+int MSDfirstAux(mapsqndata *msd, exmon *sig, exmon *var) {
+    int i;
+    for (i=msd->exm.id;i<msd->num;i++) 
+        if (firstRedmon(&(msd->exm), msd->env, msd->dat[i].rideg)) {
+            var->id = msd->exm.id = msd->dat[i].gen;
+            setSignature(var, msd->env, &(msd->exm), sig);
+            return 1;
+        }
+    return 0;
+}
+
+int MSDfirst(mapsqndata *msd, exmon *sig, exmon *var) {
+    msd->exm.id = 0;
+    return MSDfirstAux(msd, sig, var);
+}
+
+int MSDnext(mapsqndata *msd, exmon *sig, exmon *var) {
+    int i = msd->exm.id;
+    if (nextRedmon(&(msd->exm), msd->env)) {
+        setSignature(var, msd->env, &(msd->exm), sig);
+        return 1;
+    }
+    var->id = msd->exm.id = i+1;
+    return MSDfirstAux(msd, sig, var);
+}
+
+
+
 

@@ -94,6 +94,7 @@ typedef enum {
     MP_CREATE, MP_DESTROY, MP_INFO, MP_GETNUM, 
     MP_GETMAXGEN, MP_GETMINIDEG, MP_GETMAXIDEG,
     MP_CREATESQN, MP_DESTROYSQN, 
+    MP_FIRSTWITHSQN, MP_NEXTWITHSQN,
     GEN_CREATE, GEN_FIND, 
     GEN_SETIDEGREE, GEN_SETEDEGREE, 
     GEN_GETIDEGREE, GEN_GETEDEGREE,
@@ -110,6 +111,7 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
     mapsum *mps;
     mapsqndata *mpsd;
     enumEnv *env;
+    exmon *exm1, *exm2;
 
     int privateInt, ivar1, ivar2;
 
@@ -229,6 +231,20 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
             mpsd = (mapsqndata *) TPtr_GetPtr(objv[1]);
             mapDestroySqnData(mpsd);
             return TCL_OK;
+        case MP_FIRSTWITHSQN:
+            ENSUREARGS3(TP_MAPSQD, TP_EXMON, TP_EXMON);
+            mpsd = (mapsqndata *) TPtr_GetPtr(objv[1]);
+            exm1 = (exmon *) TPtr_GetPtr(objv[2]);
+            exm2 = (exmon *) TPtr_GetPtr(objv[3]);
+            Tcl_SetObjResult(ip, Tcl_NewBooleanObj(MSDfirst(mpsd, exm1, exm2)));
+            return TCL_OK;
+        case MP_NEXTWITHSQN:
+            ENSUREARGS3(TP_MAPSQD, TP_EXMON, TP_EXMON);
+            mpsd = (mapsqndata *) TPtr_GetPtr(objv[1]);
+            exm1 = (exmon *) TPtr_GetPtr(objv[2]);
+            exm2 = (exmon *) TPtr_GetPtr(objv[3]);
+            Tcl_SetObjResult(ip, Tcl_NewBooleanObj(MSDnext(mpsd, exm1, exm2)));
+            return TCL_OK;
     }
 
     RETERR("tMapCombiCmd: internal error"); 
@@ -275,6 +291,8 @@ Tcl_CreateObjCommand(ip,name,tMapCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND(NSM "getSumData",     SUM_GETDATA);
     CREATECOMMAND(NSM "createMapSqnData",  MP_CREATESQN);
     CREATECOMMAND(NSM "destroyMapSqnData", MP_DESTROYSQN);
+    CREATECOMMAND(NSM "msdFirst",       MP_FIRSTWITHSQN);
+    CREATECOMMAND(NSM "msdNext",        MP_NEXTWITHSQN);
 
     return TCL_OK;
 }

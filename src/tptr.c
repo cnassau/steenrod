@@ -106,6 +106,7 @@ Tcl_Obj *Tcl_NewTPtr(int type, void *ptr) {
 typedef struct TPtrTypeInfo {
     int id;
     char *name;
+    Tcl_ObjType *type; 
     struct TPtrTypeInfo *next;
 } TPtrTypeInfo;
 
@@ -120,7 +121,7 @@ TPtrTypeInfo *findType(int id) {
     return NULL;
 }
 
-void TPtr_RegType(int type, const char *name) {
+TPtrTypeInfo *createNewType(int type, const char *name) {
     TPtrTypeInfo *aux, **auxp = &(TPtr_TypeList);
     if (NULL != (aux = findType(type))) {
         printf("Fatal problem in TPtr_RegType:\n"
@@ -136,9 +137,23 @@ void TPtr_RegType(int type, const char *name) {
         printf("Out of memory\n");
         exit(1);
     }
-    (*auxp)->id = type;
-    (*auxp)->name = strdup(name);
-    (*auxp)->next = NULL;
+    return (*auxp);
+}
+
+void TPtr_RegType(int type, const char *name) {
+    TPtrTypeInfo *aux = createNewType(type, name);
+    aux->id = type;
+    aux->type = NULL;
+    aux->name = strdup(name);
+    aux->next = NULL;
+}
+
+void TPtr_RegObjType(int type, Tcl_ObjType *obtp) {
+    TPtrTypeInfo *aux = createNewType(type, obtp->name);
+    aux->id = type;
+    aux->type = obtp;
+    aux->name = strdup(obtp->name);
+    aux->next = NULL;
 }
 
 void printTypename(char *buf, int type) {
@@ -156,18 +171,20 @@ void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, char *msg) {
     int type; 
     int optional = 0;
     if (NULL == ip) return ;
-    if (NULL != msg) wrk += sprintf(wrk, "%s", msg);
-    else wrk += sprintf(wrk, "problem with argument #%d", pos);
-    if (NULL != name) wrk += sprintf(wrk, "\nusage: %s", name);
-    while (TP_END != (type = va_arg(*ap, int))) {
-        if (TP_OPTIONAL == type) { 
-            optional = 1; 
-            wrk += sprintf(wrk, " [ ");
+    wrk += sprintf(wrk, "problem with argument #%d", pos);
+    if (NULL != msg) wrk += sprintf(wrk, " (%s)", msg);
+    if (NULL != name) {
+        wrk += sprintf(wrk, "\nusage: %s", name);
+        while (TP_END != (type = va_arg(*ap, int))) {
+            if (TP_OPTIONAL == type) { 
+                optional = 1; 
+                wrk += sprintf(wrk, " [ ");
+            }
+            printTypename(typename, type);
+            wrk += sprintf(wrk, " %s", typename);
         }
-        printTypename(typename, type);
-        wrk += sprintf(wrk, " %s", typename);
+        if (optional) wrk += sprintf(wrk, " ]");
     }
-    if (optional) wrk += sprintf(wrk, " ]");
     Tcl_SetResult(ip, err, TCL_VOLATILE);
 }
 
@@ -184,7 +201,9 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
     int pos = 0;
     int optional = 0;
     int aux;
-  
+
+    TPtrTypeInfo *tpi;
+
     Tcl_Obj * CONST *objvorig = objv; /* backup copy */
   
     /* skip program name */
@@ -232,7 +251,19 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
                     CHCKARGSERR(NULL); 
                 continue;
         }    
-    
+        
+        tpi = findType(type);
+        
+        /* check if Tcl_ObjType given */
+        if ((NULL != tpi) && (NULL != tpi->type)) {
+            if (TCL_OK != Tcl_ConvertToType(ip, *objv, tpi->type)) {
+                char *aux = strdup(Tcl_GetStringResult(ip));
+                CHCKARGSERR(aux);
+                free(aux);
+            }
+            continue;
+        }
+
         /* default : expect TPtr of given type */
     
         if (TCL_OK != Tcl_ConvertToType(ip, *objv, &TPtr)) 
