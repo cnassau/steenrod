@@ -134,7 +134,7 @@ proc addLine {id tp} {
 
 # see if m signals h_i or v_0 multiples
 proc myfilter {m} {
-    if {[mono::redlength $m] > 1} { return -code continue }
+    if {[mono rlength $m] > 1} { return -code continue }
     set ext [lindex $m 1]
     if {$ext==0} {
         set v [lindex $m 2] 
@@ -160,7 +160,7 @@ proc newgen {id s e i diff} {
     set ::currgenid $id
     set ::currs $s
     addDot [expr $i-$s] $s $e $id $s
-    poly::split $diff ::myfilter
+    poly split $diff ::myfilter
 
     update
 }

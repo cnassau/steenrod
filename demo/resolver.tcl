@@ -20,6 +20,7 @@ if {[catch {package require Steenrod}]} {
 }
 
 namespace import linalg::*
+namespace import poly::*
 
 array set defoptions {
     -prime   { {} "the prime" }
@@ -127,8 +128,8 @@ proc dbgadd {body} {
 
 incr maxs
 for {set i -2} {$i<=$maxs} {incr i} {
-    poly::enumerator C$i -prime $p -algebra $alg
-    poly::monomap d$i
+    enumerator C$i -prime $p -algebra $alg
+    monomap d$i
 }
 
 # fake generator from Ext^0
@@ -223,18 +224,19 @@ proc maxLowerProfile {prime algebra s ideg edeg} {
 
     if {!$uselower} { return {0 0 0 0} }
 
+    set edegs [prime::extdegs $prime]
+    set rdegs [prime::reddegs $prime]
+    set tpmo  [prime::tpmo $prime]
+    set NALG  [llength $rdegs]
+
     if {$algebra=={}} { 
         set aux {}
-        foreach dg [prime::reddegs $prime] { lappend aux 666 }
+        foreach dg [prime::reddegs $prime] { lappend aux $NALG }
         set algebra [list 0 -1 $aux 0]
     }
     
     set ae [lindex $algebra 1]
     set ar [lindex $algebra 2]
-
-    set edegs [prime::extdegs $prime]
-    set rdegs [prime::reddegs $prime]
-    set tpmo  [prime::tpmo $prime]
 
     # ext and red describe the profile of the used subalgebra B
     set ext 0
@@ -466,7 +468,7 @@ for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
                 dbgadd { "    extracted $errmat via $seqmap" }
 
                 # compute relevant part of matrix   C$sc -> C$sp 
-                set mdsn [eval poly::ComputeMatrix C$sc d$sc C$sp]
+                set mdsn [eval ComputeMatrix C$sc d$sc C$sp]
 
                 dbgadd { "    matrix is $mdsn" }
 
@@ -480,14 +482,14 @@ for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
                 foreach id $genlist preim $lft {
                     lappend corrections [set aux [C$sc decode $preim -1]]
                     set aux2 [lindex $newdiffs $cnt]
-                    lset newdiffs $cnt [poly::append $aux2 $aux]
+                    lset newdiffs $cnt [poly append $aux2 $aux]
                     incr cnt
                 }
 
                 dbgadd { "    using corrections $corrections" }
 
                 # update error terms
-                matrix addto errterms [poly::ComputeImage \
+                matrix addto errterms [ComputeImage \
                                            d$sc errenu $corrections] 1 $p
             }
             
