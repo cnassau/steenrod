@@ -46,7 +46,9 @@ libraries: $(LIBS)
 %.ps : %.dvi
 	dvips $*.dvi
 
-%.dvi : %.tex
+.PHONY: FORCE
+
+%.dvi : %.tex FORCE
 	latex $*.tex
 
 %.tex : %.nw
