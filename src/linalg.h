@@ -32,26 +32,26 @@ typedef struct {
     cint *data;
 } matrix;
 
-vector * vector_create( int size );
-void vector_dispose( vector *v );
-void vector_clear( vector *v );
-int  vector_iszero( vector *v );
-void vector_copy( vector *v, vector *w );
-void vector_add( vector *dst, vector *src, cint coeff, cint prime );
-void vector_add_entry( vector *dst, int off, cint dat, cint prime );
-cint vector_get_entry( vector *src, int off );
-void vector_randomize( vector *v, cint prime );
+vector * vector_create(int size);
+void vector_dispose(vector *v);
+void vector_clear(vector *v);
+int  vector_iszero(vector *v);
+void vector_copy(vector *v, vector *w);
+void vector_add(vector *dst, vector *src, cint coeff, cint prime);
+void vector_add_entry(vector *dst, int off, cint dat, cint prime);
+cint vector_get_entry(vector *src, int off);
+void vector_randomize(vector *v, cint prime);
 
-matrix *matrix_create( int rows, int cols );
-void matrix_destroy( matrix *mat );
-void matrix_clear( matrix *mat );    /* clear matrix */
-void matrix_unit( matrix *mat );     /* make unit matrix */
-int  matrix_resize( matrix *m, int newrows ); /* reallocate space */
-void matrix_randomize( matrix *m, cint prime );
+matrix *matrix_create(int rows, int cols);
+void matrix_destroy(matrix *mat);
+void matrix_clear(matrix *mat);    /* clear matrix */
+void matrix_unit(matrix *mat);     /* make unit matrix */
+int  matrix_resize(matrix *m, int newrows); /* reallocate space */
+void matrix_randomize(matrix *m, cint prime);
 
 /* matrix_collect is used whenever we want to throw away some
  * of the rows; for this we first set m->rows = 0, then call 
  * matrix_collect(...) for those rows that we want to keep.    */
-void matrix_collect( matrix *m, int r );
+void matrix_collect(matrix *m, int r);
 
 #endif

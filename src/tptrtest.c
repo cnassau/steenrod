@@ -17,26 +17,26 @@
 
 #include "tptr.h"
 
-int create( ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[] ) {
+int create(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int a,b;
 
-    if ( TCL_OK != TPtr_CheckArgs( ip, objc, objv, TP_INT, TP_INT, TP_END ) ) 
+    if (TCL_OK != TPtr_CheckArgs(ip, objc, objv, TP_INT, TP_INT, TP_END)) 
 	return TCL_ERROR;
 
-    Tcl_GetIntFromObj( ip, objv[1], &a );
-    Tcl_GetIntFromObj( ip, objv[2], &b );
+    Tcl_GetIntFromObj(ip, objv[1], &a);
+    Tcl_GetIntFromObj(ip, objv[2], &b);
     
-    Tcl_SetObjResult( ip, Tcl_NewTPtr( a, (void *) b ) );
+    Tcl_SetObjResult(ip, Tcl_NewTPtr(a, (void *) b));
     return TCL_OK;
 }
 
-int Tptrtest_Init( Tcl_Interp *ip ) {
+int Tptrtest_Init(Tcl_Interp *ip) {
     
-    Tcl_InitStubs( ip, "8.0", 0 ) ;   
+    Tcl_InitStubs(ip, "8.0", 0) ;   
 
-    Tptr_Init( ip );
+    Tptr_Init(ip);
 
-    Tcl_CreateObjCommand( ip, "tptr::create", create, 0, NULL );
+    Tcl_CreateObjCommand(ip, "tptr::create", create, 0, NULL);
 
     return TCL_OK;
 }

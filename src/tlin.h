@@ -23,6 +23,6 @@
 #define TP_VECTOR 13
 #define TP_MATRIX 16
 
-int Tlin_Init( Tcl_Interp *ip );
+int Tlin_Init(Tcl_Interp *ip);
 
 #endif

@@ -19,6 +19,6 @@
 /* id of our primeInfo type */
 #define TP_PRINFO 11
 
-int Tprime_Init( Tcl_Interp *ip );
+int Tprime_Init(Tcl_Interp *ip);
 
 #endif

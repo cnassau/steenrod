@@ -23,7 +23,7 @@
 typedef char cint; 
 
 #define CINTMULT(a,b,prime) \
-   ((cint) (( ((short) (a)) * ((short) (b)) ) % ((short) prime)))
+   ((cint) ((((short) (a)) * ((short) (b))) % ((short) prime)))
 
 typedef struct {
     cint prime;
@@ -51,12 +51,12 @@ typedef struct {
 #define PI_NOMEM      3
 #define PI_STRANGE    4
 
-int makePrimeInfo( primeInfo *pi, int prime, int maxdeg );
-int disposePrimeInfo( primeInfo *pi );
+int makePrimeInfo(primeInfo *pi, int prime, int maxdeg);
+int disposePrimeInfo(primeInfo *pi);
 
-cint random_cint( cint max );
+cint random_cint(cint max);
 
 /* compute binomial "l over m" mod pi->prime */
-cint binomp( primeInfo *pi, int l, int m );
+cint binomp(primeInfo *pi, int l, int m);
 
 #endif
