@@ -56,10 +56,10 @@ int disposePrimeInfo(primeInfo *pi);
 cint random_cint(cint max);
 
 /* compute binomial "l over m" mod pi->prime */
-cint binomp(primeInfo *pi, int l, int m);
+cint binomp(const primeInfo *pi, int l, int m);
 
 /* return degree of msk with respect to pi->extdegs */
-int extdeg(primeInfo *pi, int msk);
+int extdeg(const primeInfo *pi, int msk);
 
 /* the bitcount macro from the fortune database */
 #define BITCOUNT(x)     (((BX_(x)+(BX_(x)>>4)) & 0x0F0F0F0F) % 255)

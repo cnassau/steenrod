@@ -99,7 +99,7 @@ int pidBinom(primeInfo *pi) {
 
 /* computation of binomials; it's important to make sure that this 
  * routine also works for negative inputs */
-cint binomp(primeInfo *pi, int l, int m) {
+cint binomp(const primeInfo *pi, int l, int m) {
     unsigned bin = 1, aux;
     cint prime = pi->prime;
     
@@ -170,7 +170,7 @@ cint random_cint(cint prime) {
     return (cint) rint;
 }
 
-int extdeg(primeInfo *pi, int msk) {
+int extdeg(const primeInfo *pi, int msk) {
     int res=0, i=NALG, wrk=1<<i;
     while (i--,wrk>>=1) 
         if (0 != (wrk&msk))
