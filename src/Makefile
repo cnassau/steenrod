@@ -61,7 +61,10 @@ libsteenrod.so : $(OBJS)
 	$(LINKSTUB) -o libsteenrod.so $(OBJS)
 
 clean:
-	$(RM) $(OBJS) $(LIBS) *~ *.bak 2> /dev/null
+	$(RM) $(OBJS) $(LIBS) 2> /dev/null
+
+distclean: clean
+	$(RM) *~ *.bak 2> /dev/null
 
 reformat:
 	refmt.sh *.c *.h 
