@@ -401,6 +401,9 @@ while {$repcnt} {
                     incr id
                 }
 
+                unset -nocomplain vct ;# to save memory
+                unset -nocomplain ker ;# to save memory
+
                 dbgadd { "approximate diffs = $newdiffs" }
                 dbgadd { "tridegree = $tridegree" }
                 dbgadd { "profile = $theprofile" }
@@ -464,6 +467,7 @@ while {$repcnt} {
                     set cnt 0
                     set corrections {}
                     foreach id $genlist {
+                        # TODO: use something better than "lindex" here!  
                         set preim [lindex [matrix extract row $lft $cnt] 0]
                         lappend corrections [set aux [C$sc decode $preim -1]]
                         set aux2 [lindex $newdiffs $cnt]
@@ -495,8 +499,10 @@ while {$repcnt} {
                 # try to free some memory 
                 unset -nocomplain mdsn 
                 unset -nocomplain lft
+                unset -nocomplain preim
                 unset -nocomplain seqmap
                 unset -nocomplain errmat
+                unset -nocomplain errterms
                 unset -nocomplain corrections
                 rename errenu ""
 
@@ -520,7 +526,7 @@ while {$repcnt} {
     if {[incr repcnt -1]} {
         # memory debugging 
         flush stderr
-        puts stderr "\# next round!"
+        puts stderr "\# next round!" 
         puts stderr "polCount = $steenrod::_polCount"
         puts stderr "monCount = $steenrod::_monCount"
         puts stderr "matCount = $steenrod::_matCount"
