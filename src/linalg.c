@@ -16,9 +16,9 @@
 #include <string.h>
 
 vector * vector_create(int size) {
-    vector *v = cmalloc(sizeof(vector));
+    vector *v = malloc(sizeof(vector));
     if (NULL == v) return NULL;
-    v->data = cmalloc(sizeof(cint) * size);
+    v->data = malloc(sizeof(cint) * size);
     if (NULL == v->data) { cfree(v); return NULL; }
     v->num = size;
     return v;
@@ -69,7 +69,7 @@ void vector_randomize(vector *v, cint prime) {
 /* For some "reason" that I've forgotten, we try to adjust nomcols
  * so that rows lie on 8-byte boundaries. */
 matrix *matrix_create(int rows, int cols) {
-    matrix *res = (matrix *) cmalloc(sizeof(matrix));
+    matrix *res = (matrix *) malloc(sizeof(matrix));
     if (NULL == res) return NULL;
     res->nomcols = res->cols = cols;
     res->rows = rows;
@@ -78,7 +78,7 @@ matrix *matrix_create(int rows, int cols) {
     res->nomcols /= 8;
     res->nomcols *= 8;
     res->nomcols /= sizeof(cint); /* ... now cint again  .. */
-    res->data = (cint *) cmalloc(sizeof(cint) * res->nomcols * res->rows);
+    res->data = (cint *) malloc(sizeof(cint) * res->nomcols * res->rows);
     if (NULL == res->data) {
         cfree(res); return NULL;
     }
@@ -104,7 +104,7 @@ void matrix_unit(matrix *mat) {
 }
 
 vector *matrix_get_row(matrix *m, int r) {
-    vector *res = cmalloc(sizeof(vector)) ;
+    vector *res = malloc(sizeof(vector)) ;
     if (NULL == res) return NULL;
     res->num = m->cols;
     res->data = m->data + (m->nomcols * r);

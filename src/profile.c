@@ -51,7 +51,7 @@ void makeFullProfile(profile *pro, primeInfo *pi, int maxdim) {
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro) {
-    enumEnv *res = cmalloc(sizeof(enumEnv)); 
+    enumEnv *res = malloc(sizeof(enumEnv)); 
     if (NULL==res) return NULL;
     /* we keep references to our parameters (not copies) */
     res->pi = pi;
