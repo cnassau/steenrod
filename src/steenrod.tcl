@@ -14,14 +14,40 @@ catch { namespace import itcl::* }
 
 load libtprofile.so
 
+# PROFILES --------------------------------------------------------------------
+
+class profile {
+    
+    private variable pi     ;# primeInfo object 
+    private variable prof   ;# the underlying profile object
+    private variable core   ;# prof's core object
+
+    constructor {} {
+        
+    }
+
+
+}
+
+# TWO ALGEBRA ENVIRONMENT -----------------------------------------------------
+
+class algpair {
+
+    private variable pi     ;# primeInfo object 
+    private variable enenv  ;# the underlying enumEnv object 
+
+}
+
+# MILNOR BASIS ELEMENTS -------------------------------------------------------
+
+class milnor {
+
+    private variable exmo   ;# the underlying exmon 
+
+}
 
 
 
 
-
-
+# make this the last instruction to ensure that errors invalidate the package  
 package provide steenrod 1.0
-
-
-
-
