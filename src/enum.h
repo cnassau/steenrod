@@ -57,6 +57,7 @@ typedef struct {
 } enumerator;
 
 enumerator *enmCreate(void);
+enumerator *enmCopy(enumerator *src);
 void        enmDestroy(enumerator *en);
 
 #ifndef ENUMC

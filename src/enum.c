@@ -13,6 +13,7 @@
 
 #define ENUMC
 
+#include <string.h>
 #include "enum.h"
 
 enumerator *enmCreate(void) {
@@ -21,11 +22,53 @@ enumerator *enmCreate(void) {
     return en;
 }
 
+void *copymem(void *src, size_t sz) {
+    void *res;
+    if (NULL == src) return NULL;
+    if (NULL == (res = mallox(sz))) return NULL;
+    memcpy(res, src, sz);
+    return res;
+}
+
+enumerator *enmCopy(enumerator *src) {
+    enumerator *en;
+    int i;
+
+    if (NULL == (en = enmCreate())) return NULL;
+ 
+    /* copy all values... */
+    memcpy(en, src, sizeof(en));
+
+    en->pi = src->pi;
+    copyExmo(&(en->algebra), &(src->algebra));
+    copyExmo(&(en->profile), &(src->profile));
+
+    /* ... but clear pointers */
+    en->genList = NULL;
+    for (i=NALG+1;i--;) 
+        en->dimtab[i] = en->seqtab[i] = NULL;
+
+    en->efflist = NULL; 
+    en->seqoff = NULL;
+
+    /* now make private copies of the arrays */
+    en->genList = (int *) copymem(src->genList, 4 * sizeof(int) * src->numgens);
+
+    for (i=NALG+1;i--;) {
+        en->dimtab[i] = (int *) copymem(src->dimtab[i], sizeof(int) * src->tablen);
+        en->seqtab[i] = (int *) copymem(src->seqtab[i], sizeof(int) * src->tablen);
+    }
+
+    en->efflist = (effgen *) copymem(src->efflist, src->efflen * sizeof(effgen));
+    en->seqoff = (int *) copymem(src->seqoff, src->efflen * sizeof(int)); 
+
+    return en;
+}
+
 #define FREEPTR(p) { if (NULL != (p)) { freex(p); p = NULL; } }
 
 void enmDestroySeqtab(enumerator *en) {
-    int i;
-        
+    int i;        
     for (i=0;i<NALG+1;i++) {
         FREEPTR(en->dimtab[i]);
         FREEPTR(en->seqtab[i]);
@@ -255,7 +298,7 @@ int enmCreateSeqoff(enumerator *en) {
 
 /**** ENUMERATION ************************************************************/
 
-int firstRedmon(enumerator *en, int deg);
+int firstRedmonAlg(enumerator *en, int deg);
 
 int nextExmoAux(enumerator *en) {
     int msk, edeg;
@@ -265,7 +308,7 @@ int nextExmoAux(enumerator *en) {
         while (0 != ((--msk) & (en->profile.ext))) ;
         edeg = extdeg(en->pi, msk); ex->ext = msk;
         en->remdeg = en->totdeg - edeg;
-        if (firstRedmon(en, en->remdeg)) return 1;
+        if (firstRedmonAlg(en, en->remdeg)) return 1;
     } while (1);
 }
 
@@ -275,18 +318,18 @@ int firstExmon(enumerator *en, int deg) {
     ex->ext = getMaxExterior(en->pi, &(en->algebra), &(en->profile), en->remdeg);
     en->remdeg -=  extdeg(en->pi, ex->ext);
     en->extdeg = deg - en->remdeg;
-    if (firstRedmon(en, en->remdeg)) return 1;
+    if (firstRedmonAlg(en, en->remdeg)) return 1;
     return nextExmoAux(en);
 }
 
-int nextRedmon(enumerator *en);
+int nextRedmonAlg(enumerator *en);
 
 int nextExmon(enumerator *en) {
-    if (nextRedmon(en)) return 1;
+    if (nextRedmonAlg(en)) return 1;
     return nextExmoAux(en);
 }
 
-int firstRedmon(enumerator *en, int deg) {
+int firstRedmonAlg(enumerator *en, int deg) {
     exmo *ex = &(en->varex);
     int i;
     if (0 != (deg % (en->pi->tpmo))) return 0;
@@ -303,11 +346,11 @@ int firstRedmon(enumerator *en, int deg) {
         deg -= nval * en->pi->reddegs[i];
     }
     en->errdeg = deg;
-    if (deg) return nextRedmon(en);
+    if (deg) return nextRedmonAlg(en);
     return 1;
 }
 
-int nextRedmon(enumerator *en) {
+int nextRedmonAlg(enumerator *en) {
     exmo *ex = &(en->varex);
     int rem, i;
     do {
@@ -334,6 +377,29 @@ int nextRedmon(enumerator *en) {
         en->errdeg = rem;
     } while (en->errdeg);
     return 1;
+}
+
+int nextRedmonAux(enumerator *en) {
+    while (en->gencnt < en->efflen) {
+        if (firstRedmonAlg(en, en->efflist[en->gencnt].rrideg)) {
+            en->varex.gen = en->efflist[en->gencnt].id;
+            en->varex.ext = en->efflist[en->gencnt].ext;
+            return 1;
+        }
+        ++(en->gencnt);
+    }
+    return 0;
+}
+
+int firstRedmon(enumerator *en) {
+    en->gencnt = 0;
+    return nextRedmonAux(en);
+}
+
+int nextRedmon(enumerator *en) {
+    if (nextRedmonAlg(en)) return 1;
+    ++(en->gencnt);
+    return nextRedmonAux(en);
 }
 
 
