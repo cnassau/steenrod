@@ -772,7 +772,7 @@ void Tcl_DestroyEnum(ClientData cd) {
     TRYFREEOBJ(te->edeg);
     TRYFREEOBJ(te->hdeg);
     TRYFREEOBJ(te->genlist);
-    /* don't free te->ispos */    
+    TRYFREEOBJ(te->ispos);
     if (NULL != te->gl) freex(te->gl);
     if (NULL != te->enm) {
         enmDestroy(te->enm);
@@ -823,6 +823,7 @@ int Tcl_CreateEnumCmd(ClientData cd, Tcl_Interp *ip,
         = te->genlist = NULL;
 
     te->ispos = ourPosObj; 
+    INCREFCNT(te->ispos);
 
     /* mark all options as changed */
     te->cprime = te->calg = te->cpro = te->csig = te->cideg = te->cedeg = te->chdeg 
