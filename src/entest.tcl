@@ -31,7 +31,7 @@ proc bitprint {inp} {
 
 while 1 {
 
-    set prime [relem [list 2 3 5]]
+    set prime [relem [list 2 3 5 7]]
     #set prime 2
 
     set pi [primeinfo::create $prime]
@@ -39,6 +39,7 @@ while 1 {
 
     set mindim 0
     set maxdim [rint [lindex $ppws 6]]
+    if {$maxdim > 30000} { set maxdim 30000 }
     #puts "prime $prime from dim $mindim to $maxdim"
 
     set algprof [profile::create]
@@ -67,7 +68,7 @@ while 1 {
     }
 
 #        set alst {16 2 2 8 4}
-#        set plst {2 2 2 2}
+#        set plst {}
     procore::set $algcore 0 1 $alst
     procore::set $procore  0 1 $plst
 
@@ -97,8 +98,6 @@ while 1 {
 
         set sqn [sqninfo::create $evn $dim]
 
-        # (superfluos comment)
-
         set cnt 0
         if {[extmono::first $exm $evn $dim]} {
             set goon 1
@@ -114,7 +113,7 @@ while 1 {
             }
         }
 
-        puts [format "prime %2d dim = %6d : cnt = %6d" $prime $dim $cnt]
+#        puts [format "prime %2d dim = %6d : cnt = %6d" $prime $dim $cnt]
         set sqdim [sqninfo::getDim $sqn $dim]
         sqninfo::destroy $sqn
         if {$sqdim!=$cnt} {
