@@ -1,0 +1,156 @@
+# -*- tcl -*-
+#
+# This file provides a test suite for the enumerator functions
+#
+# Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+package require Steenrod 1.0
+
+namespace import ::poly::*
+
+# --------------------------------------------------------------------------
+
+# the regression tests all use the same enumerator and the same result variable
+enumerator ENU
+set RES {}
+
+set XXX 1     ;# if 1 we create new test data 
+set NTD   {}  ;# holds new test data
+
+proc do-test {name cmdlist} {
+    global RES NTD XXX
+    set RES [set NDATA {}]
+    # create fresh enumerator for this test
+    rename ::ENU ""
+    enumerator ::ENU
+    # carry out commands
+    foreach cmd $cmdlist {
+        switch -- [lindex $cmd 0] {
+            clear {
+                if {$XXX} { lappend NDATA "  { clear }\n" }
+                rename ::ENU ""
+                enumerator ::ENU
+            }
+            sigcheck {
+                set expct [lindex $cmd 1]
+                # save signature 
+                set sig [::ENU cget -signature]
+                set signum [llength [set siglist [::ENU siglist]]]
+                if {$XXX} { 
+                    lset cmd 1 $signum
+                    lappend NDATA "  { sigcheck $expct }\n" 
+                }
+                if {$expct != $signum} { lappend RES [list [::ENU conf] sigfail-1] }
+                ::ENU sigreset
+                set cnt 1
+                while {[::ENU signext]} { incr cnt }
+                if {$cnt != $signum} { lappend RES [list [::ENU conf] sigfail-0] }
+                # restore signature
+                ::ENU configure -signature $sig
+            }
+            dimtest {
+                set dlst [lindex $cmd 1]
+                set aux {}
+                set fail {}
+                # save internal degree
+                set idg [::ENU cget -ideg]
+                foreach {i d} $dlst {
+                    ::ENU configure -ideg $i 
+                    set val [::ENU dimension]
+                    if {$val != $d} {
+                        puts "ideg $i: expected $d got $val"
+                        lappend fail $i 
+                    }
+                    lappend aux $i $val
+                } 
+                if {$XXX} { append NDATA "  { dimtest \{$aux\} }\n" }
+                if {[llength $fail]} { lappend RES [list [::ENU conf] dimtest $fail] }
+                # restore internal degree
+                ::ENU configure -ideg $idg
+            }
+            seqtest { 
+                set dm [lindex $cmd 1]
+                if {$XXX} { append NDATA "  { [list seqtest $dm] }\n" }
+                # save internal degree
+                set idg [::ENU cget -ideg]
+                set bas [::ENU basis]
+                set cnt 0
+                set fail {}
+                foreach mo $bas {
+                    set sqn [::ENU seqno $mo]
+                    if {$sqn != $cnt} { set fail x }
+                    incr cnt
+                }
+                if {[string length $fail]} { lappend RES [list [::ENU conf] seqtest $dm] }
+                # restore internal degree
+                ::ENU configure -ideg $idg
+            }
+            default {
+                if {$XXX} { append NDATA "  {$cmd}\n" }
+                # command is configuration directive
+                eval [concat ::ENU configure $cmd]
+            }
+        }
+    }
+    append NTD "set enumtestdata($name) {\n$NDATA}\n\n" 
+    set RES
+}
+
+# --------------------------------------------------------------------------
+
+array set enumtestdata {}
+
+# load data from previous runs for comparison 
+source [file join [file dirname [info script]] enum.data]
+
+# --------------------------------------------------------------------------
+
+# carry out the tests 
+
+foreach name [array names enumtestdata] {
+    test enum-auto $name [list do-test $name $enumtestdata($name)] {}
+}
+
+if {$XXX} { 
+    set ch [open enum.data w]
+    puts $ch "# -*- tcl -*-"
+    puts $ch "#"
+    puts $ch [format "#  \$%s\$" Id]
+    puts $ch "#"
+    puts $ch "# Note: this file is to be re-written from the enum test suite."
+    puts $ch ""
+    puts $ch $NTD
+    close $ch
+    puts "Wrote new test data to 'enum.data'."
+}
+
+# --------------------------------------------------------------------------
+
+
+
+test enum-1.0 {} {
+} {}
+
+
+
+
+test enum- {} {
+} {}
+
+# --------------------------------------------------------------------------
+
+# cleanup
+::tcltest::cleanupTests
+return
