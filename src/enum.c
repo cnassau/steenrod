@@ -185,10 +185,10 @@ int enmAppendEffgen(enumerator *en, int id, int ext, int rrideg, int redeg) {
 
 int findExtsForGenerator(enumerator *en, int id, int rideg, int redeg) {
     int ext = getMaxExterior(en->pi, &(en->algebra), &(en->profile), rideg);
-    int tpmo = en->pi->tpmo;
+    int tpmo = en->pi->tpmo, proext = en->profile.ext; 
     if (1 && ENLOG) printf("maxExterior=%d (rideg=%d)\n", ext, rideg);
     for (;ext>=0;ext--) 
-        if (BITCOUNT(ext) == redeg) {
+        if ((0 == (ext & proext)) && (BITCOUNT(ext) == redeg)) {
             int extideg = extdeg(en->pi, ext);
             if (extideg <= rideg) {
                 int diffideg = rideg - extideg;
