@@ -8,16 +8,16 @@
 # it under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
 
-SYSTEM = unix
+SYSTEM = Unix
 
 ifeq ($(SYSTEM),Windows)
-  CC     = gcc -fPIC
-  CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS
+  CC     = gcc -mdll -mno-cygwin
+  CFLAGS = -O2 -g -Wall -I.  -DDLLBUILD
 
-  TCLINCDIR = /home/cn/selfmade-tcl/include/
-  TCLLIBDIR = /home/cn/selfmade-tcl/lib/
-  TCLSTUBLIB = tclstub8.4
-  STUBLINK = cc -shared -L$(TCLLIBDIR)
+  TCLINCDIR = c:/MinGW/include/
+  TCLLIBDIR = c:/MinGW/lib/
+  TCLSTUBLIB = tclstub84
+  STUBLINK = gcc -mdll -mno-cygwin -L$(TCLLIBDIR) -lmsvcrt
 else
   CC     = gcc -fPIC
   CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS
@@ -27,6 +27,8 @@ else
   TCLSTUBLIB = tclstub8.4
   STUBLINK = cc -shared -L$(TCLLIBDIR)
 endif
+
+CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT
 
 NOTANGLE = notangle
 NOWEAVE  = noweave

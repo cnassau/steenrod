@@ -26,7 +26,16 @@ extern int   theprogmsk; /* progress reporting granularity */
 
 #define THEPROGVAR ((*theprogvar) ? theprogvar : NULL)
 
-int Steenrod_Init(Tcl_Interp *ip) ;
+/*
+ * if the BUILD_foo macro is defined, the assumption is that we are
+ * building the dynamic library.
+ */
+#ifdef BUILD_steenrod
+#  undef TCL_STORAGE_CLASS
+#  define TCL_STORAGE_CLASS DLLEXPORT
+#endif
+
+EXTERN int Steenrod_Init(Tcl_Interp *ip) ;
 
 #endif
 

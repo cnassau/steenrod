@@ -575,7 +575,7 @@ int GetRefCount(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
-int Steenrod_Init(Tcl_Interp *ip) {
+EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_InitStubs(ip, "8.0", 0);
 
