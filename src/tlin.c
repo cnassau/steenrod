@@ -264,10 +264,11 @@ void MatrixDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
 
 /**** utilities */
 
-int Tcl_MatrixGetDimensions(Tcl_Interp *ip, Tcl_Obj *obj, int *cols, int *rows) {
-    matrixType *mt = PTR1(obj);
+int Tcl_MatrixGetDimensions(Tcl_Interp *ip, Tcl_Obj *obj, int *rows, int *cols) {
+    matrixType *mt;
     if (TCL_OK != Tcl_ConvertToMatrix(ip, obj)) return TCL_ERROR;
-    (mt->getDimensions)(PTR2(obj), cols, rows);
+    mt = PTR1(obj);
+    (mt->getDimensions)(PTR2(obj), rows, cols);
     return TCL_OK;
 }
 
