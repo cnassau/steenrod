@@ -26,7 +26,7 @@ LIBS = libsteenrod.so
 
 LINKSTUB = cc -shared -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
 
-.PHONY: depend all clean objects libraries
+.PHONY: depend all clean distclean objects libraries
 
 all: objects libraries
 
