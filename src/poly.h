@@ -44,6 +44,15 @@ void copyExmo(exmo *dest, const exmo *src);
                        * or should we simulate an exterior algebra? */
 void shiftExmo(exmo *e, const exmo *shft, int flags);
 
+/* compute internal degree with respect to pi */
+int exmoIdeg(primeInfo *pi, const exmo *ex);
+
+/* set dst to the maximal algebra profile */
+void exmoSetMaxAlg(primeInfo *pi, exmo *dst);
+
+/* make "exponential copy" */
+void copyExpExmo(primeInfo *pi, exmo *dst, const exmo *src);
+
 /* pprop stands for "polynom property"; one can check for these 
  * properties using the "test" member function of the polyType 
  * structure. The test function returns SUCCESS (resp. FAILUNTRUE)

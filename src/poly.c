@@ -97,6 +97,30 @@ int isnegExmo(const exmo *e) {
     return 1;
 }
 
+void exmoSetMaxAlg(primeInfo *pi, exmo *dst) {
+    int i;
+    dst->ext = -1;
+    for (i=0;i<NALG;i++) dst->dat[i] = pi->maxpowerXint;
+}
+
+void copyExpExmo(primeInfo *pi, exmo *dst, const exmo *src) {
+    int i;
+    dst->ext = src->ext;
+    for (i=0;i<NALG;i++)
+        dst->dat[i] =
+            (src->dat[i] >= pi->maxpowerXintI) ?
+            pi->maxpowerXint : pi->primpows[src->dat[i]];
+}
+
+int exmoIdeg(primeInfo *pi, const exmo *ex) {
+    int res, i;
+    for (res=i=0; i<NALG; i++) {
+        res += ex->dat[i] * pi->reddegs[i];
+    }
+    res *= pi->tpmo; 
+    return res + extdeg(pi, ex->ext);
+}
+
 /**** generic polynomials *********************************************************/
 
 #define CALLIFNONZERO1(func,arg1) \
