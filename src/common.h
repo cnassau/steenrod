@@ -86,7 +86,7 @@ extern int objCount; /* for refCount debgging */
 #endif
 
 #define DONT_USE_VERB_REFCOUNTS
-#define COUNT_REFCOUNTS
+#define DONT_COUNT_REFCOUNTS
 
 /* wrappers for Tcl reference count management */
 #ifndef USE_VERB_REFCOUNTS
