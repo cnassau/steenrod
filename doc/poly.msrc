@@ -1,0 +1,149 @@
+[manpage_begin poly 3st 1.0]
+
+[moddesc {Steenrod Tcl package}]
+
+[titledesc {manipulate polynomials or Steenrod operations}]
+
+[copyright %copyright%]
+
+[require Steenrod 1.0]
+
+[description]
+
+[usage namespace import steenrod::poly]
+[usage [cmd poly] [cmd subcommand] ?[arg arg] [arg arg] ...?]
+
+The [cmd poly] command ensemble is a collection of  
+commands that deal with [strong "extended polynomials"], which  
+for us are arbitrary sums of [emph "extended monomials"]; 
+please check the manpage of the [const mono] command for an 
+explanation of this term. In Tcl we represent a polynomial simply 
+as a list of extended monomials. 
+For example, the way to represent the Steenrod operation 
+[const {P(5) [3] -2 Q0 Q2 P(0,1) [3]}] (where [const {[3]}]
+denotes an arbitrary identifier) is as the list 
+[const {{{1 0 5 3} {-2 5 {0 1} 3}}}].
+In a different context the same list could also 
+represent the polynomial 
+[const {(y1^5 - 2x1x3y2) [3]}]
+in an approriate tensor product of an exterior algebra [const E(x1,x2,...)]
+and a polynomial algebra [const P(y1,y2,...)].
+The interpretation of such a list always depends on the 
+use that is actually made of it. 
+
+[para]
+[strong Note] (on performance): ... to be written (?) ...
+ 
+
+[section Commands]
+
+[list_begin definitions]
+
+[lst_item "[cmd poly] [cmd test] [arg polynomial-candidate]"]
+          Tests whether [arg polynomial-candidate] is recognized as a polynomial. 
+          An error message is returned if it is not recognized.
+          Otherwise the result is an empty string
+
+[lst_item "[cmd poly] [cmd create]"]
+          Creates an empty polynomial. This command will be enhanced in future versions.
+
+[lst_item "[cmd poly] [cmd info] [arg polynomial]"]
+          Returns technical information about the internal representation
+          of the polynomial. 
+
+[lst_item "[cmd poly] [cmd append] [arg poly1] [arg poly2] ?[arg scale]? ?[arg mod]?"]
+          Return the result of appending the product [arg scale] * [arg poly2] modulo
+          onto [arg poly1] and reducing the result modulo [arg mod]. If [arg scale] 
+          is not given it defaults to 1. If [arg mod] is not given no reduction takes
+          place. [emph Note:] this command is [emph "allowed"] to cancel 
+          the result, but cancellation is not guaranteed.
+
+[lst_item "[cmd poly] [cmd cancel] [arg poly] ?[arg mod]?"]
+          Cancel [arg poly] modulo [arg mod] and return the result.
+          If [arg mod] is not given or is zero, it is ignored.
+
+[lst_item "[cmd poly] [cmd add] [arg poly1] [arg poly2] ?[arg scale]? ?[arg mod]?"]
+          This command returns the combined effect of [cmd {poly append}]
+          and  [cmd {poly cancel}].
+
+[lst_item "[cmd poly] [cmd varappend] [arg polyVar] [arg poly] ?[arg scale]? ?[arg mod]?"]
+          This is a more efficient way of doing 
+          [const {set polyVar [poly append $polyVar $poly $scale $mod]}].
+
+[lst_item "[cmd poly] [cmd varcancel] [arg polyVar] ?[arg mod]?"]
+          This is a more efficient way of doing 
+          [const {set polyVar [poly cancel $polyVar $mod]}].
+
+[lst_item "[cmd poly] [cmd posmult] [arg poly1] [arg poly2] ?[arg mod]?"]
+          This treats [arg poly1] and [arg poly2] as polynomials from 
+          a tensor product [const E(...)] * [const P(...)], and returns
+          the result of polynomial multiplication (modulo [arg mod] if
+          that has been given.)
+
+[lst_item "[cmd poly] [cmd negmult] [arg poly1] [arg poly2] ?[arg mod]?"]
+          This command is similar to [cmd poly] [cmd posmult], except
+          that [arg poly1], [arg poly2] and the result are [emph reflected]
+          before and after multiplication. See the documentation of
+          [cmd poly] [cmd reflect] for an explanation of that operation.
+          
+[lst_item "[cmd poly] [cmd steenmult] [arg poly1] [arg poly2] [arg prime ]"]
+          Interpret [arg poly1] and [arg poly2] as Steenrod operations
+          for the prime [arg prime] and return their product.
+
+[lst_item "[cmd poly] [cmd shift] [arg poly] [arg mono] ?[arg with-signs]?"]
+          Return the result of shifting all exponents in (all monomials in) 
+          [arg poly] by the corresponding exponent in [arg mono]. The optional
+          boolean parameter [arg with-signs] determines whether additional
+          sign corrections are applied to the exterior parts, to account
+          for the sign conventions of exterior algebras. 
+
+[lst_item "[cmd poly] [cmd reflect] [arg poly]"]
+          Returns the reflection of [arg poly].
+          Here reflection refers to the operation that maps 
+          the exterior components to their bitwise complement 
+          and the exponents [const e_i] of
+          the polynomial (or reduced) part to [const {-1-e_i}]. 
+
+[lst_item "[cmd poly] [cmd coeff] [arg poly] [arg mono]"]
+          Return the coefficient of [arg mono] in [arg poly].
+
+[lst_item "[cmd poly] [cmd compare] [arg poly1] [arg poly2]"]
+          Compare [arg poly1] and [arg poly2], and return zero if 
+          both polynomials are equal. Polynomials are cancelled before
+          comparison takes place.
+
+[lst_item "[cmd poly] [cmd split] [arg poly] [arg filter-proc] ?[arg var0]? ?[arg var1]? ..."]
+          First all given variables [arg var0], [arg var1],... are initialized
+          with empty polynomials.
+          This command iterates through all monomials [const m] in [arg poly]
+          and calls [arg filter-proc] with argument [const m]. This call 
+          is supposed to return either an integer or a control code (via 
+          [const {return -code break}] or [const {return -code continue}]).
+          The monomial is then processed in dependence on the return value:
+          [list_begin definitions]
+          [lst_item [emph {integer [const i] >= 0}]]
+                   The monomial is appended to the [const i]th variable 
+                   [arg var][const <i>]. If no such variable has been given
+                   the monomial is forgotten.
+          [lst_item [emph {integer [const i] < 0}]]     
+                   The monomial is appended to the return value.                   
+          [lst_item [emph {exception, -code break}]] 
+                   The current monomial is forgotten and
+                   [cmd poly] [cmd split] returns immediately.
+          [lst_item [emph {exception, -code continue}]] 
+                   The current monomial is forgotten, but 
+                   [cmd poly] [cmd split] continues.
+          [list_end]
+
+[lst_item "[cmd poly] [cmd varsplit] [arg varName] [arg filter-proc] ?[arg var0]? ?[arg var1]? ..."]
+          This is a more efficient way of doing 
+          [const {set varName [poly split $varName filter-proc ...]}]. 
+         
+[list_end]
+
+
+[see_also %crossrefs%]
+
+[keywords %keywords%]
+
+[manpage_end]

@@ -65,9 +65,9 @@ Note the following:
 [list_begin definitions]
 
 [lst_item "[cmd mono] [cmd test] [arg monomial-candidate]"]
-Tests whether [arg monomial-candidate] is recognized as an extended
-monomial. An error message is returned if it is not recognized.
-Otherwise the result is an empty string
+          Tests whether [arg monomial-candidate] is recognized as an extended
+          monomial. An error message is returned if it is not recognized.
+          Otherwise the result is an empty string
 
 [lst_item "[cmd mono] [cmd isabove] [arg monomial1] [arg monomial2]"]
           This command checks whether each exponent in [arg monomial1]

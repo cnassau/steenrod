@@ -18,34 +18,9 @@ Steenrod algebra computations.
 
 The package consists...
 
-[list_begin definitions]
+[para] 
 
-[call [cmd matrix] [method subcommand] ?args?]
-
-[call poly subcommand ?args?]
-
-[list_end]
-
-[para]
-hhu
-
-[para] [example_begin]
-lappend auto_path [strong "<path to steenrod.tcl>"]
-package require Steenrod
-namespace import poly::*[example_end]
-
-hihi
-
-[example_begin]poly steenmult 3 {{1 0 5 0}} {{2 1 {0 1} 0}} [example_end]
-
-aha
-
-[example "poly steenmult 3 {{1 0 5 0}} {{2 1 {0 1} 0}}" ]
-
-hhu
-
-
-[para] The most recent version of the package should be available from 
+The most recent version of the package should be available from 
 the program homepage at [uri %homepage%].
 
 [see_also %crossrefs%]
