@@ -21,6 +21,9 @@
 #include "steenrod.h"
 #include "mult.h"
 
+char *theprogvar; /* ckalloc'ed name of the progress variable */
+int   theprogmsk; /* progress reporting granularity */
+
 /* Our multiplication callback function. This interprets ma's client
  * data fields as follows:
  *
@@ -99,6 +102,17 @@ typedef struct {
 #define RETERR(msg)\
 { if (NULL != ip) Tcl_SetResult(ip,msg,TCL_VOLATILE); return FAIL; }
 
+
+#define PROGVARINIT \
+ if (NULL != THEPROGVAR) {                                           \
+     Tcl_UnlinkVar(ip, THEPROGVAR);                                  \
+     Tcl_LinkVar(ip, THEPROGVAR, (char *) &perc, TCL_LINK_DOUBLE);   \
+     perc = 0;                                                       \
+ }
+
+
+#define PROGVARDONE { if (NULL != THEPROGVAR) Tcl_UnlinkVar(ip, THEPROGVAR); }
+
 /* MakeMatrix carries out the computation that's described in the 
  * MatCompTaskInfo argument. */
 
@@ -114,6 +128,8 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     multArgs ourMA, *ma = &ourMA;
     enumerator *dst = mc->dst;
     momap *map = mc->map;
+
+    double perc; /* progress indicator */
 
     *mtp = NULL; *mat = NULL; /* if non-zero, caller will free this */
 
@@ -159,9 +175,16 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     ma->TclInterp = ip;
     ma->stdSummandFunc = &addToMatrixCB;
 
+    PROGVARINIT; 
+
     if (mc->firstSource(mc)) 
         do {
             ((int) ma->cd5) = mc->currow; /* row indicator */
+
+            if ((0 == (mc->currow & theprogmsk)) && (NULL != THEPROGVAR)) {
+                perc = mc->currow; perc /= srcdim; 
+                Tcl_UpdateLinkedVar(ip, THEPROGVAR);
+            }
 
             /* find differential of mc->srcx'es generator */
             ma->ffdat = mc->srcx;
@@ -180,6 +203,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                     char err[200];
                     sprintf(err,"target of generator #%d not of polynomial type", 
                             theG.gen);
+                    PROGVARDONE;
                     RETERR(err);
                 }
 
@@ -193,6 +217,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                         /* TODO: should we make sure and check each summand ? */ 
                         sprintf(err,"target of generator #%d not positive (?)", 
                                 theG.gen);
+                        PROGVARDONE;
                         RETERR(err);
                     }
                 } else {
@@ -201,6 +226,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                         /* TODO: should we make sure and check each summand ? */ 
                         sprintf(err,"target of generator #%d not negative (?)", 
                                 theG.gen);
+                        PROGVARDONE;
                         RETERR(err);
                     }
                 }
@@ -232,10 +258,13 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                     DECREFCNT(aux);
                     Tcl_AddObjErrorInfo(ip, err, strlen(err));
                 }
+                PROGVARDONE;
                 return FAIL;
             }
 
         } while (mc->nextSource(mc));
+    
+    PROGVARDONE;
 
     return SUCCESS;
 }
@@ -545,9 +574,6 @@ int GetRefCount(ClientData cd, Tcl_Interp *ip,
 
     return TCL_OK;
 }
-
-char *theprogvar; /* ckalloc'ed name of the progress variable */
-int   theprogmsk; /* progress reporting granularity */
 
 int Steenrod_Init(Tcl_Interp *ip) {
 
