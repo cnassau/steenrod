@@ -18,7 +18,7 @@
 #include "poly.h"
 #include "common.h"
 
-#define LOGSTD(msg) if (0) printf("stdpoly::%s\n", msg) 
+#define LOGSTD(msg) if (1) printf("stdpoly::%s\n", msg) 
 
 #define LOGPL(func) if (0) printf(#func) 
 #define LOGPLFMT(func,fmt,dat) if (0) printf( #func ": " fmt "\n", dat) 
@@ -202,26 +202,21 @@ void *stdCreateCopy(void *src) {
         n->num = n->nalloc = 0; n->dat = NULL;
         return n;
     }
-    if (NULL == (n->dat = (exmo *) mallox(sizeof(exmo) * s->num))) {
+    n->alloc = n->num = s->num;
+    if (0 == n->alloc) n->alloc = 1;
+    if (NULL == (n->dat = (exmo *) mallox(sizeof(exmo) * n->alloc))) {
         freex(n); return NULL; 
     }
-    n->num = n->nalloc = s->num;
     memcpy(n->dat,s->dat,sizeof(exmo) * s->num);
     return n;
 }
 
-#define DEADPTR ((exmo *) 0xffdeadff)
-
 void stdFree(void *self) { 
     stp *s = (stp *) self;
     LOGSTD("Free"); 
-    printf("nalloc = 0x%x, num = 0x%x, dat = %p\n",s->nalloc,s->num,s->dat);
-    if (s->nalloc) { 
-        s->nalloc = s->num = 0;
-        if (DEADPTR == s->dat) assert(NULL == "stdpoly data freexd twice!");
-        freex(s->dat); 
-        s->dat = DEADPTR;
-    }
+    /* printf("nalloc = 0x%x, num = 0x%x, dat = %p\n",s->nalloc,s->num,s->dat); */
+    if (NULL != s->dat) freex(s->dat);
+    s->nalloc = s->num = 0; s->dat = NULL;
     freex(s); 
 }
 
@@ -246,7 +241,8 @@ int stdRealloc(void *self, int nalloc) {
     exmo *ndat;
     LOGSTD("Realloc");
     if (nalloc < s->num) nalloc = s->num;
-    if (NULL == (ndat = reallox(s->dat,sizeof(exmo) * nalloc))) 
+    if (0 == nalloc) nalloc = 1;
+    if (NULL == (ndat = reallox(s->dat,sizeof(exmo) * nalloc)))
         return FAILMEM;
     s->dat = ndat; s->nalloc = nalloc;
     return SUCCESS;

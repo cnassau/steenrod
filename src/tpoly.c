@@ -165,7 +165,7 @@ int Tcl_ConvertToPoly(Tcl_Interp *ip, Tcl_Obj *obj) {
     return Tcl_ConvertToType(ip, obj, &tclPoly);
 }
 
-#define DBGPOLY if (1)
+#define DBGPOLY if (0)
 #define LOGPOLY(obj) \
 DBGPOLY printf("  typePtr = %p, polyPtr = %p, isShared = %d\n", \
    PTR1(obj), PTR2(obj), Tcl_IsShared(obj)); 
@@ -214,17 +214,18 @@ int PolySetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     DBGPOLY printf("PolySetFromAnyProc obj = %p\n",objPtr);
     if (TCL_OK != Tcl_ListObjGetElements(ip, objPtr, &objc, &objv))
         return TCL_ERROR;
-    for (i=0;i<objc;i++)
-        if (TCL_OK != Tcl_ConvertToExmo(ip,objv[i]))
-            return TCL_ERROR;
-    /* now we are a list of exmo objects */
     if (NULL == (pol = (stdpoly->createCopy)(NULL))) 
         RETERR("out of memory");
-    for (i=0;i<objc;i++) 
+    for (i=0;i<objc;i++) {
+        if (TCL_OK != Tcl_ConvertToExmo(ip,objv[i])) { 
+            (stdpoly->free)(pol); 
+            return TCL_ERROR;
+        }
         if (SUCCESS != PLappendExmo(stdpoly,pol,exmoFromTclObj(objv[i]))) {
             (stdpoly->free)(pol);
             RETERR("out of memory");
         }
+    }
 
     TRYFREEOLDREP(objPtr);
     PTR1(objPtr) = stdpoly;

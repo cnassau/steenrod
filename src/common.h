@@ -23,24 +23,36 @@
 #define FAILIMPOSSIBLE  3  /* operation not possible */
 #define FAILUNTRUE      4  /* another word for "no" */
 
-/* #define USE_TCL_ALLOC */
+#define DONT_USE_TCL_ALLOC 
+#define USE_VERB_ALLOC 
 
-#define myfree(p) (printf("freeing %p\n",p), free(p))
+#define vbfree(p) (printf("freeing %p\n",p), free(p))
+#define vbmalloc(s) \
+({ void *_res = malloc(s); \
+printf("malloc'ed %u bytes at %p\n",(unsigned) s, _res); \
+_res ;})
 
 /* allocation wrappers */
 #ifndef mallox 
-#  ifndef USE_TCL_ALLOC
-#    define mallox(s)    malloc(s)
+#  ifdef USE_VERB_ALLOC
+#    define mallox(s)    vbmalloc(s)
 #    define callox(n,s)  calloc(n,s)
 #    define reallox(p,s) realloc(p,s)
-#    define freex(p)     myfree(p) 
-#  else
-#    include <tcl.h>
-#    define mallox(s)    ((void *) ckalloc(s))
-#    define callox(n,s)  ((void *) ckalloc((n)*(s)))
-#    define reallox(p,s) ((void *) ckrealloc((void *) p,s))
-#    define freex(p)     (ckfree((void *) p)) 
-#endif
+#    define freex(p)     vbfree(p) 
+#  else 
+#    ifdef USE_TCL_ALLOC
+#      include <tcl.h>
+#      define mallox(s)    ((void *) ckalloc(s))
+#      define callox(n,s)  ((void *) ckalloc((n)*(s)))
+#      define reallox(p,s) ((void *) ckrealloc((void *) p,s))
+#      define freex(p)     (ckfree((void *) p)) 
+#    else
+#      define mallox(s)    malloc(s)
+#      define callox(n,s)  calloc(n,s)
+#      define reallox(p,s) realloc(p,s)
+#      define freex(p)     free(p) 
+#    endif
+#  endif
 #endif
 
 #endif
