@@ -21,6 +21,9 @@
 #include "tenum.h"
 #include "enum.h"
 
+#define FLOG 0 
+#define DOFLOG(msg) { if (FLOG) fprintf(stderr, msg "\n"); }
+
 /* "needsUpdate" is used to indicate that configuration parameters need to
  * be recreated. We cannot use NULL, since that indicates the empty default. */
 char nup[] = "parameter needs update";
@@ -31,6 +34,8 @@ char nup[] = "parameter needs update";
  * no parameter was given. */
 char dfp[] = "default parameter";
 #define defaultParameter ((Tcl_Obj *) dfp)
+
+#define STRLEN(x) (sizeof(x)-1)  /* use only with constant strings */
 
 #define RETERR(errmsg) \
 { if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
@@ -51,11 +56,13 @@ typedef struct {
 } tclEnum;
 
 #define TRYFREEOBJ(obj) \
-{ if ((NULL != (obj)) && (needsUpdate != (obj))) Tcl_DecrRefCount(obj); }
+{ if ((NULL != (obj)) && (needsUpdate != (obj) && (defaultParameter != (obj)))) \
+  { Tcl_DecrRefCount(obj); obj = NULL; }; }
 
 #define FREERESRET { freex(res); return NULL; }
 #define FREERESRETERR(msg) \
 { if (NULL != ip) Tcl_SetResult(ip,msg,TCL_VOLATILE); FREERESRET; }
+
 char wfem[] = "wrong generator format, expected {gen-id int-deg ext-deg hom-deg}";
 
 int *getGenList(Tcl_Interp *ip, Tcl_Obj *obj, int *length) {
@@ -67,19 +74,28 @@ int *getGenList(Tcl_Interp *ip, Tcl_Obj *obj, int *length) {
 
     *length = objc;
 
-    if (NULL == (res = (int *) callox(objc * 4, sizeof(int))))
+    if (NULL == (res = (int *) callox((0+objc) * 4, sizeof(int))))
         return NULL;
-    
-    for (wrk=res; objc--; (objv)++,wrk+=4) {
+
+#if 0
+    printf("genlist = %s\n",Tcl_GetString(obj));
+    Tcl_Eval(ip, "flush stdout");
+#endif
+
+    for (wrk=res; objc--; (objv)++, wrk+=4) {
         int objc2, *aux; 
         Tcl_Obj **objv2;
+
         if (TCL_OK != Tcl_ListObjGetElements(ip, *objv, &objc2, &objv2)) 
             FREERESRET;
+
         if ((objc2<1) || (objc2>4)) FREERESRETERR(wfem);
+
         for (aux=wrk; objc2--; ++(objv2),aux++)
             if (TCL_OK != Tcl_GetIntFromObj(ip, *objv2, aux))
                  FREERESRETERR(wfem);
     }
+
     return res;
 }
 
@@ -112,6 +128,8 @@ if (NULL != (obj)) {                                \
        return TCL_ERROR;                            \
    ex = exmoFromTclObj(obj);                        \
 } else ex = (exmo *) NULL; 
+
+    DOFLOG("Entered Tcl_EnumSetValues");
 
     if (te->cprime || te->calg || te->cpro || te->cispos) {
         if (NULL == te->prime) RETERR("prime not given");
@@ -155,9 +173,11 @@ if (NULL != (obj))                                       \
    
     if (te->cgenlist) {
         enmSetGenlist(te->enm, te->gl, te->gllength);
-        te->gl = NULL;
+        te->gl = NULL; te->gllength = 0;
         te->cgenlist = 0;
     }
+
+    DOFLOG("Leaving Tcl_EnumSetValues");
 
     return TCL_OK;
 }
@@ -186,6 +206,8 @@ int Tcl_EnumConfigureCmd(ClientData cd, Tcl_Interp *ip,
 
     primeInfo *pi; 
 
+    DOFLOG("Entered Tcl_EnumConfigureCmd");
+
     if (0 == objc) {
         Tcl_Obj *(co[2]), *res = Tcl_NewListObj(0, NULL);
 
@@ -196,10 +218,13 @@ int Tcl_EnumConfigureCmd(ClientData cd, Tcl_Interp *ip,
             Tcl_IncrRefCount(te->sig);
         } 
 
-        /* TODO: recreate genlist from enum if that has been changed by addgen cmd */
+        if (needsUpdate == te->genlist) {
+            /* TODO: recreate genlist from enum if that has been changed 
+             * by a future addgen cmd */
+        }
 
 #define APPENDOPT(name, obj) {                                          \
-co[0] = Tcl_NewStringObj(name,strlen(name));                            \
+co[0] = Tcl_NewStringObj(name,STRLEN(name));                            \
 co[1] = (NULL != (obj)) ? (obj) : Tcl_NewObj();                         \
 if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
    { Tcl_DecrRefCount(res); return TCL_ERROR; };                        \
@@ -218,7 +243,7 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
         return TCL_OK;
     }
 
-    /* aux keeps the new config values, before they have been validified */
+    /* aux keeps the new config values, before they have been validated */
     memset(&aux, 0, sizeof(tclEnum));
 
     if (0 != (objc & 1)) RETERR("option/value pairs excpected");
@@ -228,53 +253,56 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
         result = Tcl_GetIndexFromObj(ip, objv[0], optNames, "option", 0, &index);
         if (TCL_OK != result) return result;
 
-        /* value agrees with objv[1], unless that is an empty string in
-         * which case value signals "defaultParameter"; we use objv[1] 
-         * instead of value if a default parameter is not accepted. */
+        value = objv[1];
 
-        value = objv[1]; Tcl_GetStringFromObj(value, &length);
-        if (0 == length) value = defaultParameter;
+        /* ISDEFAULTARG changes "value" to "defaultParameter" if objv[1] is 
+         * empty. Since this implies getting the string representation 
+         * of objv[1] we try to avoid this as much as possible. */
+
+#define ISDEFAULTARG(var) \
+({ value = objv[1]; Tcl_GetStringFromObj(value, &length); \
+ if (0 == length) var = value = defaultParameter; (0 == length); })
 
         switch (optmap[index]) {
             case PRIME:
-                aux.prime = value; if (defaultParameter == value) break;
-                if (TCL_OK != Tcl_GetPrimeInfo(ip, value, &pi)) 
-                    return TCL_ERROR;
-                break;
+                aux.prime = value; 
+                if (TCL_OK == Tcl_GetPrimeInfo(ip, value, &pi)) break;
+                if (ISDEFAULTARG(aux.prime)) break;
+                return TCL_ERROR;
             case ALGEBRA:
-                aux.alg = value; if (defaultParameter == value) break;
-                if (TCL_OK != Tcl_ConvertToExmo(ip, value)) return TCL_ERROR;
-                break;
+                aux.alg = value; 
+                if (TCL_OK == Tcl_ConvertToExmo(ip, value)) break;
+                if (ISDEFAULTARG(aux.alg)) break;
+                return TCL_ERROR;
             case PROFILE:
-                aux.pro = value; if (defaultParameter == value) break;
-                if (TCL_OK != Tcl_ConvertToExmo(ip, value)) return TCL_ERROR;
-                break;
+                aux.pro = value; 
+                if (TCL_OK == Tcl_ConvertToExmo(ip, value)) break;
+                if (ISDEFAULTARG(aux.pro)) break;
+                return TCL_ERROR;
             case SIGNATURE:
-                aux.sig = value; if (defaultParameter == value) break;
-                if (TCL_OK != Tcl_ConvertToExmo(ip, value)) return TCL_ERROR;
-                break;
+                aux.sig = value; 
+                if (TCL_OK == Tcl_ConvertToExmo(ip, value)) break;
+                if (ISDEFAULTARG(aux.sig)) break;
+                return TCL_ERROR;
             case TYPE:
-                if (defaultParameter == value) 
-                    return TCL_ERROR;
                 if (TCL_OK != checkForType(ip, value, &result))
-                    return TCL_ERROR;
                 aux.ispos = result ? ourPosObj : ourNegObj;
                 break;
             case IDEG:
-                aux.ideg = value; if (defaultParameter == value) break;
-                if (TCL_OK != Tcl_GetIntFromObj(ip, value, &(aux.cideg))) 
-                    return TCL_ERROR;
-                break;
+                aux.ideg = value;
+                if (TCL_OK == Tcl_GetIntFromObj(ip, value, &result)) break;
+                if (ISDEFAULTARG(aux.ideg)) break;
+                return TCL_ERROR;
             case EDEG:
-                aux.edeg = value; if (defaultParameter == value) break;
-                if (TCL_OK != Tcl_GetIntFromObj(ip, value, &(aux.cedeg))) 
-                    return TCL_ERROR;
-                break;
+                aux.edeg = value; 
+                if (TCL_OK == Tcl_GetIntFromObj(ip, value, &result)) break;
+                if (ISDEFAULTARG(aux.edeg)) break;
+                return TCL_ERROR;
             case HDEG:
-                aux.hdeg = value; if (defaultParameter == value) break;
-                if (TCL_OK != Tcl_GetIntFromObj(ip, value, &(aux.chdeg))) 
-                    return TCL_ERROR;
-                break;
+                aux.hdeg = value;
+                if (TCL_OK == Tcl_GetIntFromObj(ip, value, &result)) break; 
+                if (ISDEFAULTARG(aux.hdeg)) break;
+                return TCL_ERROR;
             case GENLIST:
                 if (objv[1] == te->genlist) break;
                 if (NULL != te->gl) freex(te->gl);
@@ -323,6 +351,8 @@ if (NULL != (new)) {                                                   \
         aux.genlist = NULL; te->cgenlist = 1;
         Tcl_IncrRefCount(te->genlist);
     }
+
+    DOFLOG("Leaving Tcl_EnumConfigureCmd");
 
     return TCL_OK;
 } 
@@ -646,7 +676,6 @@ void Tcl_DestroyEnum(ClientData cd) {
     TRYFREEOBJ(te->edeg);
     TRYFREEOBJ(te->hdeg);
     TRYFREEOBJ(te->genlist);
-
     if (NULL != te->enm) enmDestroy(te->enm);
     freex(te);
 }
@@ -722,10 +751,10 @@ int Tenum_Init(Tcl_Interp *ip) {
     Tpoly_Init(ip);
 
     if (NULL == ourPosObj) 
-        ourPosObj = Tcl_NewStringObj("positive", strlen("positive"));
+        ourPosObj = Tcl_NewStringObj("positive", STRLEN("positive"));
 
     if (NULL == ourNegObj) 
-        ourNegObj = Tcl_NewStringObj("negative", strlen("negative"));
+        ourNegObj = Tcl_NewStringObj("negative", STRLEN("negative"));
 
     Tcl_IncrRefCount(ourPosObj); 
     Tcl_IncrRefCount(ourNegObj); 
