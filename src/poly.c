@@ -350,6 +350,14 @@ void stdCancel(void *self, int mod) {
     } 
 }
 
+int stdLookup(void *self, const exmo *ex, int *coeff) {
+    stp *s = (stp *) self;
+    exmo *aux = bsearch(ex, s->dat, s->num, sizeof(exmo), compareExmo);
+    if (NULL == aux) return -1;
+    if (NULL != coeff) *coeff = aux->coeff;
+    return aux - s->dat;
+}
+
 int stdCompare(void *pol1, void *pol2, int *res, int flags) {
     stp *s1 = (stp *) pol1;
     stp *s2 = (stp *) pol2;
@@ -464,6 +472,7 @@ struct polyType stdPolyType = {
     .appendExmo = &stdAppendExmo,
     .scaleMod   = &stdScaleMod,
     .shift      = &stdShift,
+    .lookup     = &stdLookup,
     .collectCoeffs = &stdCollectCoeffs
 };
 
@@ -595,5 +604,33 @@ int PLsteenrodMultiply(polyType **rtp, void **res,
 
     PLcancel(*rtp, *res, pi->prime);
 
+    return SUCCESS;
+}
+
+typedef struct {
+    exmo *ex;
+    void *val;
+} sortitem;
+
+int compSortItem(const void *a, const void *b) {
+    const sortitem *aa = (const sortitem *) a;
+    const sortitem *bb = (const sortitem *) b;
+    return compareExmo(aa->ex, bb->ex);
+}
+
+int stdpolySortWithValues(void *poly, void **values) {
+    stp *s = (stp *) poly;
+    sortitem *sit;
+    int i;
+    if (NULL == (sit = mallox(sizeof(sortitem) * s->num))) 
+        return FAILMEM;
+    for (i=0;i<s->num;i++) {
+        sit[i].ex  = &(s->dat[i]);
+        sit[i].val = values[i];
+    }
+    qsort(sit, s->num, sizeof(sortitem), compSortItem);
+    stdSort(s);
+    for (i=0;i<s->num;i++)
+        values[i] = sit[i].val;
     return SUCCESS;
 }

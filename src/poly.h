@@ -116,6 +116,16 @@ typedef struct polyType {
                          int mod, 
                          int flags); /* determine coefficient of e modulo mod */
 
+    int (*lookup)(void *self, 
+                  const exmo *e,
+                  int *coeff);       /* search for *e in *self and return its 
+                                      * index number. return -1 if *e is not 
+                                      * contained in *self. store coefficient 
+                                      * of *e in *coeff if coeff is not zero.
+                                      * this function usually requires a sorted 
+                                      * polynomial, so cancel should have been
+                                      * previously invoked. */
+
     int (*test)(void *self, pprop p);  /* test for property */ 
 
     void (*cancel)(void *self, int modulo);  /* cancel as much as possible */
@@ -199,5 +209,9 @@ extern polyType stdPolyType;
 
 /* create a stdpoly copy of a polynomial */
 void *PLcreateStdCopy(polyType *type, void *poly);
+
+/* we use stdpoly to implement monomial maps; here is a sort function that 
+ * simultaneously rearranges an extra table of associated values */
+int stdpolySortWithValues(void *poly, void **values);
 
 #endif
