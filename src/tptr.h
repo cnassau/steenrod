@@ -17,6 +17,14 @@
 #include <tcl.h>
 #include <stdarg.h>
 
+/* An IntList represents an array of integers */
+
+int  ILisXXL(Tcl_Obj *obj);     
+int  ILgetLength(Tcl_Obj *obj);
+int *ILgetIntPtr(Tcl_Obj *obj);
+
+int Tcl_ConvertToIntList(Tcl_Interp *ip, Tcl_Obj *obj);
+
 /* 
  * A TPtr holds two values: 
  *   type:      numerical type id  
@@ -48,6 +56,7 @@ void TPtr_RegObjType(int type, Tcl_ObjType *obtype);
 #define TP_PTR       -3    /* any TPtr is allowed */
 #define TP_LIST      -4    /* Tcl_ListObj */
 #define TP_INTLIST   -5    /* Tcl_ListObj consisitng of ints */
+#define TP_IL        -6    /* IntList object */
 
 /* More predefined types, which are actually instructions for TPtr_CheckArgs */
 #define TP_END       -1111 /* end of argument list */

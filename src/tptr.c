@@ -15,6 +15,87 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define PTR1(objptr) ((objptr)->internalRep.twoPtrValue.ptr1)
+#define PTR2(objptr) ((objptr)->internalRep.twoPtrValue.ptr2)
+
+/*::: Implementation of the IntList object type ::::::::::::::::::::::::::::::*/
+
+/* An IntList represents a list of arbitrary precision integers. 
+ * It uses the two-pointer value like this:
+ * 
+ *   ptr1 = ((length of the list) << 1) | (fits-to-int ? 0 : 1)
+ *   ptr2 = (fits-to-int ? (pointer to int) : (pointer to extra struct) 
+ *
+ * Currently, only the ordinary precision case is implemented. 
+ */
+
+int  ILisXXL(Tcl_Obj *obj)     { return ((int) PTR1(obj)) & 1; }
+int  ILgetLength(Tcl_Obj *obj) { return ((int) PTR1(obj)) >> 1; }
+int *ILgetIntPtr(Tcl_Obj *obj) { return (int *) PTR2(obj); }
+
+static Tcl_ObjType IntList;
+
+int Tcl_ConvertToIntList(Tcl_Interp *ip, Tcl_Obj *obj) {
+    return Tcl_ConvertToType(ip, obj, &IntList);
+}
+
+/* free internal representation */
+void ILFreeInternalRepProc(Tcl_Obj *obj) {
+    ckfree(PTR2(obj));
+}
+
+/* try to turn objPtr into a IntList */
+int ILSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
+    int objc, i, *dat; 
+    Tcl_Obj **objv;
+    if (TCL_OK != Tcl_ListObjGetElements(ip, objPtr, &objc, &objv))
+        return TCL_ERROR;
+    if (NULL == (dat = (int *) ckalloc(sizeof(int) * objc))) 
+        return TCL_ERROR;
+    for (i=0;i<objc;i++)
+        if (TCL_OK != Tcl_GetIntFromObj(ip, objv[i], &(dat[i]))) {
+            ckfree((char *) dat); return TCL_ERROR;
+        }
+    /* Now we have a copy of the data. Free list representation. */
+    objPtr->typePtr->freeIntRepProc(objPtr);
+    PTR1(objPtr) = (void *) (objc << 1);
+    PTR2(objPtr) = dat;
+    objPtr->typePtr = &IntList;
+    return TCL_OK;
+}
+
+/* Create a new list Obj from the objPtr */
+Tcl_Obj *ILToListObj(Tcl_Obj *objPtr) {
+    int  len = ILgetLength(objPtr);
+    int *dat = ILgetIntPtr(objPtr);
+    Tcl_Obj *res, **arr; int i;
+    arr = (Tcl_Obj **) ckalloc(sizeof(Tcl_Obj *) * len);
+    for (i=0;i<len;i++) 
+        arr[i] = Tcl_NewIntObj(dat[i]);
+    res = Tcl_NewListObj(len, arr);
+    ckfree((char *) arr);
+    return res;
+}
+
+/* recreate string representation */
+void ILUpdateStringProc(Tcl_Obj *objPtr) {
+    Tcl_Obj *lst = ILToListObj(objPtr);
+    int slen; char *str = Tcl_GetStringFromObj(lst, &slen);
+    objPtr->bytes = ckalloc(slen + 1);
+    memcpy(objPtr->bytes, str, slen + 1);
+    objPtr->length = slen;
+}
+
+/* create copy */
+void ILDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
+    int  len = ILgetLength(srcPtr);
+    int *dat = ILgetIntPtr(srcPtr);
+    int *ndat = (int *) ckalloc(sizeof(int) * len);
+    memcpy(ndat,dat,sizeof(int) * len);
+    PTR1(dupPtr) = (void *) (len << 1);
+    PTR2(dupPtr) = ndat;
+}
+
 /*::: Implementation of the TPtr object type :::::::::::::::::::::::::::::::::*/
 #define TCLRETERR(ip, msg) \
 { if (NULL!=ip) Tcl_SetResult(ip, msg, TCL_VOLATILE); return TCL_ERROR; }
@@ -76,7 +157,7 @@ int Tptr_Init(Tcl_Interp *ip) {
     if (TPtr_IsInitialized) return TCL_OK;
     TPtr_IsInitialized = 1;
 
-    /* set up type and register */
+    /* set up types and register */
     TPtr.name                  = "typed pointer";
     TPtr.freeIntRepProc        = NULL;
     TPtr.dupIntRepProc         = TPtr_DupInternalRepProc;
@@ -84,6 +165,14 @@ int Tptr_Init(Tcl_Interp *ip) {
     TPtr.setFromAnyProc        = TPtr_SetFromAnyProc;
     Tcl_RegisterObjType(&TPtr);
     
+    IntList.name               = "list of integers";
+    IntList.freeIntRepProc     = ILFreeInternalRepProc;
+    IntList.dupIntRepProc      = ILDupInternalRepProc;
+    IntList.updateStringProc   = ILUpdateStringProc;
+    IntList.setFromAnyProc     = ILSetFromAnyProc;
+    Tcl_RegisterObjType(&IntList);
+    TPtr_RegObjType(TP_IL, &IntList);
+
     TPtr_RegType(TP_ANY,     "unspecified");
     TPtr_RegType(TP_INT,     "integer");
     TPtr_RegType(TP_LIST,    "list");
