@@ -146,6 +146,54 @@ int nextRedmon(exmon *ex, enumEnv *env) {
     return 1;
 }
 
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+
+/* enumeration of signatures for a given profile */
+
+void firstSignature(enumEnv *env, exmon *exm, int maxdeg) {
+    clearProcore(&(exm->core), 0);
+    exm->totdeg = 0;
+    exm->remdeg = maxdeg;
+}
+
+int nextSignExt(enumEnv *env, exmon *exm) {
+    int e = exm->core.edat, d; 
+    e = (~e) & env->pro->core.edat;
+    if (!e) return 0;
+    e = (~(e-1)) & env->pro->core.edat;
+    d = extdeg(env->pi, e) - extdeg(env->pi, exm->core.edat);
+    exm->core.edat = e; 
+    if (exm->remdeg>=0)
+        if (exm->remdeg < d)
+            return 0;
+    exm->remdeg -= d;
+    exm->totdeg += d;
+    return 1;
+}
+
+int nextSignRed(enumEnv *env, exmon *exm) {
+    int i, tpmo = env->pi->tpmo;
+    procore *eco = &(exm->core), *pco = &(env->pro->core);
+    for (i=0;i<NPRO;i++) {
+        int aux = tpmo * env->pi->reddegs[i];
+        if ((eco->rdat[i]+1) < pco->rdat[i])
+            if (exm->remdeg<0 || (exm->remdeg >= (aux))) {
+                eco->rdat[i]++; 
+                exm->remdeg -= aux;
+                exm->totdeg += aux;
+                return 1;
+            } 
+        exm->remdeg += eco->rdat[i] * aux; 
+        exm->totdeg -= eco->rdat[i] * aux; 
+        eco->rdat[i] = 0;
+    }
+    /* could not increase reduced part, go to next exterior */
+    return nextSignExt(env, exm);
+}
+
+int nextSignature(enumEnv *env, exmon *exm) {
+    return nextSignRed(env, exm);
+}
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
@@ -248,12 +296,13 @@ int SqnInfGetSeqnoWithDegree(seqnoInfo *sqn, exmon *ex, int deg) {
     int res=0, k;
     deg /= sqn->pi->tpmo;
     for (k=NPRO-1;k--;) {
-        int maxdeg = (sqn->env->alg->core.rdat[k]-sqn->env->pro->core.rdat[k]) * sqn->pi->reddegs[k];
-        int actdeg =                ex->core.rdat[k] * sqn->pi->reddegs[k];
+        int prd = sqn->env->pro->core.rdat[k];
+        int maxdeg = (sqn->env->alg->core.rdat[k] - prd) * sqn->pi->reddegs[k];
+        int actdeg = (ex->core.rdat[k] / 1) * 1 * sqn->pi->reddegs[k];
         if (maxdeg>deg) maxdeg = deg; 
         res += sqn->seqtab[k][deg - actdeg] - sqn->seqtab[k][deg - maxdeg];
 #if 0
-        printf("+ %d - %d\n",sqn->seqtab[k][deg - actdeg],sqn->seqtab[k][deg - maxdeg]);  
+        printf("+ %d - %d\n",sqn->seqtab[k][deg - actdeg],sqn->seqtab[k][deg-maxdeg]);  
 #endif
         deg -= actdeg;
     }

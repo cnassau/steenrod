@@ -23,11 +23,13 @@
 #define stringify(s) #s
 
 typedef enum {
-    CORE_SET, CORE_GETEXT, CORE_GETRED, CORE_GETREDDEG,
+    CORE_SET, CORE_GETEXT, CORE_GETRED, 
+    CORE_GETREDDEG, CORE_GETEXTDEG,
     PR_CREATE, PR_DESTROY, PR_GETCORE, 
     ENV_CREATE, ENV_DISPOSE, 
     SQN_CREATE, SQN_DESTROY, SQN_GETDIM, SQN_GETSEQNO, 
     EXM_CREATE, EXM_DISPOSE, EXM_GETCORE, EXM_FIRST, EXM_NEXT, 
+    EXM_FIRSTSIG, EXM_NEXTSIG,
     EXM_GETID, EXM_SETID
 } ProfileCmdCode;
 
@@ -78,6 +80,12 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
             core = (procore *) TPtr_GetPtr(objv[1]);
             pi   = (primeInfo *) TPtr_GetPtr(objv[2]);
             Tcl_SetObjResult(ip, Tcl_NewIntObj(reddegProcore(core, pi)));
+            return TCL_OK;
+        case CORE_GETEXTDEG:
+            ENSUREARGS2(TP_PROCORE,TP_PRINFO);
+            core = (procore *) TPtr_GetPtr(objv[1]);
+            pi   = (primeInfo *) TPtr_GetPtr(objv[2]);
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(extdeg(pi, core->edat)));
             return TCL_OK;
         case PR_CREATE:
             ENSUREARGS0;
@@ -167,6 +175,21 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
             i2 = nextExmon(exmo, env);
             Tcl_SetObjResult(ip, Tcl_NewBooleanObj(i2));
             return TCL_OK;  
+        case EXM_FIRSTSIG: 
+            ENSUREARGS3(TP_EXMON, TP_ENENV, TP_INT);
+            exmo = (exmon *) TPtr_GetPtr(objv[1]);
+            env = (enumEnv *) TPtr_GetPtr(objv[2]);
+            Tcl_GetIntFromObj(ip, objv[3], &i1);
+            firstSignature(env, exmo, i1);
+            Tcl_SetObjResult(ip, Tcl_NewBooleanObj(i2));
+            return TCL_OK;
+        case EXM_NEXTSIG: 
+            ENSUREARGS2(TP_EXMON, TP_ENENV);
+            exmo = (exmon *) TPtr_GetPtr(objv[1]);
+            env = (enumEnv *) TPtr_GetPtr(objv[2]);
+            i2 = nextSignature(env, exmo);
+            Tcl_SetObjResult(ip, Tcl_NewBooleanObj(i2));
+            return TCL_OK;
         case EXM_GETID:
             ENSUREARGS1(TP_EXMON);
             exmo = (exmon *) TPtr_GetPtr(objv[1]);
@@ -222,6 +245,7 @@ Tcl_CreateObjCommand(ip,name,tProfileCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND(NSC "getExt", CORE_GETEXT); 
     CREATECOMMAND(NSC "getRed", CORE_GETRED); 
     CREATECOMMAND(NSC "getReddeg", CORE_GETREDDEG); 
+    CREATECOMMAND(NSC "getExtdeg", CORE_GETEXTDEG); 
     CREATECOMMAND(NSP "create", PR_CREATE); 
     CREATECOMMAND(NSP "destroy", PR_DESTROY); 
     CREATECOMMAND(NSP "getCore", PR_GETCORE); 
@@ -238,6 +262,8 @@ Tcl_CreateObjCommand(ip,name,tProfileCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND(NSX "setId", EXM_SETID); 
     CREATECOMMAND(NSX "first", EXM_FIRST); 
     CREATECOMMAND(NSX "next", EXM_NEXT);
+    CREATECOMMAND(NSX "firstSig", EXM_FIRSTSIG); 
+    CREATECOMMAND(NSX "nextSig", EXM_NEXTSIG);
 
     return TCL_OK;
 }

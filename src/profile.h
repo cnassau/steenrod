@@ -70,6 +70,10 @@ int nextExmon(exmon *ex, enumEnv *env);
 int firstRedmon(exmon *ex, enumEnv *env, int deg);
 int nextRedmon(exmon *ex, enumEnv *env);
 
+/* enumeration of the signatures in a profile */
+void firstSignature(enumEnv *env, exmon *exm, int maxdeg);
+int nextSignature(enumEnv *env, exmon *exm);
+
 /* information that's needed by the seqno routine */
 typedef struct {
     int maxdim;    /* maximal dimension for the tables below */
