@@ -13,8 +13,9 @@
  
 lappend auto_path ../lib
 
-if {[catch {package require Steenrod}]} {
-    puts "Could not find Steenrod algebra library."
+if {[catch {package require Steenrod} err]} {
+    puts "Could not load Steenrod algebra library."
+    puts "(Error message: $err)"
     puts "Check your installation and/or adjust the auto_path settings in [info script]"
     exit 1
 }
@@ -24,11 +25,12 @@ namespace import steenrod::*
 array set defoptions {
     -prime   { {} "the prime" }
     -algebra { {} "the algebra" }
-    -usegui  { 1  "use graphical user interface?" }
+    -usegui  { 1  "use graphical user interface ?" }
     -maxdim  { 40 "maximal topological dimension" }
     -maxs    { 50 "maximal homological degree" }
     -dbg     { 0  "log computation, used for debugging" }
     -decomp  { auto "smartness: either auto, upper, lower, none" }
+    -repcnt  { 1  "number of repetitions (debug parameter)" }
 }
 
 foreach {opt val} [array get defoptions] {
@@ -53,12 +55,6 @@ proc usage {} {
     puts ""
     puts "Example: for A(2) use '-algebra \"0 0 {3 2 1} 0\"'"
     exit 1
-}
-
-
-
-foreach opt [array names options] { 
-    set options($opt) [lindex $options($opt) 0]
 }
 
 foreach {opt val} $argv {
@@ -95,6 +91,8 @@ tryscan -maxdim maxdim
 tryscan -maxs maxs
 tryscan -usegui usegui
 
+tryscan -repcnt repcnt
+
 # debugging aids: 
 
 set dbgflag "to-be-overwritten"
@@ -123,29 +121,7 @@ proc dbgadd {body} {
     }
 }
 
-# create empty modules and maps
-
 incr maxs
-for {set i -2} {$i<=$maxs} {incr i} {
-    enumerator C$i -prime $p -algebra $alg
-    monomap d$i
-}
-
-# fake generator from Ext^0
-C0 configure -genlist 0 
-
-proc matprint {name mat} {
-    if 0 {
-        set ind "\n    "
-        puts -nonewline "$name ([matrix dimensions $mat])=$ind"
-        puts [join $mat $ind]
-    }
-    if 0 {
-        puts "$name: [matrix dimensions $mat]"
-    }
-}
-
-set maxe $maxs
 
 # newgen is a callback function that can be overwritten in the GUI.
 # The GUI can also put a trace on the tridegree and theprofile variables. 
@@ -293,231 +269,266 @@ proc maxLowerProfile {prime algebra s ideg edeg} {
     error not-reached!
 }
 
-# Main loop starts here:
+while {$repcnt} { 
 
-newgen 0 0 0 0 {} ;# fake gen of deg zero
-    
-for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
-
-    # delete unused modules & maps to save memory
-    if {$sdeg>=2} {
-        rename C[expr $sdeg-2] ""
-        rename d[expr $sdeg-2] ""
+    # create empty modules and maps
+    for {set i -2} {$i<=$maxs} {incr i} {
+        enumerator C$i -prime $p -algebra $alg
+        monomap d$i
     }
 
-    set maxi [expr $maxdim + $sdeg]
+    # fake generator from Ext^0
+    C0 configure -genlist [expr 0 * 0]
+
+    set maxe $maxs
+
+    # Main loop starts here:
+
+    newgen 0 0 0 0 {} ;# fake gen of deg zero
     
-    for {set ideg $sdeg} {$ideg<=$maxi} {incr ideg} {
+    for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
 
-        for {set edeg 0} {($edeg<=[expr $sdeg+1]) && ($edeg<=$maxe)} {incr edeg} {
-
-            update
-
-            # resolve tridegree (s,e,t) == ($sdeg, $edeg, $ideg)
-            
-            # determine previous, current, and next value of s
-            set sp [expr $sdeg-1]
-            set sc $sdeg
-            set sn [expr $sdeg+1]
-            
-            foreach hdg [list $sp $sc $sn] {
-                C$hdg configure -edeg $edeg -ideg $ideg 
-            }
-
-            # find maximal possible profiles  
-            set pupper [maxUpperProfile $p $alg $sc $ideg $edeg]
-            set plower [maxLowerProfile $p $alg $sc $ideg $edeg]
-
-            # count dimensions
-            C$sc configure -profile $pupper -sig {} ; set updim [C$sc dimension]
-            C$sc configure -profile $plower -sig {} ; set lodim [C$sc dimension]
-
-            if 0 {
-                puts "(s,i)=($sdeg,$ideg), t-s=[expr $ideg-$sdeg], edeg=$edeg"
-                puts "  lowprof = $plower, dim = $lodim"
-                puts "  uppprof = $pupper, dim = $updim"
-                C$sc configure -profile $pupper ; puts "C$sc conf = [C$sc conf]"
-                C$sc configure -profile $plower ; puts "C$sc conf = [C$sc conf]"
-            }
-
-            if {(0==$updim) || (0==$lodim)} continue
-
-            if {$updim > $lodim} { 
-                set theprofile $plower
-            } else {
-                set theprofile $pupper
-            }
-            
-            # at this point the gui's trace will trigger
-            set tridegree [list $sdeg $ideg $edeg]
-
-            #            puts "(s:$sdeg, i:$ideg, e:$edeg) : profile $theprofile"
-
-            foreach mod [list C$sp C$sc C$sn] { 
-                $mod configure -profile $theprofile 
-                $mod sigreset
-                # puts "$mod config = [$mod config]"
-                # puts "$mod basis = [$mod basis]"
-            }
-
-            # now compute matrices   mdsc : Cs -> Cs-1  and  mdsn : Cs+1 -> Cs
-
-            if {0 == $sc} {
-                # fake appropriate zero matrix
-                if {($edeg==0) && ($ideg==0)} {
-                    set mdsc 1
-                } else {
-                    # here C-1 = F_p = 0. create a zero matrix with the
-                    # right number of rows.
-                    set mdsc {}
-                    for {set i [C0 dim]} {$i>0} {incr i -1} { lappend mdsc 0 }
-                }                
-                eval set mdsn \[ComputeMatrix C$sn d$sn C$sc\]  
-            } else {
-                # using eval here gives nicer error reports
-                eval set mdsc \[ComputeMatrix C$sc d$sc C$sp\]  
-                eval set mdsn \[ComputeMatrix C$sn d$sn C$sc\]  
-            }
-            
-            # compute image...
-            matrix ortho $p mdsn ker  ;# (ker is not used) 
-
-            # compute kernel...
-            matrix ortho $p mdsc ker
-
-            unset mdsc ;# (to save memory)
-
-            # ...and compute quotient
-            matrix quot $p ker $mdsn
-
-            unset mdsn ;# (to save memory)
-            
-            set ngen [lindex [matrix dimensions $ker] 0]
-            
-            # go to next round if no new gens needed:
-            if {!$ngen} continue 
-            
-            # Ok, we need $ngen new generators, and so far we only know the
-            # signature-zero part of their differentials. 
-
-            set id [llength [C$sn cget -genlist]]
-
-            array unset newdiffs
-            array unset errorterms
-            set genlist {}
-
-            dbgclear
-
-            set newdiffs {}
-            for {set i 0} {$i<$ngen} {incr i} {
-                set vct [lindex [matrix extract row $ker $i] 0]
-                lappend newdiffs [C$sc decode $vct]
-                lappend genlist $id
-                incr id
-            }
-
-            dbgadd { "approximate diffs = $newdiffs" }
-            dbgadd { "tridegree = $tridegree" }
-            dbgadd { "profile = $theprofile" }
-            
-            # We use an auxiliary enumerator as a reference for error vectors. 
-            # This one agrees with C$sp except that it has empty profile
-
-            enumerator errenu
-            foreach parm [C$sp configure] { 
-                errenu configure [lindex $parm 0] [lindex $parm 1] 
-            }
-            errenu configure -profile {}
-
-            # these counters are used for error detection  
-            set dimcnt  [C$sp dim]
-            set fulldim [errenu dim]
-
-            # The rows in the matrix errterms are "d(d($id))" so they
-            # should be zero at the end of the correction process
-
-            set errterms [ComputeImage d$sc errenu $newdiffs]
-            
-            dbgadd { "errterms = $errterms" }
-            dbgadd { "C$sp basis = [errenu basis]" }
-
-            dbgadd { [lindex [list [C$sc con -profile {}] \
-                                  "C$sc basis = [C$sc basis]" \
-                                  [C$sc con -profile $theprofile]] 1] }
-
-            dbgadd { "siglist = [C$sp siglist]" }
-
-            # now correct errorterms by induction on signature
-
-            while {[C$sp signext]} {
-
-                set sig [C$sp cget -signature]
-                C$sc configure -signature $sig 
-                C$sn configure -signature $sig 
-                
-                incr dimcnt [C$sp dim]
-
-                dbgadd { "signature $sig: (C$sc bas = [C$sc bas])" }
-                
-                # extract errors of this signature:
-                set seqmap [errenu seqno C$sp]
-                set errmat [matrix extract cols $errterms $seqmap]
-
-                dbgadd { "    extracted $errmat via $seqmap" }
-
-                # compute relevant part of matrix   C$sc -> C$sp 
-                set mdsn [eval ComputeMatrix C$sc d$sc C$sp]
-
-                dbgadd { "    matrix is $mdsn" }
-
-                # compute lift
-                set lft [matrix lift $p $mdsn errmat]
-
-                dbgadd { "    lift is $lft" }
-
-                set cnt 0
-                set corrections {}
-                foreach id $genlist preim $lft {
-                    lappend corrections [set aux [C$sc decode $preim -1]]
-                    set aux2 [lindex $newdiffs $cnt]
-                    lset newdiffs $cnt [poly append $aux2 $aux]
-                    incr cnt
-                }
-
-                dbgadd { "    using corrections $corrections" }
-
-                # update error terms
-                matrix addto errterms [ComputeImage \
-                                           d$sc errenu $corrections] 1 $p
-            }
-            
-            # check that signature decomposition was complete 
-            if {$fulldim != $dimcnt} {
-                dbgadd { "fulldim = $fulldim, dimcnt = $dimcnt" }
-                dbgprint
-                error "signatures not correctly enumerated"
-            }
-
-            # check that error terms really are zero
-            if {![matrix iszero $errterms]} {
-                dbgadd { "final state: errterms=$errterms, newdiffs = $newdiffs" }
-                dbgprint
-                #vwait forever
-                error "error terms not reduced to zero"
-            }
-
-            # introduce new generators:
-
-            set gl [C$sn cget -genlist]
-            foreach id $genlist df $newdiffs {
-                lappend gl [list $id $ideg $edeg 0]
-                eval d$sn set \[list 0 0 0 $id\] \$df
-                newgen $id [expr $sn] $edeg $ideg $df
-            }
-            eval C$sn configure -genlist \$gl
-
+        # delete unused modules & maps to save memory
+        if {$sdeg>=2} {
+            rename C[expr $sdeg-2] ""
+            rename d[expr $sdeg-2] ""
         }
 
+        set maxi [expr $maxdim + $sdeg]
+        
+        for {set ideg $sdeg} {$ideg<=$maxi} {incr ideg} {
+
+            for {set edeg 0} {($edeg<=[expr $sdeg+1]) && ($edeg<=$maxe)} {incr edeg} {
+
+                update
+
+                # resolve tridegree (s,e,t) == ($sdeg, $edeg, $ideg)
+                
+                # determine previous, current, and next value of s
+                set sp [expr $sdeg-1]
+                set sc $sdeg
+                set sn [expr $sdeg+1]
+                
+                foreach hdg [list $sp $sc $sn] {
+                    C$hdg configure -edeg $edeg -ideg $ideg 
+                }
+
+                # find maximal possible profiles  
+                set pupper [maxUpperProfile $p $alg $sc $ideg $edeg]
+                set plower [maxLowerProfile $p $alg $sc $ideg $edeg]
+
+                # count dimensions
+                C$sc configure -profile $pupper -sig {} ; set updim [C$sc dimension]
+                C$sc configure -profile $plower -sig {} ; set lodim [C$sc dimension]
+
+                if 0 {
+                    puts "(s,i)=($sdeg,$ideg), t-s=[expr $ideg-$sdeg], edeg=$edeg"
+                    puts "  lowprof = $plower, dim = $lodim"
+                    puts "  uppprof = $pupper, dim = $updim"
+                    C$sc configure -profile $pupper ; puts "C$sc conf = [C$sc conf]"
+                    C$sc configure -profile $plower ; puts "C$sc conf = [C$sc conf]"
+                }
+
+                if {(0==$updim) || (0==$lodim)} continue
+
+                if {$updim > $lodim} { 
+                    set theprofile $plower
+                } else {
+                    set theprofile $pupper
+                }
+                
+                # at this point the gui's trace will trigger
+                set tridegree [list $sdeg $ideg $edeg]
+
+                #            puts "(s:$sdeg, i:$ideg, e:$edeg) : profile $theprofile"
+
+                foreach mod [list C$sp C$sc C$sn] { 
+                    $mod configure -profile $theprofile 
+                    $mod sigreset
+                    # puts "$mod config = [$mod config]"
+                    # puts "$mod basis = [$mod basis]"
+                }
+
+                # now compute matrices   mdsc : Cs -> Cs-1  and  mdsn : Cs+1 -> Cs
+                if {0 == $sc} {
+                    # fake appropriate matrix
+                    if {($edeg==0) && ($ideg==0)} {
+                        set mdsc 1
+                    } else {
+                        # here C-1 = F_p = 0. create a zero matrix with the
+                        # right number of rows.
+                        set mdsc [matrix create [C0 dim] 1]
+                    }                
+                    eval set mdsn \[ComputeMatrix C$sn d$sn C$sc\]  
+                } else {
+                    # using eval here gives nicer error reports
+                    eval set mdsc \[ComputeMatrix C$sc d$sc C$sp\]  
+                    eval set mdsn \[ComputeMatrix C$sn d$sn C$sc\]  
+                }
+                
+                # compute image...
+                matrix ortho $p mdsn ker  ;# (ker is not used) 
+
+                # compute kernel...
+                matrix ortho $p mdsc ker
+
+                unset mdsc ;# (to save memory)
+
+                # ...and compute quotient
+                matrix quot $p ker $mdsn
+
+                unset mdsn ;# (to save memory)            
+
+                
+                set ngen [lindex [matrix dimensions $ker] 0]
+                
+                # go to next round if no new gens needed:
+                if {!$ngen} continue 
+                
+                # Ok, we need $ngen new generators, and so far we only know the
+                # signature-zero part of their differentials. 
+
+                set id [llength [C$sn cget -genlist]]
+
+                dbgclear
+
+                set genlist {}
+                set newdiffs {}
+                for {set i 0} {$i<$ngen} {incr i} {
+                    set vct [lindex [matrix extract row $ker $i] 0]
+                    lappend newdiffs [C$sc decode $vct]
+                    lappend genlist $id
+                    incr id
+                }
+
+                dbgadd { "approximate diffs = $newdiffs" }
+                dbgadd { "tridegree = $tridegree" }
+                dbgadd { "profile = $theprofile" }
+                
+                # We use an auxiliary enumerator as a reference for error vectors. 
+                # This one agrees with C$sp except that it has empty profile
+
+                enumerator errenu
+                foreach parm [C$sp configure] { 
+                    errenu configure [lindex $parm 0] [lindex $parm 1] 
+                }
+                errenu configure -profile {}
+
+
+                # these counters are used for error detection  
+                set dimcnt  [C$sp dim]
+                set fulldim [errenu dim]
+
+                # The rows in the matrix errterms are "d(d($id))" so they
+                # should be zero at the end of the correction process
+
+                set errterms [ComputeImage d$sc errenu $newdiffs]
+
+                dbgadd { "errterms = $errterms" }
+                dbgadd { "C$sp basis = [errenu basis]" }
+
+                dbgadd { [lindex [list [C$sc con -profile {}] \
+                                      "C$sc basis = [C$sc basis]" \
+                                      [C$sc con -profile $theprofile]] 1] }
+
+                dbgadd { "siglist = [C$sp siglist]" }
+
+                # now correct errorterms by induction on signature
+
+                while {[C$sp signext]} {
+
+                    set sig [C$sp cget -signature]
+                    C$sc configure -signature $sig 
+                    C$sn configure -signature $sig 
+                    
+                    incr dimcnt [C$sp dim]
+
+                    dbgadd { "signature $sig: (C$sc bas = [C$sc bas])" }
+                    
+                    # extract errors of this signature:
+                    set seqmap [errenu seqno C$sp]
+                    set errmat [matrix extract cols $errterms $seqmap]
+
+                    dbgadd { "    extracted $errmat via $seqmap" }
+
+                    # compute relevant part of matrix   C$sc -> C$sp 
+                    set mdsn [eval ComputeMatrix C$sc d$sc C$sp]
+
+                    dbgadd { "    matrix is $mdsn" }
+
+                    # compute lift
+                    set lft [matrix lift $p $mdsn errmat]
+
+                    dbgadd { "    lift is $lft" }
+
+                    set cnt 0
+                    set corrections {}
+                    foreach id $genlist {
+                        set preim [lindex [matrix extract row $lft $cnt] 0]
+                        lappend corrections [set aux [C$sc decode $preim -1]]
+                        set aux2 [lindex $newdiffs $cnt]
+                        lset newdiffs $cnt [poly append $aux2 $aux]
+                        incr cnt
+                    }
+
+                    dbgadd { "    using corrections $corrections" }
+                    # update error terms
+                    matrix addto errterms [ComputeImage \
+                                               d$sc errenu $corrections] 1 $p
+                }
+
+                # check that signature decomposition was complete 
+                if {$fulldim != $dimcnt} {
+                    dbgadd { "fulldim = $fulldim, dimcnt = $dimcnt" }
+                    dbgprint
+                    error "signatures not correctly enumerated"
+                }
+
+                # check that error terms really are zero
+                if {![matrix iszero $errterms]} {
+                    dbgadd { "final state: errterms=$errterms, newdiffs = $newdiffs" }
+                    dbgprint
+                    #vwait forever
+                    error "error terms not reduced to zero"
+                }
+
+                # try to free some memory 
+                unset -nocomplain mdsn 
+                unset -nocomplain lft
+                unset -nocomplain seqmap
+                unset -nocomplain errmat
+                unset -nocomplain corrections
+                rename errenu ""
+
+                # introduce new generators:
+
+                set gl [C$sn cget -genlist]
+                foreach id $genlist df $newdiffs {
+                    lappend gl [list $id $ideg $edeg 0]
+                    eval d$sn set \[list 0 0 0 $id\] \$df
+                    newgen $id [expr $sn] $edeg $ideg $df
+                }
+                eval C$sn configure -genlist \$gl
+
+            }
+        }
+
+    }
+
+    if {$usegui} break
+
+    if {[incr repcnt -1]} {
+        # memory debugging 
+        flush stderr
+        puts stderr "\# next round!"
+        puts stderr "polCount = $steenrod::_polCount"
+        puts stderr "monCount = $steenrod::_monCount"
+        puts stderr "matCount = $steenrod::_matCount"
+        puts stderr "vecCount = $steenrod::_vecCount"
+        catch {
+            puts stderr [format "memory   = %s kB" \
+                             [lindex [exec egrep VmRSS [file join /proc [pid] status]] 1]]
+        }
     }
 
 }
