@@ -20,4 +20,115 @@
 
 #include "poly.h"
 
+/* If you read this you'd better know how Milnor's multiplication algorithm  
+ * works. It uses the "multiplication matrices" X = (x_ij) that fit a given 
+ * pair of factors (A,B). The multiplicator iterates through these matrices 
+ * and some of them lead to summands of the product A * B. Check out the
+ * canonical sources for more details. */
+
+/* A Xfield represents a xi-box in the multiplication matrix. It
+ *
+ *  1)  holds a value (val)
+ *  2)  knows where the mask of "forbidden bits" is stored (*oldmsk, *newmsk)
+ *  3)  knows where the sum is kept (*sum, sum_weight)
+ *  4)  knows where the reservoir for this row or column is (*res, res_weight)
+ *
+ * added extra feature:
+ *
+ *  5)  "quantization of values", used to preserve profiles (quant)
+ */
+
+typedef struct {
+    primeInfo *pi;
+    xint val,
+        quant,
+        *oldmsk, *newmsk,
+        *sum,
+        *res;
+    int sum_weight, res_weight;
+    int estat;
+} Xfield;
+
+/* At odd primes the algorithm needs an additional matrix E=(e_ij) of 1-bit
+ * integers. However, these are stored in an adhoc manner so there's no 
+ * dedicated Efield structure. */
+
+/* Our multiplication routine is based on the extensive use of callback functions.
+ * To multiply two polynomials (i.e. Steenrod algebra elements) A and B one has 
+ * to provide two (usually three) such callback functions:
+ *
+ * (assuming that A is positive)
+ *
+ *   func1: this iterates through the summands of A
+ *
+ * For each such summand the program then determines all allowable multiplication
+ * matrices X (see Margolis' book for a descripton of these.)  
+ *
+ *   func2: this one is called for each such multiplication matrix.
+ *            
+ * There is a standard func2 implementation that delegates its work to
+ *   
+ *       func2.1: this iterates though the summands of B and checks whether it 
+ *                has found a summand of the product.
+ *     
+ *       func2.2: this is called for each such summand. 
+ *
+ * There is a standard func2.2 implementation that just adds the summand to 
+ * a given polynomial.
+ *
+ * If A is negative (ie. all its exponents are negative, meaning that A is actually
+ * an element of the dual Steenrod algebra and we're acting on it from the right
+ * by B), a similar cascade of callbacks is used; however, in that case the 
+ * multiplication matrices are derived from B and the summand fetching callbacks 
+ * iterate through the summands of A.
+ *
+ * The input to the multiplication engine is given by the following multArgs 
+ * structure: */
+
+typedef struct multArgs {
+    /* pi and profile have to remain valid during multiplication */
+    primeInfo *pi;       /* describes the prime */
+    exmo      *profile;  /* the subalgebra profile that we want to respect */
+    
+    /* first factor callbacks */
+    void *ffdat;
+    int (*getExmoFF)(void *ffd, const exmo **ex, int idx);
+    void (*fetchFuncFF)(struct multArgs *self); 
+    
+    /* second factor callbacks */
+    void *sfdat;
+    int (*getExmoSF)(void *sfd, const exmo **ex, int idx);
+    void (*fetchFuncSF)(struct multArgs *self); 
+
+    /* The multiplication matrix is stored here. For historical reasons
+     * there are actually two matrices, one for "AP" and one for "PA". 
+     * Here AP and PA stands for "any times positive" resp. "positive times any". */
+
+    Xfield xfPA[NALG+1][NALG+1], 
+        xfAP[NALG+1][NALG+1];
+
+    xint msk[NALG+1][NALG+1], 
+        sum[NALG+1][NALG+1];
+
+    int emsk[NALG+1], 
+        esum[NALG+1];
+
+    /* client data -- interpretation is up to the callbacks */
+    void *cd1, *cd2, *cd3;
+
+    /* callbacks that add the summands to a poly can use these: */
+    void     *resPolyPtr; 
+    polyType *resPolyType;
+
+    /* the function that's invoked by the stundard fetch funcs */
+    void (*stdSummandFunc)(struct multArgs *self, const exmo *smd);
+} multArgs;
+
+/* Here are the standard fetch funcs */
+void stdFetchFuncFF(struct multArgs *self); 
+void stdFetchFuncSF(struct multArgs *self); 
+
+/* An implementation of a stdSummandFunc that adds the summand to a polynomial */
+void stdAddSummandToPoly(struct multArgs *self, const exmo *smd);
+
 #endif
