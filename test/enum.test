@@ -120,7 +120,7 @@ source [file join [file dirname [info script]] enum.data]
 
 # carry out the tests 
 
-foreach name [array names enumtestdata] {
+foreach name [lsort [array names enumtestdata]] {
     test enum-auto $name [list do-test $name $enumtestdata($name)] {}
 }
 
