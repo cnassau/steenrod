@@ -122,12 +122,12 @@ int momapSetValPtr(momap *mo, Tcl_Obj *key, Tcl_Obj *val) {
 #define RETERR(errmsg) \
 { if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
 
-typedef enum { CLEAR, SET, GET, LIST, UNSET, ADD } momacmdcode;
+typedef enum { CLEAR, SET, GET, LIST, UNSET, ADD, APPEND } momacmdcode;
 
-static CONST char *cmdNames[] = { "clear", "set", "get", "list", "unset", "add",
+static CONST char *cmdNames[] = { "clear", "set", "get", "list", "unset", "add", "append",
                                   (char *) NULL };
 
-static momacmdcode cmdmap[] = { CLEAR, SET, GET, LIST, UNSET, ADD };
+static momacmdcode cmdmap[] = { CLEAR, SET, GET, LIST, UNSET, ADD, APPEND };
 
 int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
@@ -165,6 +165,7 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
             return TCL_OK;
 
         case ADD:
+        case APPEND:
             scale = 1; modulo = 0;
             if ((objc<4) || (objc>6)) {
                 Tcl_WrongNumArgs(ip, 2, objv, 
@@ -200,10 +201,13 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
                                             NULL, 0,
                                             scale,modulo))
                     return TCL_ERROR;
-                if (SUCCESS != PLcancel(polyTypeFromTclObj(auxptr),
-                                        polyFromTclObj(auxptr),
-                                        modulo))
-                    return TCL_ERROR;
+
+                if (cmdmap[index] != APPEND) { 
+                    if (SUCCESS != PLcancel(polyTypeFromTclObj(auxptr),
+                                            polyFromTclObj(auxptr),
+                                            modulo))
+                        return TCL_ERROR;
+                }
                 return TCL_OK;
             }
             return TCL_OK;
