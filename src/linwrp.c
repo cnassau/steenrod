@@ -67,15 +67,44 @@ void stdUnitMatrix(void *mat) {
     matrix_unit(mat);
 }
 
+int stdReduceMatrix(void *mat, int prime) {
+    int i, j;
+    matrix *m = (matrix *) mat;
+    cint *rowptr;
+    for (j=m->rows;j--;) {
+        rowptr = m->data + j* m->nomcols;
+        for (i=m->cols;i--;)
+            rowptr[i] %= prime;
+    }
+    return SUCCESS;
+}
+
 void *stdOrthoFunc(primeInfo *pi, void *inp, progressInfo *prg) {
-    return NULL;
+    matrix *ker;
+    Tcl_Interp *ip = NULL; 
+    const char *progvar = NULL;
+    int pmsk = 0;
+    if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; }
+    ker = matrix_ortho(pi, (matrix *) inp, ip, progvar, pmsk);
+    return ker;
 }
 
 void *stdLiftFunc(primeInfo *pi, void *inp, void *lft, progressInfo *prg) {
-    return NULL;
+    matrix *res;
+    Tcl_Interp *ip = NULL; 
+    const char *progvar = NULL;
+    int pmsk = 0;
+    if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; }
+    res = matrix_lift(pi, (matrix *) inp, lft, ip, progvar, pmsk);
+    return res;
 }
 
 void stdQuotFunc(primeInfo *pi, void *ker, void *im, progressInfo *prg) {
+    Tcl_Interp *ip = NULL; 
+    const char *progvar = NULL;
+    int pmsk = 0;
+    if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; }
+    matrix_quotient(pi, (matrix *) ker, (matrix *) im, ip, progvar, pmsk);
 }
 
 matrixType stdMatrixType = {
@@ -87,6 +116,7 @@ matrixType stdMatrixType = {
     .destroyMatrix = stdDestroyMatrix,
     .clearMatrix   = stdClearMatrix,
     .unitMatrix    = stdUnitMatrix,
+    .reduce        = stdReduceMatrix,
     .orthoFunc     = stdOrthoFunc,
     .liftFunc      = stdLiftFunc,
     .quotFunc      = stdQuotFunc
@@ -132,13 +162,22 @@ void stdVDestroyVector(void *vec) {
     vector_dispose((vector *) vec);
 }
 
+int stdVReduce(void *vec, int prime) {
+    int i;
+    vector *v = (vector *) vec;
+    for (i=v->num;i--;)
+        v->data[i] %= prime;
+    return SUCCESS;
+}
+
 vectorType stdVectorType = {
     .getEntry      = &stdVGetEntry,
     .setEntry      = &stdVSetEntry,
     .getLength     = &stdVGetLength,
     .createVector  = &stdVCreateVector,
     .createCopy    = &stdVCreateCopy,
-    .destroyVector = &stdVDestroyVector
+    .destroyVector = &stdVDestroyVector,
+    .reduce        = &stdVReduce
 };
 
 void *createStdMatrixCopy(matrixType *mt, void *mat) {

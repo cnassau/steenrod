@@ -19,8 +19,8 @@
 
 typedef struct {
     Tcl_Interp *ip;
-    const char *varname;
-    int        numSteps;
+    const char *progvar;
+    int         pmsk;
 } progressInfo;
 
 /* I'm too (fucking) tired right now, to put comments into this code! */
@@ -36,7 +36,9 @@ typedef struct {
 
     void *(*createCopy)(void *vec);
 
-    void (*destroyVector)(void *vec);
+    void (*destroyVector)(void *vec);    
+
+    int  (*reduce)(void *mat, int prime);
 } vectorType;
 
 typedef struct {
@@ -55,6 +57,8 @@ typedef struct {
     void (*clearMatrix)(void *mat);
 
     void (*unitMatrix)(void *mat);
+
+    int  (*reduce)(void *mat, int prime);
 
     void *(*orthoFunc)(primeInfo *pi, void *inp, progressInfo *prg);
 
