@@ -59,6 +59,9 @@ typedef struct {
     const char *name;
     size_t bytesAllocated;
     size_t bytesUsed; 
+    /* the fields below need not be initialized 
+     * by the getInfo member function */
+    int maxLength;
 } polyInfo;
 
 /* A polynomial is an arbitrary collection of extended monomials. 
@@ -70,6 +73,8 @@ typedef struct {
 typedef struct polyType {
 
     int (*getInfo)(void *self, polyInfo *poli); /* obvious, eh? */
+
+    int (*getMaxLength)(void *self, int *len); /* max length of all exmo's */
 
     void *(*createCopy)(void *src);  /* create a copy; if src is NULL a
                                       * new empty polynomial is created */
@@ -142,6 +147,7 @@ typedef struct polyType {
 
 int   PLgetInfo(polyType *type, void *poly, polyInfo *poli);
 int   PLgetNumsum(polyType *type, void *poly);
+int   PLgetMaxLength(polyType *type, void *poly);
 void  PLfree(polyType *type, void *poly);
 int   PLcancel(polyType *type, void *poly, int modulo);
 int   PLclear(polyType *type, void *poly);

@@ -94,13 +94,39 @@ int isnegExmo(const exmo *e) {
 if (NULL != (func)) (func)(arg1);
 
 int PLgetInfo(polyType *type, void *poly, polyInfo *res) {
-    if (NULL != type->getInfo) 
-        return (type->getInfo)(poly, res);
+    if (NULL != type->getInfo) {
+        int rcode = (type->getInfo)(poly, res);
+        if (SUCCESS != rcode) return rcode;
+        res->maxLength = PLgetMaxLength(type, poly);
+        return SUCCESS;
+    }
     return FAILIMPOSSIBLE;
 }
 
 int PLgetNumsum(polyType *type, void *poly) {
     return (type->getNumsum)(poly);
+}
+
+int PLgetMaxLength(polyType *type, void *poly) {
+    int rval, i, j, num; 
+    if (NULL != type->getMaxLength) 
+        if (SUCCESS == (type->getMaxLength)(poly, &rval))
+            return rval;
+    num = PLgetNumsum(type, poly);
+    if (NULL != type->getExmoPtr) {
+        exmo *aux; 
+        for (rval=i=0;i<num;i++) {
+            if (SUCCESS != (type->getExmoPtr)(poly, &aux, i))
+                goto exit;
+            if ((j = exmoGetLen(aux)) > rval) rval = j;
+        }
+        return rval;
+    }
+    
+    /* here we could try the same with getExmo, but not right now! */
+
+ exit:
+    return NALG; /* only appropriate for stdpoly (?) */
 }
 
 void PLfree(polyType *type, void *poly) { 

@@ -403,9 +403,11 @@ Tcl_Obj *Tcl_PolyObjGetInfo(Tcl_Obj *obj) {
         return Tcl_NewObj();
 
     wrk += sprintf(wrk,"{implementation {%s}} "
-                   "{{allocated bytes} %d} {{bytes used} %d}",
+                   "{{allocated bytes} %d} {{bytes used} %d}"
+                   "{{max length} %d}",
                    poli.name ? poli.name : "unknown",
-                   (unsigned) poli.bytesAllocated, (unsigned) poli.bytesUsed);
+                   (unsigned) poli.bytesAllocated, (unsigned) poli.bytesUsed,
+                   poli.maxLength);
 
     return NEWSTRINGOBJ(aux);
 }        
