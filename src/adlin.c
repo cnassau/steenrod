@@ -67,9 +67,9 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, Tcl_Interp *ip, int pmsk) {
         if ((pmsk) && (0==(i&pmsk))) {
             perc = i; perc /= inp->rows;
             perc = 1-perc; perc *= perc; perc = 1-perc;
-        PROGVARSET(perc);
+            PROGVARSET(perc);
         }
-    /* find pivot for this row */
+        /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
             if (0 != *aux) break;
         if (0 == j) {
@@ -78,7 +78,7 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, Tcl_Interp *ip, int pmsk) {
         } else {
             matrix_collect(&m1, i); /* collect image vector */
             coeff = pi->inverse[(unsigned) *aux]; 
-        coeff = prime-coeff; coeff %= prime;
+            coeff = prime-coeff; coeff %= prime;
             /* go through all other rows and normalize */
             v2.data = v1.data + spr; aux += spr;
             v3.data = un->data + i * uspr;
