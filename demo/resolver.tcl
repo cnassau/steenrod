@@ -15,6 +15,8 @@ lappend auto_path ../lib
 
 package require Steenrod
 
+namespace import linalg::*
+
 array set options {
     -prime   2
     -algebra {}
@@ -64,7 +66,7 @@ if {![scan $options(-usegui) %d usegui]} {
 
 # debugging aids: 
 
-set dbgflag 0
+set dbgflag 1
 set errinf {}
 
 proc dbgclear {} { 
@@ -102,11 +104,11 @@ C0 configure -genlist 0
 proc matprint {name mat} {
     if 0 {
         set ind "\n    "
-        puts -nonewline "$name ([linalg::getdims $mat])=$ind"
+        puts -nonewline "$name ([matrix dimensions $mat])=$ind"
         puts [join $mat $ind]
     }
     if 0 {
-        puts "$name: [::linalg::getdims $mat]"
+        puts "$name: [matrix dimensions $mat]"
     }
 }
 
@@ -129,8 +131,7 @@ if {$usegui} {
     source [file join [file dirname [info script]] simplegui.tcl]
 }
 
-# Routines that determine the maximal allowed profile 
-#
+# Routines that determine the profile of the maximal allowable subalgebra
 
 proc maxUpperProfile {prime algebra s ideg edeg} {
     incr s 0
@@ -234,13 +235,22 @@ proc maxLowerProfile {prime algebra s ideg edeg} {
 
 newgen 0 -1 0 0 {} ;# fake gen of deg zero
     
-    for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
+for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
 
-        set maxi [expr $maxdim + $sdeg]
-        
-        for {set ideg $sdeg} {$ideg<=$maxi} {incr ideg} {
-            for {set edeg 0} {($edeg<=[expr $sdeg+1]) && ($edeg<=$maxe)} {incr edeg} {
-         
+    # delete unused modules & maps to save memory
+    if {$sdeg>=2} {
+        rename C[expr $sdeg-2] ""
+        rename d[expr $sdeg-2] ""
+    }
+
+    set maxi [expr $maxdim + $sdeg]
+    
+    for {set ideg $sdeg} {$ideg<=$maxi} {incr ideg} {
+
+        for {set edeg 0} {($edeg<=[expr $sdeg+1]) && ($edeg<=$maxe)} {incr edeg} {
+
+            update
+
             # resolve tridegree (s,e,t) == ($sdeg, $edeg, $ideg)
             
             # determine previous, current, and next value of s
@@ -277,13 +287,13 @@ newgen 0 -1 0 0 {} ;# fake gen of deg zero
             # at this point the gui's trace will trigger
             set tridegree [list $sdeg $ideg $edeg]
 
-#            puts "(s:$sdeg, i:$ideg, e:$edeg) : profile $theprofile"
+            #            puts "(s:$sdeg, i:$ideg, e:$edeg) : profile $theprofile"
 
             foreach mod [list C$sp C$sc C$sn] { 
                 $mod configure -profile $theprofile 
                 $mod sigreset
-               # puts "$mod config = [$mod config]"
-               # puts "$mod basis = [$mod basis]"
+                # puts "$mod config = [$mod config]"
+                # puts "$mod basis = [$mod basis]"
             }
 
             # now compute matrices   mdsc : Cs -> Cs-1  and  mdsn : Cs+1 -> Cs
@@ -306,19 +316,19 @@ newgen 0 -1 0 0 {} ;# fake gen of deg zero
             }
             
             # compute image...
-            linalg::ortho $p mdsn ker  ;# (ker is not used) 
+            matrix ortho $p mdsn ker  ;# (ker is not used) 
 
             # compute kernel...
-            linalg::ortho $p mdsc ker
+            matrix ortho $p mdsc ker
 
             unset mdsc ;# (to save memory)
 
             # ...and compute quotient
-            linalg::quot $p ker mdsn
+            matrix quot $p ker $mdsn
 
             unset mdsn ;# (to save memory)
             
-            set ngen [lindex [linalg::getdims $ker] 0]
+            set ngen [lindex [matrix dimensions $ker] 0]
             
             # go to next round if no new gens needed:
             if {!$ngen} continue 
@@ -336,7 +346,7 @@ newgen 0 -1 0 0 {} ;# fake gen of deg zero
 
             set newdiffs {}
             for {set i 0} {$i<$ngen} {incr i} {
-                set vct [lindex [linalg::extract row $ker $i] 0]
+                set vct [lindex [matrix extract row $ker $i] 0]
                 lappend newdiffs [C$sc decode $vct]
                 lappend genlist $id
                 incr id
@@ -380,14 +390,14 @@ newgen 0 -1 0 0 {} ;# fake gen of deg zero
                 set sig [C$sp cget -signature]
                 C$sc configure -signature $sig 
                 C$sn configure -signature $sig 
-       
+                
                 incr dimcnt [C$sp dim]
 
                 dbgadd { "signature $sig: (C$sc bas = [C$sc bas])" }
-         
+                
                 # extract errors of this signature:
                 set seqmap [errenu seqno C$sp]
-                set errmat [linalg::extract cols $errterms $seqmap]
+                set errmat [matrix extract cols $errterms $seqmap]
 
                 dbgadd { "    extracted $errmat via $seqmap" }
 
@@ -397,7 +407,7 @@ newgen 0 -1 0 0 {} ;# fake gen of deg zero
                 dbgadd { "    matrix is $mdsn" }
 
                 # compute lift
-                set lft [linalg::lift $p mdsn errmat]
+                set lft [matrix lift $p $mdsn errmat]
 
                 dbgadd { "    lift is $lft" }
 
@@ -413,11 +423,10 @@ newgen 0 -1 0 0 {} ;# fake gen of deg zero
                 dbgadd { "    using corrections $corrections" }
 
                 # update error terms
-                set errterms [linalg::addmatrix \
-                                  $errterms [poly::ComputeImage \
-                                                 d$sc errenu $corrections] $p]
+                matrix addto errterms [poly::ComputeImage \
+                                           d$sc errenu $corrections] 1 $p
             }
-                
+            
             # check that signature decomposition was complete 
             if {$fulldim != $dimcnt} {
                 dbgadd { "fulldim = $fulldim, dimcnt = $dimcnt" }
@@ -432,7 +441,7 @@ newgen 0 -1 0 0 {} ;# fake gen of deg zero
                         if {$entry} {
                             dbgadd { "final state: errterms=$errterms, newdiffs = $newdiffs" }
                             dbgprint
-#vwait forever
+                            #vwait forever
                             error "errorterms not reduced to zero"
                         }
                     }
@@ -452,11 +461,6 @@ newgen 0 -1 0 0 {} ;# fake gen of deg zero
         }
 
     }
-
-        if {$sdeg>2} {
-            rename C[expr $sdeg-3] ""
-            rename d[expr $sdeg-3] ""
-        }
 
 }
 

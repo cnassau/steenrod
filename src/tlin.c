@@ -525,310 +525,302 @@ int ExtractRowsCmd(Tcl_Interp *ip, Tcl_Obj *mat, int *ind, int num) {
 
 /* ---------- */
 
-typedef enum {
-    LIN_INVSRP, LIN_INVMAT, 
-    LIN_ISMAT, LIN_ISVEC, 
-    LIN_ADDV, LIN_ADDM, LIN_EXTRACT,
-    LIN_ORTHO, LIN_QUOT, LIN_LIFT, LIN_DIMS
-} LinalgCmdCode;
+/* "TakeMatrixFromVar" treats its argument as the name of a variable which
+ * is expected to contain a matrix object. This matrix object is read,
+ * an unshared copy is made whose refcount is incremented, the variable is
+ * cleared, and the matrix returned. If an error occurs a message is left
+ * in the interpreter. */
 
-#define ENSURERANGE(bot,a,top) \
-if (((a)<(bot))||((a)>=(top))) RETERR("index out of range"); 
+Tcl_Obj *TakeMatrixFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
+    Tcl_Obj *res;
+
+    if (NULL == (res = Tcl_ObjGetVar2(ip, varname, NULL, TCL_LEAVE_ERR_MSG)))
+        return NULL;
+
+    if (TCL_OK != Tcl_ConvertToMatrix(ip, res)) {
+        Tcl_SetObjResult(ip, varname);
+        Tcl_AppendResult(ip, " does not contain a valid matrix");
+        return NULL;
+    }
+
+    Tcl_IncrRefCount(res);
+    if (NULL == Tcl_ObjSetVar2(ip, varname, NULL, Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
+        Tcl_DecrRefCount(res);
+        return NULL;
+    }
+     
+    if (Tcl_IsShared(res)) {
+        Tcl_DecrRefCount(res);
+        res = Tcl_DuplicateObj(res);
+        Tcl_IncrRefCount(res);
+    }
+
+    return res;
+}
+
+/* TakeVectorFromVar does the same for vectors. */
+
+Tcl_Obj *TakeVectorFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
+    Tcl_Obj *res;
+
+    if (NULL == (res = Tcl_ObjGetVar2(ip, varname, NULL, TCL_LEAVE_ERR_MSG)))
+        return NULL;
+
+    if (TCL_OK != Tcl_ConvertToVector(ip, res)) {
+        Tcl_SetObjResult(ip, varname);
+        Tcl_AppendResult(ip, " does not contain a valid vector");
+        return NULL;
+    }
+
+    Tcl_IncrRefCount(res);
+    if (NULL == Tcl_ObjSetVar2(ip, varname, NULL, Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
+        Tcl_DecrRefCount(res);
+        return NULL;
+    }
+     
+    if (Tcl_IsShared(res)) {
+        Tcl_DecrRefCount(res);
+        res = Tcl_DuplicateObj(res);
+        Tcl_IncrRefCount(res);
+    }
+
+    return res;
+}
+
+
+/**** Implementation of the matrix combi-command ***********************************/
+
+static char *theprogvar;
+static int   theprogmsk;
+
+#define THEPROGVAR ((*theprogvar) ? theprogvar : NULL)
 
 static CONST char *rcnames[] = { "rows", "cols", NULL };
 
-int tLinCombiCmd(ClientData cd, Tcl_Interp *ip, 
-          int objc, Tcl_Obj *CONST objv[]) {
-    LinalgCmdCode cdi = (LinalgCmdCode) cd;
+typedef enum { ORTHO, LIFT, QUOT, DIMS, CREATE, ADDTO, 
+               ISZERO, TEST, EXTRACT } matcmdcode;
+
+static CONST char *mCmdNames[] = { "orthonormalize", "lift", 
+                                   "quotient", "extract", "dimensions", 
+                                   "create", "addto", "iszero", 
+                                   "test", 
+                                   (char *) NULL };
+
+static matcmdcode mCmdmap[] = { ORTHO, LIFT, QUOT, EXTRACT, 
+                                DIMS, CREATE, ADDTO, ISZERO, TEST };
+
+int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+    int result, index, scale, modval, rows, cols;
     primeInfo *pi;
-    int r, c, index;
-    Tcl_Obj *varp[4], *res;
-    const char *progvar;
-    int pmsk, modval;
+    matrixType *mt; void *mdat;
+    Tcl_Obj *(varp[5]);
 
-    if (NULL == ip) return TCL_ERROR; 
+    if (objc < 2) {
+        Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
+        return TCL_ERROR;
+    }
 
-    switch (cdi) {
-        case LIN_ISMAT:
-            ENSUREARGS1(TP_ANY);
-            if (TCL_OK == Tcl_ConvertToMatrix(ip, objv[1]))
-                r = 1;
-            else
-                r = 0;
-            Tcl_SetObjResult(ip, Tcl_NewBooleanObj(r));
-            return TCL_OK;
+    result = Tcl_GetIndexFromObj(ip, objv[1], mCmdNames, "subcommand", 0, &index);
+    if (result != TCL_OK) return result;
 
-        case LIN_ISVEC:
-            ENSUREARGS1(TP_ANY);
-            if (TCL_OK == Tcl_ConvertToVector(ip, objv[1]))
-                r = 1;
-            else
-                r = 0;
-            Tcl_SetObjResult(ip, Tcl_NewBooleanObj(r));
-            return TCL_OK;
+#define EXPECTARGS(bas,min,max,msg) {                 \
+   if ((objc<((bas)+(min))) || (objc>((bas)+(max)))) { \
+       Tcl_WrongNumArgs(ip, (bas), objv, msg);        \
+       return TCL_ERROR; } }
 
-        case LIN_INVSRP: 
-            ENSUREARGS1(TP_VECTOR);
-            Tcl_InvalidateStringRep(objv[1]);
-            Tcl_SetObjResult(ip, objv[1]);
-            return TCL_OK;
-
-        case LIN_INVMAT: 
-            ENSUREARGS1(TP_MATRIX);
-            Tcl_InvalidateStringRep(objv[1]);
-            Tcl_SetObjResult(ip, objv[1]);
-            return TCL_OK;
-
-        case LIN_EXTRACT:
-            if (objc != 4) {
-                Tcl_WrongNumArgs(ip, 1, objv, 
-                                 "rows/cols <matrix> <list of indices>");
+    switch (mCmdmap[index]) {
+        case QUOT: 
+            EXPECTARGS(2, 3, 3, "<prime> <varname> <matrix>");
+            
+            if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[2],&pi))
                 return TCL_ERROR;
-            }
 
-            if (TCL_OK != Tcl_GetIndexFromObj(ip, objv[1], rcnames, 
-                                              "option", 0, &index))
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[4])) 
+                return TCL_ERROR;
+
+            if (NULL == (varp[1] = TakeMatrixFromVar(ip, objv[3])))
                 return TCL_ERROR;
             
-            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[2]))
-                return TCL_ERROR;
-
-            if (TCL_OK != Tcl_ConvertToIntList(ip, objv[3])) 
-                return TCL_ERROR;
-
-            return index 
-                ? ExtractColsCmd(ip, objv[2], ILgetIntPtr(objv[3]), 
-                                 ILgetLength(objv[3])) 
-                : ExtractRowsCmd(ip, objv[2], ILgetIntPtr(objv[3]), 
-                                 ILgetLength(objv[3]));
-
-        case LIN_DIMS:
-            ENSUREARGS1(TP_MATRIX);
-            if (TCL_OK != Tcl_MatrixGetDimensions(ip, objv[1], &r, &c))
-                return TCL_ERROR;
-            varp[0] = Tcl_NewIntObj(r);
-            varp[1] = Tcl_NewIntObj(c);
-            Tcl_SetObjResult(ip, Tcl_NewListObj(2, varp));
-            return TCL_OK;
-
-        case LIN_ADDM:
-            ENSUREARGS4(TP_MATRIX,TP_MATRIX,TP_OPTIONAL,TP_INT);
-
-            modval = 0;
-            if (objc > 3) 
-                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &modval))
-                    return TCL_ERROR;
-
-            res = objv[1];
-
-            /* make private copy of res */
-            Tcl_IncrRefCount(res);
-            if (Tcl_IsShared(res)) {
-                Tcl_DecrRefCount(res);
-                res = Tcl_DuplicateObj(res);
-                Tcl_IncrRefCount(res);
-            }
-
-            if (TCL_OK != MAddCmd(ip, res, objv[2], 1, modval)) {
-                Tcl_DecrRefCount(res);
-                return TCL_ERROR;
-            }
-
-            Tcl_SetObjResult(ip, res);
-            return TCL_OK;
-
-        case LIN_ADDV:
-            ENSUREARGS4(TP_VECTOR,TP_VECTOR,TP_OPTIONAL,TP_INT);
-
-            modval = 0;
-            if (objc > 3) 
-                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &modval))
-                    return TCL_ERROR;
-
-            res = objv[1];
-
-            /* make private copy of res */
-            Tcl_IncrRefCount(res);
-            if (Tcl_IsShared(res)) {
-                Tcl_DecrRefCount(res);
-                res = Tcl_DuplicateObj(res);
-                Tcl_IncrRefCount(res);
-            }
-
-            if (TCL_OK != VAddCmd(ip, res, objv[2], 1, modval)) {
-                Tcl_DecrRefCount(res);
-                return TCL_ERROR;
-            }
-
-            Tcl_SetObjResult(ip, res);
-            return TCL_OK;
-
-        case LIN_ORTHO:
-            ENSUREARGS6(TP_PRIME,TP_VARNAME,TP_VARNAME,TP_OPTIONAL,TP_VARNAME,TP_INT);
-            if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[1],&pi))
-                return TCL_ERROR;
-
-            /* get matrix from var1 */
-            varp[1] = Tcl_ObjGetVar2(ip, objv[2], NULL, TCL_LEAVE_ERR_MSG);
-            if (NULL == varp[1]) return TCL_ERROR;
-            if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[1])) 
-                RETERR("var1 does not contain a valid matrix");
-
-            /* reset var2 */
-            if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
-                                       Tcl_NewObj(), TCL_LEAVE_ERR_MSG))
-                return TCL_ERROR;
-
-            progvar = NULL; pmsk = 0;
-            if (objc >= 5) progvar = Tcl_GetString(objv[4]); 
-            if (objc >= 6) 
-                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &pmsk))
-                    RETERR("internal error in LIN_ORTHO");
-
-            /* detach matrix from var1 */
-            Tcl_IncrRefCount(varp[1]);
-            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, 
-                                       Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[1]);
-                return TCL_ERROR;
-            }
-
-            if (Tcl_IsShared(varp[1])) {
-                Tcl_DecrRefCount(varp[1]);
-                varp[1] = Tcl_DuplicateObj(varp[1]);
-                Tcl_IncrRefCount(varp[1]);
-            }
-
-            varp[2] = Tcl_OrthoCmd(pi, varp[1], ip, progvar, pmsk);
-            if (NULL == varp[2]) RETERR("orthonormalization failed");
-
-            /* set variables and return */
-            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, 
-                                      varp[1], TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[1]);
-                return TCL_ERROR;
-            }
-            Tcl_DecrRefCount(varp[1]);
-            if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
-                                      varp[2], TCL_LEAVE_ERR_MSG)) 
-                return TCL_ERROR;
-            
-            /* should we assert here that both refcounts are 1 ... ? */
-            // printObj("varp[1]", varp[1]);
-            // printObj("varp[2]", varp[2]);
-            
-            return TCL_OK;
-
-        case LIN_QUOT:
-            ENSUREARGS6(TP_PRIME,TP_VARNAME,TP_VARNAME,TP_OPTIONAL,TP_VARNAME,TP_INT);
-            if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[1],&pi))
-                return TCL_ERROR;
-
-            /* get matrix from var1 */
-            varp[1] = Tcl_ObjGetVar2(ip, objv[2], NULL, TCL_LEAVE_ERR_MSG);
-            if (NULL == varp[1]) return TCL_ERROR;
-            if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[1])) 
-                RETERR("var1 does not contain a valid matrix");
-
-            /* get matrix from var2 */
-            varp[2] = Tcl_ObjGetVar2(ip, objv[3], NULL, TCL_LEAVE_ERR_MSG);
-            if (NULL == varp[2]) return TCL_ERROR;
-            if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[2])) 
-                RETERR("var2 does not contain a valid matrix");
-
-            progvar = NULL; pmsk = 0;
-            if (objc >= 5) progvar = Tcl_GetString(objv[4]); 
-            if (objc >= 6) 
-                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &pmsk))
-                    RETERR("internal error in LIN_QUOT");
-
-            /* detach matrix from var1 */
-            Tcl_IncrRefCount(varp[1]);
-            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, 
-                                       Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[1]);
-                return TCL_ERROR;
-            }
-
-            if (Tcl_IsShared(varp[1])) {
-                Tcl_DecrRefCount(varp[1]);
-                varp[1] = Tcl_DuplicateObj(varp[1]);
-                Tcl_IncrRefCount(varp[1]);
-            }
-
-            if (TCL_OK != Tcl_QuotCmd(pi, varp[1], varp[2], ip, progvar, pmsk)) {
+            if (TCL_OK != Tcl_QuotCmd(pi, varp[1], objv[4], ip, THEPROGVAR, theprogmsk)) {
                 Tcl_DecrRefCount(varp[1]);
                 return TCL_ERROR;
             }
 
             /* put result into var1 */
-            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, 
-                                      varp[1], TCL_LEAVE_ERR_MSG)) {
+            if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
                 Tcl_DecrRefCount(varp[1]);
                 return TCL_ERROR;
             }
+
             Tcl_DecrRefCount(varp[1]);
             return TCL_OK;
 
-        case LIN_LIFT:
-            ENSUREARGS6(TP_PRIME,TP_VARNAME,TP_VARNAME,TP_OPTIONAL,TP_VARNAME,TP_INT);
-            if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[1], &pi))
+        case LIFT: 
+            EXPECTARGS(2, 3, 3, "<prime> <matrix> <varname>");
+            
+            if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
                 return TCL_ERROR;
 
-            /* get matrix from var1 */
-            varp[1] = Tcl_ObjGetVar2(ip, objv[2], NULL, TCL_LEAVE_ERR_MSG);
-            if (NULL == varp[1]) return TCL_ERROR;
-            if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[1])) 
-                RETERR("var1 does not contain a valid matrix");
-
-            /* get matrix from var2 */
-            varp[2] = Tcl_ObjGetVar2(ip, objv[3], NULL, TCL_LEAVE_ERR_MSG);
-            if (NULL == varp[2]) return TCL_ERROR;
-            if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[2])) 
-                RETERR("var2 does not contain a valid matrix");
-
-            progvar = NULL; pmsk = 0;
-            if (objc >= 5) progvar = Tcl_GetString(objv[4]); 
-            if (objc >= 6) 
-                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &pmsk))
-                    RETERR("internal error in LIN_ORTHO");
-
-            /* detach matrix from var2 */
-            Tcl_IncrRefCount(varp[2]);
-            if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
-                                       Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[2]);
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[3]))
                 return TCL_ERROR;
-            }
 
-            if (Tcl_IsShared(varp[2])) {
-                Tcl_DecrRefCount(varp[2]);
-                varp[2] = Tcl_DuplicateObj(varp[2]);
-                Tcl_IncrRefCount(varp[2]);
-            }
+            if (NULL == (varp[2] = TakeMatrixFromVar(ip, objv[4])))
+                return TCL_ERROR;
 
-            varp[3] = Tcl_LiftCmd(pi, varp[1], varp[2], ip, progvar, pmsk);
+            varp[3] = Tcl_LiftCmd(pi, objv[3], varp[2], ip, THEPROGVAR, theprogmsk);
+
             if (NULL == varp[3]) {
                 Tcl_DecrRefCount(varp[2]);
                 return TCL_ERROR;
             }
 
-            /* put result into var2 */
-            if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
-                                       varp[2], TCL_LEAVE_ERR_MSG)) {
+            if (NULL == Tcl_ObjSetVar2(ip, objv[4], NULL, varp[2], TCL_LEAVE_ERR_MSG)) {
                 Tcl_DecrRefCount(varp[2]);
                 return TCL_ERROR;
             }
 
             Tcl_DecrRefCount(varp[2]);
+
             Tcl_SetObjResult(ip, varp[3]);
             return TCL_OK;
+
+        case ORTHO: 
+            EXPECTARGS(2, 3, 3, "<prime> <varname> <varname>");
+            
+            if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[2],&pi))
+                return TCL_ERROR;
+
+            if (NULL == (varp[1] = TakeMatrixFromVar(ip, objv[3])))
+                return TCL_ERROR;
+
+            varp[2] = Tcl_OrthoCmd(pi, varp[1], ip, THEPROGVAR, theprogmsk);
+            
+            if (NULL == varp[2]) {
+                Tcl_DecrRefCount(varp[1]);
+                RETERR("orthonormalization failed");
+            }
+
+            /* set variables and return */
+            if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL,
+                                       varp[1], TCL_LEAVE_ERR_MSG)) {
+                Tcl_DecrRefCount(varp[1]);
+                return TCL_ERROR;
+            }
+            Tcl_DecrRefCount(varp[1]);
+
+            if (NULL == Tcl_ObjSetVar2(ip, objv[4], NULL,
+                                       varp[2], TCL_LEAVE_ERR_MSG))
+                return TCL_ERROR;
+
+            return TCL_OK;
+
+        case EXTRACT:
+            EXPECTARGS(2, 3, 3, "rows/cols <matrix> <list of indices>");
+
+            if (TCL_OK != Tcl_GetIndexFromObj(ip, objv[2], rcnames,
+                                              "option", 0, &index))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[3]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToIntList(ip, objv[4]))
+                return TCL_ERROR;
+
+            return index
+                ? ExtractColsCmd(ip, objv[3], ILgetIntPtr(objv[4]),
+                                 ILgetLength(objv[4]))
+                : ExtractRowsCmd(ip, objv[3], ILgetIntPtr(objv[4]),
+                                 ILgetLength(objv[4]));
+
+        case DIMS: 
+            EXPECTARGS(2, 1, 1, "<matrix>");
+
+            if (TCL_OK != Tcl_MatrixGetDimensions(ip, objv[2], &rows, &cols))
+                return TCL_ERROR;
+            
+            varp[0] = Tcl_NewIntObj(rows);
+            varp[1] = Tcl_NewIntObj(cols);
+            
+            Tcl_SetObjResult(ip, Tcl_NewListObj(2, varp));
+            return TCL_OK;
+
+        case CREATE: 
+            EXPECTARGS(2, 2, 2, "<rows> <columns>");
+            
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2], &rows))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &cols))
+                return TCL_ERROR;
+
+            mt = stdmatrix;
+            mdat = mt->createMatrix(rows, cols);
+
+            if (NULL == mdat) RETERR("out of memory");
+            
+            Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt, mdat));
+            return TCL_OK;
+            
+        case ADDTO: 
+            EXPECTARGS(2, 2, 4, "<varname> <matrix> ?<scale>? ?<mod>?");
+            
+            scale = 1; modval = 0;
+
+            if (objc > 4) 
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &scale))
+                    return TCL_ERROR;
+
+            if (objc > 5) 
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &modval))
+                    return TCL_ERROR;
+            
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[3]))
+                return TCL_ERROR;
+
+            if (NULL == (varp[1] = TakeMatrixFromVar(ip, objv[2])))
+                return TCL_ERROR;
+
+            if (TCL_OK != MAddCmd(ip, varp[1], objv[3], scale, modval)) {
+                Tcl_DecrRefCount(varp[1]);
+                return TCL_ERROR;
+            }
+            
+            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL,
+                                       varp[1], TCL_LEAVE_ERR_MSG)) {
+                Tcl_DecrRefCount(varp[1]);
+                return TCL_ERROR;
+            }
+
+            Tcl_ResetResult(ip);
+            return TCL_OK;
+            
+        case ISZERO: 
+            EXPECTARGS(2, 1, 1, "<matrix>");
+
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[2])) 
+                return TCL_ERROR;
+            
+            mt = matrixTypeFromTclObj(objv[2]);
+            mdat = matrixFromTclObj(objv[2]);
+            
+            Tcl_SetObjResult(ip, Tcl_NewBooleanObj(matrixIsZero(mt, mdat)));
+            return TCL_OK;
+
+        case TEST:
+            EXPECTARGS(2, 1, 1, "<matrix candidate>");
+
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[2])) 
+                return TCL_OK;
+
+            Tcl_ResetResult(ip);
+            return TCL_OK;
+
     }
 
-    Tcl_SetResult(ip, "internal error in tLinCombiCmd", TCL_STATIC);
-
+    Tcl_SetResult(ip, "internal error in MatrixCombiCmd", TCL_STATIC);
     return TCL_ERROR;
-}
+} 
 
 int Tlin_HaveType;
 
@@ -837,9 +829,6 @@ int Tlin_Init(Tcl_Interp *ip) {
     if (NULL == Tcl_InitStubs(ip, "8.0", 0)) return TCL_ERROR;
 
     Tprime_Init(ip);
-
-#define CREATECOMMAND(name, code) \
-Tcl_CreateObjCommand(ip,NSP name,tLinCombiCmd,(ClientData) code, NULL);
 
     if (!Tlin_HaveType) {
         Tptr_Init(ip);
@@ -865,24 +854,13 @@ Tcl_CreateObjCommand(ip,NSP name,tLinCombiCmd,(ClientData) code, NULL);
         Tlin_HaveType = 1;
     }
 
-#if 0
-    CREATECOMMAND("invVct", LIN_INVSRP);
-    CREATECOMMAND("invMat", LIN_INVMAT);
-#endif
+    Tcl_CreateObjCommand(ip, NSP "matrix", MatrixCombiCmd, (ClientData) 0, NULL);
 
-    CREATECOMMAND("ismatrix", LIN_ISMAT);
-    CREATECOMMAND("isvector", LIN_ISVEC);
-
-    CREATECOMMAND("addmatrix", LIN_ADDM);
-    CREATECOMMAND("addvector", LIN_ADDV);
-
-    CREATECOMMAND("extract", LIN_EXTRACT);
-
-    CREATECOMMAND("getdims", LIN_DIMS);
-    CREATECOMMAND("ortho",   LIN_ORTHO);
-    CREATECOMMAND("lift",    LIN_LIFT);
-    CREATECOMMAND("quot",    LIN_QUOT);
-
+    Tcl_LinkVar(ip, NSP "progvar", (char *) &theprogvar, TCL_LINK_STRING);
+    Tcl_LinkVar(ip, NSP "progsteps", (char *) &theprogmsk, TCL_LINK_INT);
+    
+    theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 100;
+        
     Tcl_Eval(ip, "namespace eval " NSP " { namespace export * }");
 
     return TCL_OK;
