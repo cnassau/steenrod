@@ -118,6 +118,7 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
         ENSUREARGS3(TP_VECTOR,TP_INT,TP_INT);
         vec = (vector *) TPtr_GetPtr(objv[1]);
         Tcl_GetIntFromObj(ip, objv[2], &a);
+        Tcl_GetIntFromObj(ip, objv[3], &b);
         ENSURERANGE(0,a,vec->num);
         vec->data[a] = b;
         return TCL_OK;
