@@ -37,49 +37,49 @@ int tPrInfo(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     /* the initial switch just implements create & dispose;
      * for other commands we only check the arguments here */
     switch (cdi) {
-    case CD_CREATE:
-        if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_INT,TP_INT,TP_END))
-        return TCL_ERROR;
-        Tcl_GetIntFromObj(ip, objv[1], &a);
-        Tcl_GetIntFromObj(ip, objv[2], &b);
-        pi = (primeInfo *) ckalloc(sizeof(primeInfo)); 
-        if (NULL == pi) {
-        Tcl_SetResult(ip, "out of memory", TCL_VOLATILE);
-        return TCL_ERROR;
-        }
-        if (PI_OK == (c = makePrimeInfo(pi, a, b))) {
-        Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_PRINFO, pi));
-        return TCL_OK;
-        }
-        switch (c) {
-        case PI_NOPRIME:  err = "Not a prime number"; break;
-        case PI_TOOLARGE: err = "Prime too large"; break;
-        case PI_NOMEM:    err = "Out of memory"; break;
-        default: err = "<strange internal error>"; 
-        }
-        Tcl_SetResult(ip, err, TCL_VOLATILE);
-        return TCL_ERROR;
-    case CD_DISPOSE:
-        if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_PRINFO,TP_END))
-        return TCL_ERROR;
-        disposePrimeInfo(pi = (primeInfo *) TPtr_GetPtr(objv[1]));
-        ckfree((char *) pi);
-        return TCL_OK;
-    case CD_INVERSE:
-        if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_PRINFO,TP_INT,TP_END))
-        return TCL_ERROR;
-        Tcl_GetIntFromObj(ip, objv[2], &a);
-        break;
-    case CD_BINOM:
-        if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,
-                       TP_PRINFO,TP_INT,TP_INT,TP_END))
-        return TCL_ERROR;
-        Tcl_GetIntFromObj(ip, objv[2], &a);
-        Tcl_GetIntFromObj(ip, objv[3], &b);
-        break;
-    default:
-        if (TCL_OK != TPtr_CheckArgs(ip, objc, objv, TP_PRINFO, TP_END))
-        return TCL_ERROR;
+        case CD_CREATE:
+            if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_INT,TP_END))
+                return TCL_ERROR;
+            Tcl_GetIntFromObj(ip, objv[1], &a);
+            Tcl_GetIntFromObj(ip, objv[2], &b);
+            pi = (primeInfo *) ckalloc(sizeof(primeInfo)); 
+            if (NULL == pi) {
+                Tcl_SetResult(ip, "out of memory", TCL_VOLATILE);
+                return TCL_ERROR;
+            }
+            if (PI_OK == (c = makePrimeInfo(pi, a))) {
+                Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_PRINFO, pi));
+                return TCL_OK;
+            }
+            switch (c) {
+                case PI_NOPRIME:  err = "Not a prime number"; break;
+                case PI_TOOLARGE: err = "Prime too large"; break;
+                case PI_NOMEM:    err = "Out of memory"; break;
+                default: err = "<strange internal error>"; 
+            }
+            Tcl_SetResult(ip, err, TCL_VOLATILE);
+            return TCL_ERROR;
+        case CD_DISPOSE:
+            if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_PRINFO,TP_END))
+                return TCL_ERROR;
+            disposePrimeInfo(pi = (primeInfo *) TPtr_GetPtr(objv[1]));
+            ckfree((char *) pi);
+            return TCL_OK;
+        case CD_INVERSE:
+            if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_PRINFO,TP_INT,TP_END))
+                return TCL_ERROR;
+            Tcl_GetIntFromObj(ip, objv[2], &a);
+            break;
+        case CD_BINOM:
+            if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,
+                                       TP_PRINFO,TP_INT,TP_INT,TP_END))
+                return TCL_ERROR;
+            Tcl_GetIntFromObj(ip, objv[2], &a);
+            Tcl_GetIntFromObj(ip, objv[3], &b);
+            break;
+        default:
+            if (TCL_OK != TPtr_CheckArgs(ip, objc, objv, TP_PRINFO, TP_END))
+                return TCL_ERROR;
     }
     
     pi = (primeInfo *) TPtr_GetPtr(objv[1]);
@@ -89,21 +89,21 @@ int tPrInfo(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
 Tcl_SetObjResult(ip,Tcl_ListFromArray(len,list)); return TCL_OK
 
     switch (cdi) {
-    case CD_BINOM: RETURNINT(binomp(pi, a, b)) ;
-    case CD_INVERSE:
-        a %= pi->prime;
-        if (0 == a) {
-        Tcl_SetResult(ip, "division by zero", TCL_VOLATILE);
-        return TCL_ERROR;
-        }
-        RETURNINT(pi->inverse[a]);
-    case CD_PRIME: RETURNINT(pi->prime);
-    case CD_MAXDEG: RETURNINT(pi->maxdeg);
-    case CD_N: RETURNINT(NALG);
-    case CD_TPMO: RETURNINT(pi->tpmo);
-    case CD_REDDEGS: RETURNLIST(pi->reddegs, NALG);
-    case CD_EXTDEGS: RETURNLIST(pi->extdegs, NALG);
-    case CD_PRIMPOWS: RETURNLIST(pi->primpows, NALG);
+        case CD_BINOM: RETURNINT(binomp(pi, a, b)) ;
+        case CD_INVERSE:
+            a %= pi->prime;
+            if (0 == a) {
+                Tcl_SetResult(ip, "division by zero", TCL_VOLATILE);
+                return TCL_ERROR;
+            }
+            RETURNINT(pi->inverse[a]);
+        case CD_PRIME: RETURNINT(pi->prime);
+        case CD_MAXDEG: RETURNINT(pi->maxdeg);
+        case CD_N: RETURNINT(NALG);
+        case CD_TPMO: RETURNINT(pi->tpmo);
+        case CD_REDDEGS: RETURNLIST(pi->reddegs, NALG);
+        case CD_EXTDEGS: RETURNLIST(pi->extdegs, NALG);
+        case CD_PRIMPOWS: RETURNLIST(pi->primpows, NALG);
     } 
     
     Tcl_SetResult(ip, "internal error in tPtrInfo", TCL_VOLATILE);
