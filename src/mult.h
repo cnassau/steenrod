@@ -67,7 +67,7 @@ typedef struct {
  *            
  * There is a standard func2 implementation that delegates its work to
  *   
- *       func2.1: this iterates though the summands of B and checks whether it 
+ *       func2.1: this iterates through the summands of B and checks whether it 
  *                has found a summand of the product.
  *     
  *       func2.2: this is called for each such summand. 
@@ -90,15 +90,15 @@ typedef struct multArgs {
     exmo      *profile;  /* the subalgebra profile that we want to respect */
     
     /* first factor data & callbacks */
-    void *ffdat;
+    void *ffdat, *ffdat2;
     int   ffIsPos;
-    int (*getExmoFF)(void *ffd, const exmo **ex, int idx);
+    int (*getExmoFF)(struct multArgs *self, int factor, const exmo **ex, int idx);
     void (*fetchFuncFF)(struct multArgs *self, int coeff); 
     
     /* second factor data & callbacks */
-    void *sfdat;
+    void *sfdat, *sfdat2;
     int   sfIsPos; 
-    int (*getExmoSF)(void *sfd, const exmo **ex, int idx);
+    int (*getExmoSF)(struct multArgs *self, int factor, const exmo **ex, int idx);
     void (*fetchFuncSF)(struct multArgs *self, int coeff); 
 
     /* The multiplication matrix is stored here. For historical reasons
@@ -116,6 +116,7 @@ typedef struct multArgs {
 
     /* client data -- interpretation is up to the callbacks */
     void *cd1, *cd2, *cd3;
+    exmo fcdexmo, scdexmo; 
 
     /* callbacks that add the summands to a poly can use these: */
     void     *resPolyPtr; 
@@ -125,11 +126,19 @@ typedef struct multArgs {
     void (*stdSummandFunc)(struct multArgs *self, const exmo *smd);
 } multArgs;
 
+/* The standard getExmo function is just a wrapper for PLgetExmo */
+#define FIRST_FACTOR  1
+#define SECOND_FACTOR 2
+int stdGetExmoFunc(struct multArgs *self, int factor, const exmo **ex, int idx);
+
 /* Here are the standard fetch funcs */
 void stdFetchFuncFF(struct multArgs *self, int coeff); 
 void stdFetchFuncSF(struct multArgs *self, int coeff); 
 
 /* An implementation of a stdSummandFunc that adds the summand to a polynomial */
 void stdAddSummandToPoly(struct multArgs *self, const exmo *smd);
+
+/* The next function sets up the multiplication matrices: */
+void initMultargs(multArgs *ma, primeInfo *pi, exmo *profile);
 
 #endif
