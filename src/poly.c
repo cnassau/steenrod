@@ -18,7 +18,7 @@
 #include "poly.h"
 #include "common.h"
 
-#define LOGSTD(msg) if (1) printf("stdpoly::%s\n", msg) 
+#define LOGSTD(msg) if (0) printf("stdpoly::%s\n", msg) 
 
 #define LOGPL(func) if (0) printf(#func) 
 #define LOGPLFMT(func,fmt,dat) if (0) printf( #func ": " fmt "\n", dat) 
@@ -202,9 +202,9 @@ void *stdCreateCopy(void *src) {
         n->num = n->nalloc = 0; n->dat = NULL;
         return n;
     }
-    n->alloc = n->num = s->num;
-    if (0 == n->alloc) n->alloc = 1;
-    if (NULL == (n->dat = (exmo *) mallox(sizeof(exmo) * n->alloc))) {
+    n->nalloc = n->num = s->num;
+    if (0 == n->nalloc) n->nalloc = 1;
+    if (NULL == (n->dat = (exmo *) mallox(sizeof(exmo) * n->nalloc))) {
         freex(n); return NULL; 
     }
     memcpy(n->dat,s->dat,sizeof(exmo) * s->num);

@@ -91,13 +91,13 @@ adlin.o: adlin.h linalg.h prime.h common.h
 linalg.o: linalg.h prime.h common.h
 poly.o: poly.h common.h prime.h mult.h
 prime.o: prime.h common.h
-tlin.o: tlin.h tptr.h tprime.h prime.h common.h adlin.h linalg.h
+tlin.o: tlin.h tptr.h common.h tprime.h prime.h adlin.h linalg.h
 tprime.o: tprime.h prime.h common.h tptr.h
-tptr.o: tptr.h
-tptrtest.o: tptr.h
-tpoly.o: tptr.h tpoly.h poly.h common.h prime.h tprime.h
+tptr.o: tptr.h common.h
+tptrtest.o: tptr.h common.h
+tpoly.o: tptr.h common.h tpoly.h poly.h prime.h tprime.h
 profile.o: profile.h prime.h common.h
-tprofile.o: tptr.h tprime.h prime.h common.h tprofile.h profile.h
+tprofile.o: tptr.h common.h tprime.h prime.h tprofile.h profile.h
 maps.o: maps.h common.h prime.h profile.h
-tmap.o: tptr.h tmap.h tprofile.h profile.h prime.h common.h maps.h
+tmap.o: tptr.h common.h tmap.h tprofile.h profile.h prime.h maps.h
 mult.o: mult.h common.h prime.h poly.h

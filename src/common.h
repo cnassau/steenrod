@@ -24,7 +24,7 @@
 #define FAILUNTRUE      4  /* another word for "no" */
 
 #define DONT_USE_TCL_ALLOC 
-#define USE_VERB_ALLOC 
+#define DONT_USE_VERB_ALLOC 
 
 #define vbfree(p) (printf("freeing %p\n",p), free(p))
 #define vbmalloc(s) \
