@@ -39,7 +39,7 @@ int tPrInfo( ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[] ) {
      * for other commands we only check the arguments here */
     switch (cdi) {
 	case CD_CREATE:
-	    if ( TCL_OK != TPtr_CheckArgs( ip, objc, objv, TP_INT, TP_INT, TP_END ) )
+	    if ( TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_INT,TP_INT,TP_END) )
 		return TCL_ERROR;
 	    Tcl_GetIntFromObj( ip, objv[1], &a );
 	    Tcl_GetIntFromObj( ip, objv[2], &b );
@@ -61,18 +61,19 @@ int tPrInfo( ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[] ) {
 	    Tcl_SetResult( ip, err, TCL_VOLATILE );
 	    return TCL_ERROR;
 	case CD_DISPOSE:
-	    if ( TCL_OK != TPtr_CheckArgs( ip, objc, objv, TP_PRINFO, TP_END ) )
+	    if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_PRINFO,TP_END))
 		return TCL_ERROR;
 	    disposePrimeInfo( pi = (primeInfo *) TPtr_GetPtr( objv[1] ) );
 	    ckfree( (char *) pi );
 	    return TCL_OK;
 	case CD_INVERSE:
-	    if ( TCL_OK != TPtr_CheckArgs( ip, objc, objv, TP_PRINFO, TP_INT, TP_END ) )
+	    if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_PRINFO,TP_INT,TP_END))
 		return TCL_ERROR;
 	    Tcl_GetIntFromObj( ip, objv[2], &a );
 	    break;
 	case CD_BINOM:
-	    if ( TCL_OK != TPtr_CheckArgs( ip, objc, objv, TP_PRINFO, TP_INT, TP_INT, TP_END ) )
+	    if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,
+				       TP_PRINFO,TP_INT,TP_INT,TP_END))
 		return TCL_ERROR;
 	    Tcl_GetIntFromObj( ip, objv[2], &a );
 	    Tcl_GetIntFromObj( ip, objv[3], &b );
@@ -84,8 +85,9 @@ int tPrInfo( ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[] ) {
     
     pi = (primeInfo *) TPtr_GetPtr( objv[1] );
     
-#define RETURNINT( rval ) Tcl_SetObjResult( ip, Tcl_NewIntObj( rval ) ); return TCL_OK
-#define RETURNLIST( list, len ) Tcl_SetObjResult( ip, Tcl_ListFromArray( list, len ) ); return TCL_OK
+#define RETURNINT(rval) Tcl_SetObjResult(ip,Tcl_NewIntObj(rval)); return TCL_OK
+#define RETURNLIST(list,len) \
+Tcl_SetObjResult(ip,Tcl_ListFromArray(list,len)); return TCL_OK
 
     switch (cdi) {
 	case CD_BINOM: RETURNINT( binomp( pi, a, b )) ;
@@ -120,18 +122,20 @@ int Tprime_Init( Tcl_Interp *ip ) {
 
     TPtr_RegType( TP_PRINFO, "primeinfo" );
 
-    Tcl_CreateObjCommand( ip, NSP "create",  tPrInfo, (ClientData) CD_CREATE, NULL );
-    Tcl_CreateObjCommand( ip, NSP "dispose", tPrInfo, (ClientData) CD_DISPOSE, NULL );
+#define CREATECOMMAND(name, code) \
+Tcl_CreateObjCommand(ip,NSP name,tPrInfo,(ClientData) code, NULL);
 
-    Tcl_CreateObjCommand( ip, NSP "prime", tPrInfo, (ClientData) CD_PRIME, NULL );
-    Tcl_CreateObjCommand( ip, NSP "maxdeg", tPrInfo, (ClientData) CD_MAXDEG, NULL );
-    Tcl_CreateObjCommand( ip, NSP "tpmo", tPrInfo, (ClientData) CD_TPMO, NULL );
-    Tcl_CreateObjCommand( ip, NSP "N", tPrInfo, (ClientData) CD_N, NULL );
-    Tcl_CreateObjCommand( ip, NSP "primpows", tPrInfo, (ClientData) CD_PRIMPOWS, NULL );
-    Tcl_CreateObjCommand( ip, NSP "reddegs", tPrInfo, (ClientData) CD_REDDEGS, NULL );
-    Tcl_CreateObjCommand( ip, NSP "extdegs", tPrInfo, (ClientData) CD_EXTDEGS, NULL );
-    Tcl_CreateObjCommand( ip, NSP "inverse", tPrInfo, (ClientData) CD_INVERSE, NULL );
-    Tcl_CreateObjCommand( ip, NSP "binom", tPrInfo, (ClientData) CD_BINOM, NULL );
+    CREATECOMMAND( "create",   CD_CREATE);
+    CREATECOMMAND( "dispose",  CD_DISPOSE);
+    CREATECOMMAND( "prime",    CD_PRIME);
+    CREATECOMMAND( "maxdeg",   CD_MAXDEG);
+    CREATECOMMAND( "tpmo",     CD_TPMO);
+    CREATECOMMAND( "N",        CD_N);
+    CREATECOMMAND( "primpows", CD_PRIMPOWS);
+    CREATECOMMAND( "reddegs",  CD_REDDEGS);
+    CREATECOMMAND( "extdegs",  CD_EXTDEGS);
+    CREATECOMMAND( "inverse",  CD_INVERSE);
+    CREATECOMMAND( "binom",    CD_BINOM);
     
     return TCL_OK;
 }

@@ -15,14 +15,15 @@
 #define PRIME_DEF
 
 #include <stdlib.h>
-#define cmalloc malloc
-#define cfree free
+#define cmalloc  malloc
+#define cfree    free
+#define crealloc realloc
 
 /* cint ist the integer type that we use for elements of F_p */
 typedef char cint; 
 
 #define CINTMULT(a,b,prime) \
-   ((cint) (( (short (a)) * (short (b)) ) % ((short) prime)))
+   ((cint) (( ((short) (a)) * ((short) (b)) ) % ((short) prime)))
 
 typedef struct {
     cint prime;

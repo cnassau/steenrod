@@ -220,7 +220,7 @@ int TPtr_CheckArgs( Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ... ) {
 	/* Ok. Goto next arg */
     }
 
-    if ( objc ) /* have some args left... */
+    if ( objc ) /* have some args left...? */
 	CHCKARGSERR( "too many arguments" ); 
 
     va_end( ap );

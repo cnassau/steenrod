@@ -31,6 +31,8 @@
 #define PROGVARDONE \
     Tcl_DecrRefCount( ProgVar ); Tcl_DecrRefCount( NameObj ) 
 
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+
 /* orthonormalize the input matrix, return basis of kernel */
 matrix *matrix_ortho( primeInfo *pi, matrix *inp, Tcl_Interp *ip, int pmsk) {
     int i,j,cols, spr, uspr;
@@ -106,4 +108,85 @@ matrix *matrix_ortho( primeInfo *pi, matrix *inp, Tcl_Interp *ip, int pmsk) {
 
     return un;
 }
+
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+
+matrix *matrix_lift( primeInfo *pi, matrix *inp, matrix *lft, 
+		     Tcl_Interp *ip, int pmsk) {
+
+    int i,j,cols, spr, uspr;
+    int failure=1;
+    vector v1,v2,v3,v4;
+    cint *aux;
+    cint prime = pi->prime;
+    matrix *un, *res ;
+
+    PROGVARINIT( 0 );
+
+    un = matrix_create( inp->rows, inp->rows );
+    if (NULL == un) return NULL;
+    matrix_unit( un );
+
+    res = matrix_create( lft->rows, inp->rows );
+    if (NULL == res) return NULL;
+    matrix_clear( res );
+
+    cols = inp->cols;
+    v1.num = v2.num = cols; v3.num = v4.num = un->cols;
+
+    spr = inp->nomcols; /* cints per row */
+    uspr = un->nomcols;
+
+    for ( v1.data=inp->data, i=0; i<inp->rows; i++, v1.data+=spr ) {
+        cint coeff; int pos;
+        if ((pmsk) && (0==(i&pmsk))) {
+            perc = i; perc /= inp->rows;
+            perc = 1-perc; perc *= perc; perc = 1-perc;
+	    PROGVARSET( perc );
+        }
+        /* find pivot for this row */
+        for ( aux=v1.data, j=cols; j; aux++, j-- )
+            if ( 0 != *aux ) break;
+        if ( 0 == j ) {
+            /* row is zero */
+        } else {
+            pos = aux - v1.data;
+            coeff = pi->inverse[(unsigned) *aux]; 
+	    coeff = prime-coeff; coeff %= prime;
+            /* go through all other rows and normalize */
+            v2.data = v1.data + spr; aux += spr;
+            v3.data = un->data + i * uspr;
+            v4.data = v3.data + uspr;
+            for ( j=i+1; j<inp->rows; j++, v2.data+=spr, v4.data+=uspr, aux+=spr
+ )
+                if ( 0 != *aux ) {
+                    vector_add( &v4, &v3, CINTMULT(*aux,coeff,prime),prime);
+                    vector_add( &v2, &v1, CINTMULT(*aux,coeff,prime),prime);
+                }
+            /* reduce vectors in lft in the same way */
+            v2.data = lft->data; v4.data = res->data; aux = v2.data + pos;
+            for ( j=0; j<lft->rows; j++, v2.data+=spr, v4.data+=uspr, aux+=spr )
+                if ( 0 != *aux ) {
+                    vector_add( &v4, &v3, CINTMULT(*aux,coeff,prime),prime);
+                    vector_add( &v2, &v1, CINTMULT(*aux,coeff,prime),prime);
+                }
+        }
+    }
+
+    failure = 0;
+ done:
+
+    PROGVARDONE ;
+
+    matrix_destroy( un );
+
+    if (failure) { 
+	matrix_destroy( res );
+	res = NULL; 
+    }
+
+    return res;
+}
+
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
