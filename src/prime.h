@@ -67,7 +67,8 @@ int extdeg(primeInfo *pi, int msk);
                              - (((x)>>2)&0x33333333)                    \
                              - (((x)>>3)&0x11111111))
 
-/* SIGNFUNC computess the sign difference between a*b and a^b */
+/* SIGNFUNC computes the sign difference between a*b and a^b 
+ * in an exterior algebra */
 int SIGNFUNC(int a, int b);
 
 #endif
