@@ -138,6 +138,15 @@ int Tcl_ObjIsMatrix(Tcl_Obj *obj) { return &tclMatrix == obj->typePtr; }
 void *matrixFromTclObj(Tcl_Obj *obj) { return PTR2(obj); }
 matrixType *matrixTypeFromTclObj(Tcl_Obj *obj) { return (matrixType *) PTR1(obj); }
 
+Tcl_Obj *Tcl_NewMatrixObj(matrixType *mt, void *dat) {
+    Tcl_Obj *res = Tcl_NewObj();
+    res->typePtr = &tclMatrix;
+    PTR1(res) = mt;
+    PTR2(res) = dat;
+    Tcl_InvalidateStringRep(res);
+    return res;
+}
+
 void MatrixFreeInternalRepProc(Tcl_Obj *obj) {
     matrixType *vt = matrixTypeFromTclObj(obj);
     (vt->destroyMatrix)(matrixFromTclObj(obj));
@@ -244,13 +253,33 @@ void MatrixDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     PTR2(dupPtr) = (vt->createCopy)(PTR1(srcPtr));
 }
 
+/**** wrappers for the adlin routines  */
 
-
+Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp, 
+                      Tcl_Interp *ip, const char *progvar, int pmsk) {
+    matrixType *mt = PTR1(inp);
+    progressInfo pro;
+    void *res;
+    /* since we cannibalize inp, it must not be shared */
+    if (Tcl_IsShared(inp))
+        assert(NULL == "inp must not be shared in Tcl_OrthoCmd!");
+    if (NULL == (mt->orthoFunc)) {
+        assert(NULL == "orthonormalization not fully implemented");
+    }
+    pro.ip = ip;
+    pro.progvar = progvar;
+    pro.pmsk = pmsk;
+    if (NULL != mt->reduce) (mt->reduce)(PTR2(inp), pi->prime);
+    res = (mt->orthoFunc)(pi, PTR2(inp), (NULL != progvar) ? &pro : NULL);
+    if (NULL == res) return NULL;
+    Tcl_InvalidateStringRep(inp);
+    return Tcl_NewMatrixObj(mt, res);
+}
 
 #define NSP "linalg::"
 
 typedef enum {
-    LIN_INVSRP, LIN_INVMAT
+    LIN_INVSRP, LIN_INVMAT, LIN_ORTHO, LIN_QUOT, LIN_LIFT
 } LinalgCmdCode;
 
 #undef RETERR
@@ -263,23 +292,70 @@ if (((a)<(bot))||((a)>=(top))) RETERR("index out of range");
 int tLinCombiCmd(ClientData cd, Tcl_Interp *ip, 
           int objc, Tcl_Obj *CONST objv[]) {
     LinalgCmdCode cdi = (LinalgCmdCode) cd;
-    int a, b, c;
     primeInfo *pi;
-    Tcl_Obj *obp[2];
+    Tcl_Obj *varp[3];
+    const char *progvar;
+    int pmsk;
 
     if (NULL==ip) return TCL_ERROR; 
 
     switch (cdi) {
-    case LIN_INVSRP: 
-        ENSUREARGS1(TP_VECTOR);
-        Tcl_InvalidateStringRep(objv[1]);
-        Tcl_SetObjResult(ip, objv[1]);
-        return TCL_OK;
-    case LIN_INVMAT: 
-        ENSUREARGS1(TP_MATRIX);
-        Tcl_InvalidateStringRep(objv[1]);
-        Tcl_SetObjResult(ip, objv[1]);
-        return TCL_OK;
+        case LIN_INVSRP: 
+            ENSUREARGS1(TP_VECTOR);
+            Tcl_InvalidateStringRep(objv[1]);
+            Tcl_SetObjResult(ip, objv[1]);
+            return TCL_OK;
+        case LIN_INVMAT: 
+            ENSUREARGS1(TP_MATRIX);
+            Tcl_InvalidateStringRep(objv[1]);
+            Tcl_SetObjResult(ip, objv[1]);
+            return TCL_OK;
+        case LIN_ORTHO:
+            ENSUREARGS6(TP_PRIME,TP_VARNAME,TP_VARNAME,TP_OPTIONAL,TP_VARNAME,TP_INT);
+            if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[1],&pi))
+                return TCL_ERROR;
+            /* get matrix from var1 */
+            varp[1] = Tcl_ObjGetVar2(ip, objv[2], NULL, TCL_LEAVE_ERR_MSG);
+            if (NULL == varp[1]) return TCL_ERROR;
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[1])) 
+                RETERR("var1 does not contain a valid matrix");
+            /* reset var2 */
+            if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
+                                       Tcl_NewObj(), TCL_LEAVE_ERR_MSG))
+                return TCL_ERROR;
+            progvar = NULL; pmsk = 0;
+            if (objc >= 5) progvar = Tcl_GetString(objv[4]); 
+            if (objc >= 6) 
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &pmsk))
+                    RETERR("internal error in LIN_ORTHO");
+            /* detach matrix from var1 */
+            Tcl_IncrRefCount(varp[1]);
+            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, 
+                                       Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
+                Tcl_DecrRefCount(varp[1]);
+                return TCL_ERROR;
+            }
+            if (Tcl_IsShared(varp[1]))
+                varp[1] = Tcl_DuplicateObj(varp[1]);
+            varp[2] = Tcl_OrthoCmd(pi, varp[1], ip, progvar, pmsk);
+            if (NULL == varp[2]) RETERR("orthonormalization failed");
+            /* set variables and return */
+            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, 
+                                      varp[1], TCL_LEAVE_ERR_MSG)) {
+                Tcl_DecrRefCount(varp[1]);
+                return TCL_ERROR;
+            }
+            Tcl_DecrRefCount(varp[1]);
+            if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
+                                      varp[2], TCL_LEAVE_ERR_MSG)) 
+                return TCL_ERROR;
+            return TCL_OK;
+        case LIN_QUOT:
+            ENSUREARGS6(TP_PRIME,TP_VARNAME,TP_VARNAME,TP_OPTIONAL,TP_VARNAME,TP_INT);
+            return TCL_OK;
+        case LIN_LIFT:
+            ENSUREARGS6(TP_PRIME,TP_VARNAME,TP_VARNAME,TP_OPTIONAL,TP_VARNAME,TP_INT);
+            return TCL_OK;
     }
 
     Tcl_SetResult(ip, "internal error in tLinCombiCmd", TCL_STATIC);
@@ -325,6 +401,10 @@ Tcl_CreateObjCommand(ip,NSP name,tLinCombiCmd,(ClientData) code, NULL);
     /* basic commands */
     CREATECOMMAND("invVct", LIN_INVSRP);
     CREATECOMMAND("invMat", LIN_INVMAT);
+
+    CREATECOMMAND("ortho", LIN_ORTHO);
+    CREATECOMMAND("lift",  LIN_LIFT);
+    CREATECOMMAND("quot",  LIN_QUOT);
 
     return TCL_OK;
 }
