@@ -59,7 +59,8 @@ void TPtr_RegObjType(int type, Tcl_ObjType *obtype);
 #define TP_INTLIST   -5    /* Tcl_ListObj consisitng of ints */
 #define TP_IL        -6    /* IntList object */
 #define TP_VARNAME   -7    /* variable name */
-#define TP_SCRIPT    -8    /* script body */
+#define TP_PROCNAME  -8    /* name of a procedure */
+#define TP_SCRIPT    -9    /* script body */
 
 /* More predefined types, which are actually instructions for TPtr_CheckArgs */
 #define TP_END       -1111 /* end of argument list */

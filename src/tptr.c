@@ -176,15 +176,16 @@ int Tptr_Init(Tcl_Interp *ip) {
     Tcl_RegisterObjType(&IntList);
     TPtr_RegObjType(TP_IL, &IntList);
 
-    TPtr_RegType(TP_ANY,     "unspecified");
-    TPtr_RegType(TP_INT,     "integer");
-    TPtr_RegType(TP_LIST,    "list");
-    TPtr_RegType(TP_INTLIST, "list of integers");
-    TPtr_RegType(TP_STRING,  "string");
-    TPtr_RegType(TP_VARNAME, "varname");
-    TPtr_RegType(TP_SCRIPT,  "script");
-    TPtr_RegType(TP_PTR,     "typed pointer");
-    TPtr_RegType(TP_VARARGS, "...");
+    TPtr_RegType(TP_ANY,      "unspecified");
+    TPtr_RegType(TP_INT,      "integer");
+    TPtr_RegType(TP_LIST,     "list");
+    TPtr_RegType(TP_INTLIST,  "list of integers");
+    TPtr_RegType(TP_STRING,   "string");
+    TPtr_RegType(TP_VARNAME,  "varname");
+    TPtr_RegType(TP_PROCNAME, "procname");
+    TPtr_RegType(TP_SCRIPT,   "script");
+    TPtr_RegType(TP_PTR,      "typed pointer");
+    TPtr_RegType(TP_VARARGS,  "...");
 
     return TCL_OK;
 }
@@ -297,7 +298,7 @@ return TCL_ERROR; } while (0)
 
 int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
     va_list ap;
-    int type; 
+    int type, lasttype; 
     int pos = 0;
     int optional = 0;
     int aux;
@@ -311,7 +312,9 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
 
     va_start(ap, objv);
 
-    for (pos=1; TP_END != (type = va_arg(ap, int)); objc--, objv++, pos++) {
+    for (pos=1, lasttype=-76823; TP_END != (type = va_arg(ap, int)); 
+         lasttype=type, objc--, objv++, pos++) {
+
         /* process control args */
         if (TP_VARARGS   == type) { va_end(ap); return TCL_OK; }
         if (TP_OPTIONAL  == type) { optional = 1; objc++; objv--; pos--; continue; }
@@ -327,6 +330,7 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
         /* check for type mismatch */
 
         switch (type) {
+            case TP_PROCNAME:
             case TP_VARNAME:
             case TP_SCRIPT:
             case TP_ANY: 
