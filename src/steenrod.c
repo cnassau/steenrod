@@ -358,9 +358,11 @@ int MCTnpcs(void *s) {
                 return 0;
             return 1;
         }
-        pcs->idx = 0;    
+        pcs->idx = 0; 
+        if (++(pcs->pcnt) >= pcs->npoly) break;
+        pcs->aux = PLgetNumsum(pcs->pt[pcs->pcnt], pcs->pdat[pcs->pcnt]);  
         ++(mct->currow);
-    } while (++(pcs->pcnt) < pcs->npoly);
+    } while (1);
     return 0;
 }
 
@@ -370,10 +372,10 @@ int MCTfpcs(void *s) {
     if (0 == pcs->npoly) return 0;
     pcs->idx = pcs->pcnt = 0; 
     pcs->aux = PLgetNumsum(pcs->pt[0], pcs->pdat[0]);
+    mct->currow = 0;
     if (0 == pcs->aux) return MCTnpcs(s);
     if (SUCCESS != PLgetExmo(pcs->pt[0], pcs->pdat[0], &(pcs->xm), 0))
         return 0;
-    mct->currow = 0;
     return 1;
 }
 
@@ -399,22 +401,22 @@ int makePCS(PlistCtrlStruct *pcs, Tcl_Obj *plist) {
     
     if ((NULL == pcs->pt) || (NULL == pcs->pdat)) 
         THROWUP;
-    
+
+    ispos = isneg = 1;
     for (i=0; i<obc; i++) 
         if (TCL_OK == Tcl_ConvertToPoly(NULL, obv[i])) {
             pcs->pt[i]   = polyTypeFromTclObj(obv[i]);
             pcs->pdat[i] = polyFromTclObj(obv[i]);
-            ispos = (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISPOSITIVE)); 
-            isneg = (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISNEGATIVE));
-            if (!ispos && !isneg) 
-                THROWUP;
-            if (i) {
-                if ((pcs->ispos && isneg) || (!pcs->ispos && ispos))
-                    THROWUP;
-            } else {
-                pcs->ispos = ispos;
-            }
+            ispos = ispos && 
+                (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISPOSITIVE)); 
+            isneg = isneg && 
+                (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISNEGATIVE));
         } else THROWUP;
+        
+    if (!ispos && !isneg) 
+        THROWUP;
+
+    pcs->ispos = ispos;
 
     return SUCCESS;
 }
@@ -446,17 +448,14 @@ int MakeImages(Tcl_Interp *ip, Tcl_Obj *plist, momap *map, enumerator *dst,
     return rcode;
 }
 
-
-
-
 int TMakeImages(ClientData cd, Tcl_Interp *ip,
                 int objc, Tcl_Obj * CONST objv[]) {
 
     enumerator *dst;
     momap *map; 
     progressInfo info, *infoptr;
-    matrixType *mtp;
-    void *mat;
+    matrixType *mtp = NULL;
+    void *mat = NULL;
     int i, obc; Tcl_Obj **obv;
     
     if ((objc<4) || (objc>6)) {
