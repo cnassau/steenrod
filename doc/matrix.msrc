@@ -4,7 +4,7 @@
 
 [titledesc {a collection of linear algebra routines}]
 
-[copyright "2003 Christian Nassau"]
+[copyright "2004 Christian Nassau"]
 
 [require Steenrod 1.0]
 

@@ -1,7 +1,7 @@
 /*
  * Wrappers for the linear algebra implementations
  *
- * Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *

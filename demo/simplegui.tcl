@@ -2,7 +2,7 @@
 #
 # A (very) simple user interface for the demo resolver
 #
-# Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
+# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
 #
 #  $Id$
 #

@@ -2,7 +2,7 @@
 #
 # This file produces test data templates for the enumerator regression tests
 #
-# Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
+# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
 #
 #  $Id$
 #

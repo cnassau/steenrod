@@ -2,7 +2,7 @@
 #
 # Another file that produces test data templates for the enumerator tests
 #
-# Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
+# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
 #
 #  $Id$
 #

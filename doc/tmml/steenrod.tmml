@@ -1,7 +1,7 @@
 <!-- Generated from file 'steenrod.msrc' by tcllib/doctools with format 'tmml' -->
 <manpage id='steenrod' cat='cmd' title='Steenrod' version='1.0' package=''>
 <head>
-<info key='copyright' value='Copyright (c) 2003 Christian Nassau'/>
+<info key='copyright' value='Copyright (c) 2004 Christian Nassau'/>
 </head>
 <namesection>
 <name>Steenrod</name>
