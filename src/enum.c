@@ -342,8 +342,8 @@ int enmCreateSeqtab(enumerator *en) {
             for (n=0;n<10;n++) printf(" %d",en->dimtab[i][n]); 
             printf("...\n");
         }
-        printf("\nbeginning of seqtab:\n");
-        for (i=0;i<NALG;i++) {
+        printf("\nbeginning of seqtab: (seqtab[0][0] = %d)\n",en->seqtab[0][0]);
+        for (i=1;i<NALG;i++) {
             printf("  seqtab[%d] = ",i);
             for (n=0;n<10;n++) printf(" %d",en->seqtab[i][n]); 
             printf("...\n");
@@ -374,7 +374,8 @@ int enmCreateSeqoff(enumerator *en) {
 
     for (cnt=i=0; i<en->efflen; i++) {
         en->seqoff[i] = cnt;
-        if (ENLOG) printf("seqoff %3d = %d\n",i,cnt);
+        if (ENLOG) printf("seqoff (gen %3d ext %3d) = %d\n",
+                          en->efflist[i].id, en->efflist[i].ext, cnt);
         cnt += algDimension(en, en->efflist[i].rrideg);
     }
 
@@ -413,7 +414,7 @@ int SeqnoFromEnum(enumerator *en, exmo *ex) {
             return -666;
 
     aux.id  = ex->gen;
-    aux.ext = ex->ext;
+    aux.ext = ex->ext; aux.ext ^= (aux.ext & en->profile.ext);
     res = (effgen *) bsearch(&aux, en->efflist, en->efflen, 
                              sizeof(effgen), compareEffgen);
     if (NULL == res) return -1;
@@ -512,7 +513,7 @@ int nextRedmonAux(enumerator *en) {
     while (en->gencnt < en->efflen) {
         if (firstRedmonAlg(en, en->efflist[en->gencnt].rrideg)) {
             en->theex.gen = en->efflist[en->gencnt].id;
-            en->theex.ext = en->efflist[en->gencnt].ext || en->signature.ext;
+            en->theex.ext = en->efflist[en->gencnt].ext | en->signature.ext;
             return 1;
         }
         ++(en->gencnt);
