@@ -37,6 +37,7 @@ typedef struct {
 
     /* the monomial that is used for enumeration + helper ints */
     int gencnt; /* number of generator in the efflist */
+    int yacntr; /* yet another counter - used in the eumpoly routines */
     exmo varex;
     int errdeg;
     int totdeg;
@@ -59,6 +60,9 @@ typedef struct {
 enumerator *enmCreate(void);
 enumerator *enmCopy(enumerator *src);
 void        enmDestroy(enumerator *en);
+
+/* An enumpoly is just an enumerator that is accessed through the polynomial 
+ * interface */
 
 #ifndef ENUMC
 extern polyType enumPolyType;

@@ -18,7 +18,7 @@ NOWEAVE  = noweave
 
 NOWEBFILES = mult.nw
 SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c \
-       tpoly.c profile.c tprofile.c maps.c tmap.c mult.c linwrp.c enum.c
+       tpoly.c profile.c tprofile.c maps.c tmap.c mult.c linwrp.c enum.c tenum.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -102,3 +102,5 @@ maps.o: maps.h common.h prime.h profile.h
 tmap.o: tptr.h common.h tmap.h tprofile.h profile.h prime.h maps.h
 mult.o: mult.h common.h prime.h poly.h
 linwrp.o: linwrp.h prime.h common.h linalg.h adlin.h
+enum.o: enum.h poly.h common.h prime.h
+tenum.o: tenum.h enum.h poly.h common.h prime.h
