@@ -94,7 +94,7 @@ if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,T3,T4,T5,T6,T7,TP_END)) return TCL
 #define str(s) #s
 
 #define TCLPANIC(msg) Tcl_Panic(__FILE__ ", line " xstr(__LINE__) ": " msg) 
-#define TCLMEMASSERT(ptr) if (NULL != (ptr)) TCLPANIC("out of memory");
+#define TCLMEMASSERT(ptr) if (NULL == (ptr)) TCLPANIC("out of memory");
 
 #endif
 

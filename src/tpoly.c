@@ -31,7 +31,9 @@
 #define PTR1(objptr) ((objptr)->internalRep.twoPtrValue.ptr1)
 #define PTR2(objptr) ((objptr)->internalRep.twoPtrValue.ptr2)
 
-/* The Tcl type for extended monomials. We use PTR1 as a pointer to 
+/**************************************************************************
+ *
+ * The Tcl type for extended monomials. We use PTR1 as a pointer to 
  * an exmo structure. The string representation takes the form 
  *  
  *  { coefficient exterior {list of exponents} generator }        
@@ -50,12 +52,27 @@ exmo *exmoFromTclObj(Tcl_Obj *obj) {
     return NULL;
 }
 
-/* free internal representation */
-void ExmoFreeInternalRepProc(Tcl_Obj *obj) {
-    ckfree(PTR1(obj));
+Tcl_Obj *Tcl_NewExmoObj(exmo *ex) {
+    Tcl_Obj *res = Tcl_NewObj();
+    PTR1(res) = ex; 
+    res->typePtr = &tclExmo;
+    Tcl_InvalidateStringRep(res);
+    return res;
 }
 
-#define FREEEANDRETERR { ckfree((char *) e); return TCL_ERROR; }
+Tcl_Obj *Tcl_NewExmoCopyObj(exmo *ex) {
+    exmo *x = malloc(sizeof(exmo));
+    TCLMEMASSERT(x);
+    copyExmo(x,ex);
+    return Tcl_NewExmoObj(x);
+}
+
+/* free internal representation */
+void ExmoFreeInternalRepProc(Tcl_Obj *obj) {
+    free(PTR1(obj));
+}
+
+#define FREEEANDRETERR { free((char *) e); return TCL_ERROR; }
 
 /* try to turn objPtr into an Exmo */
 int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
@@ -70,7 +87,8 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         return TCL_ERROR;
     if (objc2 > NALG) 
         RETERR("exponent sequence too long");
-    e = (exmo *) ckalloc(sizeof(exmo));
+    if (NULL == (e = (exmo *) malloc(sizeof(exmo))))
+        RETERR("out of memory");
     if (TCL_OK != Tcl_GetIntFromObj(ip,objv[0],&(e->coeff))) 
         FREEEANDRETERR;
     if (TCL_OK != Tcl_GetIntFromObj(ip,objv[1],&(e->ext))) 
@@ -90,7 +108,7 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
 }
 
 /* Create a new list Obj from the objPtr */
-Tcl_Obj *ExmoToListObj(Tcl_Obj *objPtr) {
+Tcl_Obj *Tcl_NewListFromExmo(Tcl_Obj *objPtr) {
     exmo *e = (exmo *) PTR1(objPtr);
     Tcl_Obj *res, *(objv[4]), **arr; 
     int i, len = exmoGetLen(e);
@@ -114,14 +132,98 @@ void copyStringRep(Tcl_Obj *dest, Tcl_Obj *src) {
 
 /* recreate string representation */
 void ExmoUpdateStringProc(Tcl_Obj *objPtr) {
-    copyStringRep(objPtr, ExmoToListObj(objPtr));
+    copyStringRep(objPtr, Tcl_NewListFromExmo(objPtr));
 }
 
 /* create copy */
 void ExmoDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
-    exmo *new = (exmo *) ckalloc(sizeof(exmo));
+    exmo *new = (exmo *) malloc(sizeof(exmo));
+    TCLMEMASSERT(new); 
     memcpy(new, PTR1(srcPtr), sizeof(exmo));
     PTR1(dupPtr) = new;
+}
+
+/**************************************************************************
+ *
+ * The Tcl type for generic polynomials. To the Tcl user such a thing 
+ * behaves like a list of extended monomials. 
+ *
+ * The implementation lets PTR1 point to the polyType and PTR2 to the data. 
+ */
+
+Tcl_ObjType tclPoly;
+
+int Tcl_ConvertToPoly(Tcl_Interp *ip, Tcl_Obj *obj) {
+    return Tcl_ConvertToType(ip, obj, &tclPoly);
+}
+
+int Tcl_ObjIsPoly(Tcl_Obj *obj) { return &tclPoly == obj->typePtr; }
+
+polyType *polyTypeFromTclObj(Tcl_Obj *obj) { return (polyType *) PTR1(obj); }
+void     *polyFromTclObj(Tcl_Obj *obj)     { return PTR2(obj); }
+
+Tcl_Obj *Tcl_NewPolyObj(polyType *tp, void *data) {
+    Tcl_Obj *res = Tcl_NewObj();
+    PTR1(res) = (void *) tp;
+    PTR2(res) = data;
+    res->typePtr = &tclPoly;
+    return res;
+}
+
+Tcl_Obj *Tcl_NewListFromPoly(Tcl_Obj *obj) {
+    int i, len = PLgetLength((polyType *) PTR1(obj),PTR2(obj));
+    Tcl_Obj *res, **arr = (Tcl_Obj **) ckalloc(len * sizeof(Tcl_Obj *));
+    exmo aux;
+    for (i=0;i<len;i++) {
+        PLgetExmo((polyType *) PTR1(obj),PTR2(obj),&aux,i);
+        arr[i] = Tcl_NewExmoCopyObj(&aux);
+    }
+    res = Tcl_NewListObj(len,arr);
+    ckfree((char *) arr);
+    return res;
+}
+
+/* free internal representation */
+void PolyFreeInternalRepProc(Tcl_Obj *obj) {
+    PLfree((polyType *) PTR1(obj),PTR2(obj));
+}
+
+/* try to turn objPtr into a Poly */
+int PolySetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
+    int objc, i;
+    void *pol;
+    Tcl_Obj **objv;
+    if (TCL_OK != Tcl_ListObjGetElements(ip, objPtr, &objc, &objv))
+        return TCL_ERROR;
+    for (i=0;i<objc;i++)
+        if (TCL_OK != Tcl_ConvertToExmo(ip,objv[i]))
+            return TCL_ERROR;
+    /* now we are a list of exmo objects */
+    if (NULL == (pol = (stdpoly->createCopy)(NULL))) 
+        RETERR("out of memory");
+    for (i=0;i<objc;i++) 
+        if (SUCCESS != PLappendExmo(stdpoly,pol,exmoFromTclObj(objv[i]))) {
+            (stdpoly->free)(pol);
+            RETERR("out of memory");
+        }
+    (objPtr->typePtr->freeIntRepProc)(objPtr);
+    PTR1(objPtr) = stdpoly;
+    PTR2(objPtr) = pol;
+    objPtr->typePtr = &tclPoly;
+    return TCL_OK;
+}
+
+/* recreate string representation */
+void PolyUpdateStringProc(Tcl_Obj *objPtr) {
+    copyStringRep(objPtr, Tcl_NewListFromPoly(objPtr));
+}
+
+/* create copy */
+void PolyDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
+    polyType *stp = (polyType *) PTR1(srcPtr);
+    PTR1(dupPtr) = (void *) stp;
+    PTR2(dupPtr) = (stp->createCopy)(PTR2(srcPtr));
+    dupPtr->typePtr = &tclPoly;
 }
 
 /* old stuff follows */
@@ -186,7 +288,7 @@ int polyToList(Tcl_Interp *ip, poly *p) {
     return TCL_OK;
 }
 
-typedef enum { TPEXMO,
+typedef enum { TPEXMO, TPPLO,
     TPCREATE, TPDISPOSE, TPGETNUM, TPGETALLOC, TPGETMCOFF, TPSETMCOFF, 
     TPGETDATA, TPSETDATA, TPSORT, TPCOMPACT, TPREFLECT, TPPOLPOS, 
     TPPOLNEG, TPCLEAR, TPGETNALG, TPCOPY, TPAPPENDDATA, TPSTMULT, 
@@ -320,6 +422,11 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             Tcl_InvalidateStringRep(objv[1]);
             Tcl_SetObjResult(ip, objv[1]);
             return TCL_OK;
+        case TPPLO:
+            ENSUREARGS1(TP_PLO);
+            Tcl_InvalidateStringRep(objv[1]);
+            Tcl_SetObjResult(ip, objv[1]);
+            return TCL_OK;
     }
 
     Tcl_SetResult(ip, "tPolyCombiCmd: internal error", TCL_STATIC);
@@ -346,9 +453,19 @@ int Tpoly_Init(Tcl_Interp *ip) {
     Tcl_RegisterObjType(&tclExmo);
     TPtr_RegObjType(TP_EXMO, &tclExmo);
 
+    /* set up types and register */ 
+    tclPoly.name               = "polynomial";
+    tclPoly.freeIntRepProc     = PolyFreeInternalRepProc;
+    tclPoly.dupIntRepProc      = PolyDupInternalRepProc;
+    tclPoly.updateStringProc   = PolyUpdateStringProc;
+    tclPoly.setFromAnyProc     = PolySetFromAnyProc;
+    Tcl_RegisterObjType(&tclPoly);
+    TPtr_RegObjType(TP_PLO, &tclPoly);
+
     TPtr_RegType(TP_POLY, "poly");
 
     CREATECMD("exmo",TPEXMO);
+    CREATECMD("plo",TPPLO);
 
     CREATECMD("create",   TPCREATE);
     CREATECMD("dispose",  TPDISPOSE);

@@ -14,6 +14,7 @@
 #ifndef POLY_DEF
 #define POLY_DEF
 
+#include "common.h"
 #include "prime.h"
 #include <stdio.h>
 
@@ -85,8 +86,14 @@ int   PLappendScaledPolyMod(polyType *dtp, void *dst,
                             polyType *stp, void *src, 
                             int scale, int modulo);
 
+#ifndef POLYC
 extern polyType stdPolyType;
-#define stdpoly &(stdPolyType)
+#endif
+
+#define stdpoly (&(stdPolyType))
+
+/* create a stdpoly copy of a polynomial */
+void *PLcreateStdCopy(polyType *type, void *poly);
 
 /* old stuff follows */
 

@@ -22,7 +22,15 @@ int Tcl_ConvertToExmo(Tcl_Interp *ip, Tcl_Obj *obj);
 int Tcl_ObjIsExmo(Tcl_Obj *obj);
 exmo *exmoFromTclObj(Tcl_Obj *obj); 
 
+int Tcl_ConvertToPoly(Tcl_Interp *ip, Tcl_Obj *obj);
+int Tcl_ObjIsPoly(Tcl_Obj *obj);
+polyType *polyTypeFromTclObj(Tcl_Obj *obj); 
+void     *polyFromTclObj(Tcl_Obj *obj); 
+
+Tcl_Obj *Tcl_NewPolyObj(polyType *tp, void *data);
+
 /* our poly type */
+#define TP_PLO  199928  
 #define TP_POLY  19  
 #define TP_EXMO  18 
 

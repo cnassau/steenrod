@@ -89,14 +89,14 @@ refmt: reformat
 
 adlin.o: adlin.h linalg.h prime.h
 linalg.o: linalg.h prime.h
-poly.o: poly.h prime.h
+poly.o: poly.h common.h prime.h
 prime.o: prime.h
 tlin.o: tlin.h tptr.h tprime.h prime.h adlin.h linalg.h
 tprime.o: tprime.h prime.h tptr.h
 tptr.o: tptr.h
 tptrtest.o: tptr.h
-tpoly.o: tptr.h tpoly.h tprime.h prime.h poly.h
+tpoly.o: tptr.h tpoly.h poly.h common.h prime.h tprime.h
 profile.o: profile.h prime.h
 tprofile.o: tptr.h tprime.h prime.h tprofile.h profile.h
-maps.o: maps.h ./common.h prime.h profile.h
-tmap.o: tptr.h tmap.h tprofile.h profile.h prime.h maps.h ./common.h
+maps.o: maps.h common.h prime.h profile.h
+tmap.o: tptr.h tmap.h tprofile.h profile.h prime.h maps.h common.h

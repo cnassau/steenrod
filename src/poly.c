@@ -11,10 +11,14 @@
  *
  */
 
+#define POLYC
+
 #include <stdlib.h>
 #include <string.h>
 #include "poly.h"
 #include "common.h"
+
+#define LOGSTD(msg) if (0) printf("stdpoly: %s\n", msg) 
 
 /**** extended monomials ***********************************************************/
 
@@ -110,6 +114,7 @@ typedef struct {
 
 void *stdCreateCopy(void *src) {
     stp *s = (stp *) src, *n;
+    LOGSTD("CreateCopy");
     if (NULL == (n = (stp *) malloc(sizeof(stp)))) return NULL;
     if (NULL == s) {
         n->num = n->nalloc = 0; n->dat = NULL;
@@ -125,11 +130,13 @@ void *stdCreateCopy(void *src) {
 
 void stdFree(void *self) { 
     stp *s = (stp *) self;
+    LOGSTD("Free");
     if (s->nalloc) { s->nalloc = s->num = 0; free(s->dat); }
 }
 
 int stdGetExmoPtr(void *self, exmo **ptr, int idx) {
     stp *s = (stp *) self;
+    LOGSTD("GetExmoPtr");
     if ((idx < 0) || (idx >= s->num)) return FAILIMPOSSIBLE;
     *ptr = &(s->dat[idx]);
     return SUCCESS;
@@ -137,12 +144,14 @@ int stdGetExmoPtr(void *self, exmo **ptr, int idx) {
 
 int stdGetLength(void *self) {
     stp *s = (stp *) self;
+    LOGSTD("GetLength");
     return s->num;
 }
 
 int stdRealloc(void *self, int nalloc) {
     stp *s = (stp *) self;
     exmo *ndat;
+    LOGSTD("Realloc");
     if (nalloc < s->num) nalloc = s->num;
     if (NULL == (ndat = realloc(s->dat,sizeof(exmo) * nalloc))) 
         return FAILMEM;
@@ -152,6 +161,7 @@ int stdRealloc(void *self, int nalloc) {
 
 int stdAppendExmo(void *self, exmo *ex) {
     stp *s = (stp *) self;
+    LOGSTD("AppendExmo");
     if (s->num == s->nalloc) {
         int aux = s->nalloc + 10;
         if (SUCCESS != stdRealloc(self, s->nalloc + ((aux > 200) ? 200: aux)))
@@ -164,6 +174,7 @@ int stdAppendExmo(void *self, exmo *ex) {
 int stdScaleMod(void *self, int scale, int modulo) {
     stp *s = (stp *) self;
     int i;
+    LOGSTD("ScaleMod");
     if (modulo) scale %= modulo;
     for (i=0;i<s->num;i++) {
         exmo *e = &(s->dat[i]);
@@ -176,7 +187,7 @@ int stdScaleMod(void *self, int scale, int modulo) {
  *
  * see http://gcc.gnu.org/onlinedocs/gcc-3.2.3/gcc/Designated-Inits.html */
 
-static struct polyType stdPolyType = {
+struct polyType stdPolyType = {
     .createCopy = &stdCreateCopy,
     .free       = &stdFree,
     .getExmoPtr = &stdGetExmoPtr,
@@ -184,6 +195,20 @@ static struct polyType stdPolyType = {
     .appendExmo = &stdAppendExmo,
     .scaleMod   = &stdScaleMod
 };
+
+void *PLcreateStdCopy(polyType *type, void *poly) {
+    stp *res;
+    if (stdpoly == type) 
+        return stdCreateCopy(poly);
+    if (NULL == (res = stdCreateCopy(NULL)))
+        return NULL;
+    if (SUCCESS != PLappendScaledPolyMod(stdpoly,res,type,poly,1,0)) {
+        stdFree(res); return NULL;
+    }
+    return res;
+}
+
+
 
 /* old stuff below */
 
