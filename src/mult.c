@@ -192,6 +192,8 @@ void initMultargs(multArgs *ma, primeInfo *pi, exmo *profile) {
     initxfPA(ma);
 }
 
+/***** ALL OF THIS NEEDS TO BE OPTIMIZED FURTHER ! *****/
+
 /* The ugly details of PA multiplication... */
 
 void handlePArow(multArgs *ma, int row, xint coeff);
@@ -200,7 +202,7 @@ void handlePABox(multArgs *ma, int row, int col, xint coeff) {
     xint c;
     int eval = 1 << (col - 1); /* value of the exterior component */
     int sgn = 0;
-#if 1
+#if 0
     while (col > (1 + ma->sfMaxLength)) { 
         zeroXdat(&(ma->xfPA[row][col]));
         if (col <= 1) {
@@ -218,15 +220,25 @@ void handlePABox(multArgs *ma, int row, int col, xint coeff) {
         ma->emsk[row] |= (eval<<row); ma->esum[row] |= eval;
     } else eval = 0;
     do {
-        if (0 != (c = firstXdat(&(ma->xfPA[row][col]),ma->pi)))
-            do {
-                xint prime = ma->pi->prime ;
-                if (0 != (sgn & 1)) c = prime - c;
-                if (col>1) 
-                    handlePABox(ma, row, col-1, XINTMULT(coeff, c, prime));
-                else 
-                    handlePArow(ma, row-1, XINTMULT(coeff, c, prime));
-            } while (0 != (c = nextXdat(&(ma->xfPA[row][col]),ma->pi)));
+        if (col > (1 + ma->sfMaxLength)) { 
+            xint c = coeff; 
+            if (0 != (sgn & 1)) c = ma->pi->prime - c;
+            zeroXdat(&(ma->xfPA[row][col]));
+            if (col>1) 
+                handlePABox(ma, row, col-1, c);
+            else 
+                handlePArow(ma, row-1, c);
+        } else {
+            if (0 != (c = firstXdat(&(ma->xfPA[row][col]),ma->pi)))
+                do {
+                    xint prime = ma->pi->prime ;
+                    if (0 != (sgn & 1)) c = prime - c;
+                    if (col>1) 
+                        handlePABox(ma, row, col-1, XINTMULT(coeff, c, prime));
+                    else 
+                        handlePArow(ma, row-1, XINTMULT(coeff, c, prime));
+                } while (0 != (c = nextXdat(&(ma->xfPA[row][col]),ma->pi)));
+        }
         if (!eval) return;
         /* reset exterior bit */
         *(ma->xfPA[row][col].res) += ma->xfPA[row][col].res_weight;
