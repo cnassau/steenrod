@@ -157,7 +157,9 @@ int stdVGetLength(void *vec) {
 }
 
 void *stdVCreateVector(int cols) {
-    return vector_create(cols);
+    vector *res = vector_create(cols);
+    if (NULL != res) vector_clear(res);
+    return res;
 }
 
 void *stdVCreateCopy(void *vec) {
