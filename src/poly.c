@@ -214,9 +214,10 @@ void multCBaddToPoly(void *pol, mono *m) {
 typedef struct {
     int fIsPos, sIsPos; /* flags */
     primeInfo *pi; 
-    poly *f, *s; /* first and second factor */
-    void *clientData;  /* passed to multCB */
-    multCBfunc multCB; /* callback */
+    mono *profile;      /* the profile that we want to respect */
+    poly *f, *s;        /* first and second factor */
+    void *clientData;   /* passed to multCB */
+    multCBfunc multCB;  /* callback */
 } multArgs ;
 
 void multAnyPos(multArgs *MA, mono *s) ;
@@ -233,6 +234,7 @@ void multPoly(primeInfo *pi, poly *f, poly *s,
     if (0 == s->num) return;
     MA.fIsPos = (f->dat[0].dat[0] >= 0);
     MA.sIsPos = (s->dat[0].dat[0] >= 0);
+    MA.profile = NULL; 
     for (k=NALG+1;k--;) msk[k] = sum[k] = 0;
     if (!MA.fIsPos) {
         for (k=0;k<s->num;k++) 
@@ -247,16 +249,16 @@ inline xint XINTMULT(xint a, xint b, xint prime) {
     int aa = a, bb = b; return (xint) ((aa * bb) % prime); 
 }
 
-/* A Xfield represents a (xi-)box in the multiplication matrix. It 
+/* A Xfield represents a xi-box in the multiplication matrix. It 
  *
  *  1)  holds a value (val)
- *  2)  knows where the mask of forbidden bits is stored (*oldmsk, *newmsk)
+ *  2)  knows where the mask of "forbidden bits" is stored (*oldmsk, *newmsk)
  *  3)  knows where the sum is kept (*sum, sum_weight)
  *  4)  knows where the reservoir for this row or column is (*res, res_weight)
  *
  * added extra feature:
  *  
- *      "quantization of values", used to preserve profiles (quant)
+ *  5)  "quantization of values", used to preserve profiles (quant)
  */
 
 typedef struct {
@@ -358,7 +360,11 @@ void initxfPA(multArgs *MA) {
         for (j=1;j<NALG;j++) {
             Xfield *xf = &(xfPA[i][j]);
             xf->pi = pi; 
-            xf->quant  = 1;
+            if (NULL == MA->profile) { 
+                xf->quant = 1;
+            } else {
+                xf->quant = pi->primpows[MA->profile->dat[i+j-1]];
+            }
             xf->oldmsk = &(msk[i+1][j-1]); 
             xf->newmsk = &(msk[i][j]);
             xf->res    = &(msk[i][0]); xf->res_weight = pi->primpows[j];
@@ -374,7 +380,11 @@ void initxfAP(multArgs *MA) {
         for (j=1;j<NALG;j++) {
             Xfield *xf = &(xfAP[i][j]);
             xf->pi = pi; 
-            xf->quant  = 1;
+            if (NULL == MA->profile) { 
+                xf->quant = 1;
+            } else {
+                xf->quant = pi->primpows[MA->profile->dat[i+j-1]];
+            }
             xf->oldmsk = &(msk[i-1][j+1]); 
             xf->newmsk = &(msk[i][j]);
             xf->res    = &(msk[0][j]); xf->res_weight = 1; 
