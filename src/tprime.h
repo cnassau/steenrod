@@ -14,6 +14,8 @@
 #ifndef TPRIME_DEF
 #define TPRIME_DEF
 
+#include <tcl.h>
+
 /* id of our primeInfo type */
 #define TP_PRINFO 11
 

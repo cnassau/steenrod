@@ -54,6 +54,8 @@ typedef struct {
 int makePrimeInfo( primeInfo *pi, int prime, int maxdeg );
 int disposePrimeInfo( primeInfo *pi );
 
+cint random_cint( cint max );
+
 /* compute binomial "l over m" mod pi->prime */
 cint binomp( primeInfo *pi, int l, int m );
 

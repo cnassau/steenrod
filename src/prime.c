@@ -159,3 +159,13 @@ int disposePrimeInfo( primeInfo *pi ) {
 	    return PI_STRANGE;
     return PI_OK;
 }
+
+/*::: Small stuff ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+
+cint random_cint( cint prime ) {
+    double rint = random();
+    rint /= RAND_MAX; 
+    rint *= prime;
+    return (cint) rint;
+}
+

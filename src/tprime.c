@@ -11,10 +11,9 @@
  *
  */
 
+#include "tprime.h"
 #include "tptr.h"
 #include "prime.h"
-
-#define TP_PRINFO 11
 
 /* client data to distinguish the subcommands */
 #define CD_CREATE      1

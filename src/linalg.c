@@ -60,6 +60,12 @@ cint vector_get_entry( vector *src, int off ) {
     return src->data[off];
 }
 
+void vector_randomize( vector *v, cint prime ) {
+    int k; cint *dat;
+    for ( k=v->num, dat=v->data; k--; )
+        *dat++ = random_cint( prime );
+}
+
 /* For some "reason" that I've forgotten, we try to adjust nomcols
  * so that rows lie on 8-byte boundaries. */
 matrix *matrix_create( int rows, int cols ) {
@@ -128,4 +134,14 @@ int matrix_resize( matrix *m, int newrows ) {
         return 0;
     }
     return 1;
+}
+
+void matrix_randomize( matrix *m, cint prime ) {
+    vector vec;
+    int k;
+    for (k=0;k<m->rows;k++) {
+	vec.data = m->data + k * m->nomcols * sizeof(cint);
+	vec.num = m->cols;
+	vector_randomize( &vec, prime );
+    }
 }
