@@ -9,7 +9,7 @@
 # published by the Free Software Foundation.
 
 CC      = gcc -fPIC
-CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS -DTCL_MEM_DEBUG
+CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS 
 
 TCLDIR = /home/cn/selfmade-tcl/include/
 
@@ -89,7 +89,7 @@ refmt: reformat
 
 adlin.o: adlin.h linalg.h prime.h
 linalg.o: linalg.h prime.h
-poly.o: poly.h common.h prime.h
+poly.o: poly.h common.h prime.h mult.h
 prime.o: prime.h
 tlin.o: tlin.h tptr.h tprime.h prime.h adlin.h linalg.h
 tprime.o: tprime.h prime.h tptr.h

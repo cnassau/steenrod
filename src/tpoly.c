@@ -81,18 +81,14 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     exmo *e;
 
 #ifdef TCL_MEM_DEBUG
-    Tcl_DumpActiveMemory("actmem.dbg");
+    if (0) Tcl_DumpActiveMemory("actmem.dbg");
 #endif
 
     if (TCL_OK != Tcl_ListObjGetElements(ip, objPtr, &objc, &objv))
         return TCL_ERROR;
     if (4 != objc) 
         RETERR("malformed monomial: wrong number of entries");
-    if (TCL_OK != Tcl_ListObjGetElements(ip, objv[2], &objc2, &objv2))
-        return TCL_ERROR;
-    if (objc2 > NALG) 
-        RETERR("exponent sequence too long");
-    if (NULL == (e = (exmo *) malloc(sizeof(exmo))))
+   if (NULL == (e = (exmo *) malloc(sizeof(exmo))))
         RETERR("out of memory");
     if (TCL_OK != Tcl_GetIntFromObj(ip,objv[0],&(e->coeff))) 
         FREEEANDRETERR;
@@ -100,6 +96,10 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         FREEEANDRETERR;
     if (TCL_OK != Tcl_GetIntFromObj(ip,objv[3],&(e->gen))) 
         FREEEANDRETERR;
+    if (TCL_OK != Tcl_ListObjGetElements(ip, objv[2], &objc2, &objv2))
+        return TCL_ERROR;
+    if (objc2 > NALG) 
+        RETERR("exponent sequence too long");
     for (i=0;i<objc2;i++) {
         if (TCL_OK != Tcl_GetIntFromObj(ip,objv2[i],&aux)) 
             FREEEANDRETERR;
