@@ -169,11 +169,11 @@ if {$usegui} {
 set useupper 1
 set uselower 1
 
-switch -- $options(-decomp) {
-    auto  { foreach {useupper uselower} {1 1} break }
-    lower { foreach {useupper uselower} {0 1} break }
-    upper { foreach {useupper uselower} {1 0} break }
-    none  { foreach {useupper uselower} {0 0} break }
+switch -glob -- $options(-decomp) {
+    au* { foreach {useupper uselower} {1 1} break }
+    lo* { foreach {useupper uselower} {0 1} break }
+    up* { foreach {useupper uselower} {1 0} break }
+    no* { foreach {useupper uselower} {0 0} break }
     default {
         puts "unknown -decomp value '$options(-decomp)'. Should be auto, upper, lower, none"
         exit 1
@@ -295,7 +295,7 @@ proc maxLowerProfile {prime algebra s ideg edeg} {
 
 # Main loop starts here:
 
-newgen 0 -1 0 0 {} ;# fake gen of deg zero
+newgen 0 0 0 0 {} ;# fake gen of deg zero
     
 for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
 
@@ -325,17 +325,19 @@ for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
             }
 
             # find maximal possible profiles  
-            set pupper [maxUpperProfile $p $alg $sdeg $ideg $edeg]
-            set plower [maxLowerProfile $p $alg $sdeg $ideg $edeg]
+            set pupper [maxUpperProfile $p $alg $sc $ideg $edeg]
+            set plower [maxLowerProfile $p $alg $sc $ideg $edeg]
 
             # count dimensions
-            C$sdeg configure -profile $pupper ; set updim [C$sdeg dimension]
-            C$sdeg configure -profile $plower ; set lodim [C$sdeg dimension]
+            C$sc configure -profile $pupper -sig {} ; set updim [C$sc dimension]
+            C$sc configure -profile $plower -sig {} ; set lodim [C$sc dimension]
 
             if 0 {
-                puts "(s,i)=($sdeg,$ideg), t-s=[expr $ideg-$sdeg]"
-                puts "lowprof = $plower, dim = $lodim"
-                puts "uppprof = $pupper, dim = $updim"
+                puts "(s,i)=($sdeg,$ideg), t-s=[expr $ideg-$sdeg], edeg=$edeg"
+                puts "  lowprof = $plower, dim = $lodim"
+                puts "  uppprof = $pupper, dim = $updim"
+                C$sc configure -profile $pupper ; puts "C$sc conf = [C$sc conf]"
+                C$sc configure -profile $plower ; puts "C$sc conf = [C$sc conf]"
             }
 
             if {(0==$updim) || (0==$lodim)} continue
@@ -501,7 +503,7 @@ for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
                 dbgadd { "final state: errterms=$errterms, newdiffs = $newdiffs" }
                 dbgprint
                 #vwait forever
-                error "errorterms not reduced to zero"
+                error "error terms not reduced to zero"
             }
 
             # introduce new generators:
@@ -510,7 +512,7 @@ for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
             foreach id $genlist df $newdiffs {
                 lappend gl [list $id $ideg $edeg 0]
                 eval d$sn set \[list 0 0 0 $id\] \$df
-                newgen $id [expr $sn-1] $edeg $ideg $df
+                newgen $id [expr $sn] $edeg $ideg $df
             }
             eval C$sn configure -genlist \$gl
 

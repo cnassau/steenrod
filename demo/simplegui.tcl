@@ -58,7 +58,7 @@ set maxY 100
 
 proc updateScrollRegion {} {
     global cvs maxY maxX
-    $cvs configure -scrollregion [list [::tocoord -.5] [::tocoord -$maxY] \
+    $cvs configure -scrollregion [list [::tocoord -1.5] [::tocoord -$maxY] \
                                       [::tocoord $maxX] [::tocoord 1.5]]
     $cvs yview moveto 1
 }
@@ -95,6 +95,8 @@ proc degchange {name1 name2 op} {
     foreach {s i e} $::tridegree break
     # $::statlab configure -text "Current tridegree (s,t,e) = ($s,$i,$e)"
     
+    incr s 1 
+
     if {$wpl != {}} { $cvs delete $wpl } 
     set x [expr $i - $s]
     set y [expr -$s]
