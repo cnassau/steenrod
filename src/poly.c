@@ -70,6 +70,11 @@ void reflectExmo(exmo *e) {
     e->ext = -1 - e->ext;
 }
 
+void negateExmo(exmo *e) {
+    int i;
+    for (i=NALG;i--;) e->dat[i] = - e->dat[i];
+}
+
 #define COMPRET(x,y) if (0 != (diff = ((x)-(y)))) return diff;
 int compareExmo(const void *aa, const void *bb) {
     int diff, i;
@@ -593,9 +598,30 @@ int PLposMultiply(polyType **rtp, void **res,
 int PLnegMultiply(polyType **rtp, void **res,
                   polyType *fftp, void *ff,
                   polyType *sftp, void *sf, int mod) {
+    exmo aux; int i, len, rc;
+    *rtp = stdpoly; 
+    *res = stdCreateCopy(NULL);
+    len = PLgetNumsum(sftp,sf);
+    for (i=0;i<len;i++) {
+        if (SUCCESS != (rc = PLgetExmo(sftp,sf,&aux,i))) {
+            PLfree(*rtp,*res); 
+            return rc;
+        }
 
-    
-    return FAILIMPOSSIBLE;
+        reflectExmo(&aux);
+        negateExmo(&aux);
+
+        if (SUCCESS != (rc = PLappendPoly(*rtp,*res,
+                                          fftp,ff,
+                                          &aux,ADJUSTSIGNS,
+                                          aux.coeff,mod))) {
+            PLfree(*rtp,*res); 
+            return rc;
+        }
+    }
+
+    PLcancel(*rtp,*res,mod);
+    return SUCCESS;  
 }
 
 #include "mult.h"
