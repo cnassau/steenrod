@@ -85,5 +85,5 @@ mult.o: mult.h common.h prime.h poly.h
 enum.o: enum.h poly.h common.h prime.h
 tenum.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tenum.h enum.h
 momap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h momap.h
-steenrod.o: steenrod.h momap.h poly.h common.h prime.h tenum.h enum.h
-steenrod.o: ./linwrp.h
+steenrod.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h ./linwrp.h
+steenrod.o: steenrod.h momap.h tenum.h enum.h

@@ -11,7 +11,7 @@
 # published by the Free Software Foundation.
 #
 
-load libtenum.so
+load libsteenrod.so
 
 epol::enumerator x
 

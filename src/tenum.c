@@ -495,17 +495,21 @@ enumerator *Tcl_EnumFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
     
     cmd = Tcl_GetCommandFromObj(ip, obj);
 
+    if (NULL == cmd) Tcl_SetResult(ip, "command not found", TCL_STATIC);
+
     if (!Tcl_GetCommandInfoFromToken(cmd, &info))
         return NULL;
 
-    if (info.objProc != Tcl_EnumWidgetCmd)
+    if (info.objProc != Tcl_EnumWidgetCmd) {
+        Tcl_SetResult(ip, "enumerator object expected", TCL_STATIC);
         return NULL;
+    }
 
     te = (tclEnum *) info.objClientData;
        
-    if (TCL_OK != Tcl_EnumSetValues((ClientData) te, ip)) 
+    if (TCL_OK != Tcl_EnumSetValues((ClientData) te, ip))
         return NULL;
- 
+
     return te->enm;
 }
 
@@ -552,7 +556,7 @@ int Tenum_Init(Tcl_Interp *ip) {
     Tprime_Init(ip);
     Tpoly_Init(ip);
 
-    Tcl_CreateObjCommand(ip, "epol::enumerator", 
+    Tcl_CreateObjCommand(ip, POLYNSP "enumerator", 
                          Tcl_CreateEnumCmd, (ClientData) 0, NULL);
 
     return TCL_OK;

@@ -175,7 +175,7 @@ int enmRecreateEfflist(enumerator *en) {
             for (;ext>=0;ext--) 
                 if (BITCOUNT(ext) == redeg) {
                     int extideg = extdeg(en->pi, ext);
-                    if (extideg < rideg) {
+                    if (extideg <= rideg) {
                         int diffideg = rideg - extideg;
                         if (0 == (diffideg % tpmo)) {
                             effgen *gen;

@@ -1,5 +1,5 @@
 /*
- * Main entry point to the steenrod library
+ * Main entry point to the Steenrod library
  *
  * Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
  *

@@ -238,11 +238,15 @@ momap *Tcl_MomapFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
 
     cmd = Tcl_GetCommandFromObj(ip, obj);
 
-    if (!Tcl_GetCommandInfoFromToken(cmd, &info))
+    if (NULL == cmd) Tcl_SetResult(ip, "command not found", TCL_STATIC);
+
+    if (!Tcl_GetCommandInfoFromToken(cmd, &info)) 
         return NULL;
 
-    if (info.objProc != Tcl_MomaWidgetCmd)
+    if (info.objProc != Tcl_MomaWidgetCmd) {
+        Tcl_SetResult(ip, "monomap object expected", TCL_STATIC);
         return NULL;
+    }
 
     return (momap *) info.objClientData;
 }
@@ -273,7 +277,7 @@ int Momap_Init(Tcl_Interp *ip) {
     Tprime_Init(ip);
     Tpoly_Init(ip);
     
-    Tcl_CreateObjCommand(ip, "epol::monomap",
+    Tcl_CreateObjCommand(ip, POLYNSP "monomap",
                          Tcl_CreateMomaCmd, (ClientData) 0, NULL);
     
     return TCL_OK;
