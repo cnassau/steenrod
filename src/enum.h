@@ -59,7 +59,7 @@ typedef struct {
     /* list of effective generators, and their sequence number offsets */
     effgen    *efflist;
     int       *seqoff;
-    int        efflen;
+    int        efflen, effalloc;
     int        maxrrideg, maxredeg;  
 
 } enumerator;

@@ -80,7 +80,7 @@ void enmDestroySeqtab(enumerator *en) {
 
 void enmDestroyEffList(enumerator *en) {
     FREEPTR(en->efflist);
-    en->efflen = 0;
+    en->effalloc = en->efflen = 0;
     enmDestroySeqOff(en);
 }
 
@@ -101,6 +101,7 @@ int enmReallocEfflist(enumerator *en, int size) {
     if (size < en->efflen) size = en->efflen;
     if (NULL == (nptr = (effgen *) reallox(en->efflist, size * sizeof(effgen))))
         return FAILMEM;
+    en->effalloc = size;
     en->efflist = nptr;
     return SUCCESS;
 }
@@ -147,9 +148,49 @@ void enmUpdateSigInfo(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
     *sideg = exmoIdeg(en->pi, sig);
 }
 
+int enmAppendEffgen(enumerator *en, int id, int ext, int rrideg, int redeg) {
+    effgen *gen;
+    if (en->effalloc <= en->efflen) 
+        if (SUCCESS != enmReallocEfflist(en, en->efflen+500)) {
+            enmDestroyEffList(en);
+            return FAILMEM;
+        }
+    gen = &(en->efflist[en->efflen++]);
+    gen->id     = id;
+    gen->ext    = ext;
+    gen->rrideg = rrideg;
+    if (gen->rrideg > en->maxrrideg) 
+        en->maxrrideg = gen->rrideg;
+    if (redeg > en->maxredeg)
+        en->maxredeg = redeg;
+    if (ENLOG) printf("  effgen id=%d ext=%d rrideg=%d\n",
+                      id, ext, gen->rrideg);
+    return SUCCESS;
+}
+
+int findExtsForGenerator(enumerator *en, int id, int rideg, int redeg) {
+    int ext = getMaxExterior(en->pi, &(en->algebra), &(en->profile), rideg);
+    int tpmo = en->pi->tpmo;
+    if (1 && ENLOG) printf("maxExterior=%d (rideg=%d)\n", ext, rideg);
+    for (;ext>=0;ext--) 
+        if (BITCOUNT(ext) == redeg) {
+            int extideg = extdeg(en->pi, ext);
+            if (extideg <= rideg) {
+                int diffideg = rideg - extideg;
+                if (0 == (diffideg % tpmo)) {
+                    if (SUCCESS != enmAppendEffgen(en, id, ext, 
+                                                   diffideg/tpmo, 
+                                                   redeg))
+                        return FAILMEM; 
+                }
+            }
+        }
+    return SUCCESS;
+}
+
 /* create list of effective generators for the given tridegree */
 int enmRecreateEfflist(enumerator *en) {
-    int i, *glp, ext, tpmo, cnt, tideg, tedeg, thdeg;
+    int i, *glp, tideg, tedeg, thdeg;
     if (NULL == en->pi) return FAILIMPOSSIBLE;
     /* if present: destroy old values */
     enmDestroyEffList(en);
@@ -160,42 +201,23 @@ int enmRecreateEfflist(enumerator *en) {
     tedeg = en->edeg - en->sigedeg;
     tideg = en->ideg - en->sigideg;
     /* go through all gens in the genlist and look for appropriate exteriors */
-    for (cnt=i=0,tpmo=en->pi->tpmo,glp=en->genList; i<en->numgens; i++,glp+=4) {
+    for (i=0,glp=en->genList; i<en->numgens; i++,glp+=4) {
         int id = glp[0], ideg = glp[1], edeg = glp[2], hdeg = glp[3];
+        int rideg = tideg - ideg, redeg = tedeg - edeg;
         if (ENLOG) printf("looking at generator with "
                           "id=%d ideg=%d edeg=%d hdeg=%d\n", id, ideg, edeg, hdeg);
-        if ((edeg <= tedeg) && (ideg <= tideg) && (hdeg == en->hdeg)) {
-            int rideg = tideg - ideg, redeg = tedeg - edeg;
-            ext = getMaxExterior(en->pi, &(en->algebra), &(en->profile), rideg);
-            if (1 && ENLOG) printf("maxExterior=%d (rideg=%d)\n", ext, rideg);
-            for (;ext>=0;ext--) 
-                if (BITCOUNT(ext) == redeg) {
-                    int extideg = extdeg(en->pi, ext);
-                    if (extideg <= rideg) {
-                        int diffideg = rideg - extideg;
-                        if (0 == (diffideg % tpmo)) {
-                            effgen *gen;
-                            /* we have a winner! */
-                            if ((cnt == en->efflen) &&
-                                (SUCCESS != enmReallocEfflist(en, en->efflen+500))) {
-                                enmDestroyEffList(en);
-                                return FAILMEM;
-                            }
-                            gen = &(en->efflist[cnt++]);
-                            gen->id     = id;
-                            gen->ext    = ext;
-                            gen->rrideg = diffideg / tpmo;
-                            if (gen->rrideg > en->maxrrideg) 
-                                en->maxrrideg = gen->rrideg;
-                            if (redeg > en->maxredeg)
-                                en->maxredeg = redeg;
-                            if (ENLOG) printf("  effgen id=%d ext=%d rrideg=%d\n",
-                                              id, ext, gen->rrideg);
-                            en->efflen++;
-                        }
-                    }
-                }
-        } 
+        if (hdeg != en->hdeg) continue;
+        if (en->ispos) {
+            if ((redeg >= 0) && (rideg >= 0)) {
+                if (SUCCESS != findExtsForGenerator(en, id, rideg, redeg))
+                    return FAIL;
+            } 
+        } else {
+            if ((redeg <= 0) && (rideg <= 0)) {
+                if (SUCCESS != findExtsForGenerator(en, id, -rideg, -redeg))
+                    return FAIL;
+            } 
+        }
     }
     /* realloc to minimal space */
     if (SUCCESS != enmReallocEfflist(en, 0)) {
@@ -408,11 +430,13 @@ int algSeqnoWithRDegree(enumerator *en, exmo *ex, int deg) {
         int prd, maxdeg, actdeg, exo;
         prd = en->profile.dat[k];
         maxdeg = (en->algebra.dat[k] - prd) * en->pi->reddegs[k];
-        exo = ex->dat[k]; 
+        exo = en->ispos ? ex->dat[k] : (-1 - ex->dat[k]); 
         exo /= en->profile.dat[k]; exo *= en->profile.dat[k];
         actdeg = exo * en->pi->reddegs[k];
-        if (maxdeg > deg) maxdeg = deg;
-        if (deg < actdeg) {
+        if (deg < maxdeg) maxdeg = deg;
+        if ((deg < actdeg) 
+            || ((deg - actdeg) >= en->tablen) 
+            || ((deg - maxdeg) >= en->tablen)) {
             if (ENLOG) printf("in algSeqno...: deg=%d, actdeg=%d\n", deg, actdeg);
             return -1;
         }
@@ -431,7 +455,8 @@ int SeqnoFromEnum(enumerator *en, exmo *ex) {
             return -666;
 
     aux.id  = ex->gen;
-    aux.ext = ex->ext; aux.ext ^= (aux.ext & en->profile.ext);
+    aux.ext = en->ispos ? ex->ext : (-1 - ex->ext); 
+    aux.ext ^= (aux.ext & en->profile.ext);
     res = (effgen *) bsearch(&aux, en->efflist, en->efflen, 
                              sizeof(effgen), compareEffgen);
     if (NULL == res) return -1;
@@ -495,6 +520,7 @@ int firstRedmonAlg(enumerator *en, int rdeg) {
         nval *= en->profile.dat[i];
         ex->dat[i] = nval;
         en->theex.dat[i] = nval + en->signature.dat[i];
+        if (!en->ispos) en->theex.dat[i] = -1 - en->theex.dat[i];
         rdeg -= nval * en->pi->reddegs[i];
     }
     en->errdeg = rdeg;
@@ -516,6 +542,7 @@ int nextRedmonAlg(enumerator *en) {
         rem += (ex->dat[i] - nval) * en->pi->reddegs[i];
         ex->dat[i] = nval;
         en->theex.dat[i] = nval + en->signature.dat[i];
+        if (!en->ispos) en->theex.dat[i] = -1 - en->theex.dat[i];
         for (;i--;) {
             nval = rem / en->pi->reddegs[i];
             /* restrict redpows to the algebra */
@@ -526,7 +553,8 @@ int nextRedmonAlg(enumerator *en) {
             nval *= en->profile.dat[i];
             ex->dat[i] = nval;
             en->theex.dat[i] = nval + en->signature.dat[i];
-            rem -= nval * en->pi->reddegs[i];
+            if (!en->ispos) en->theex.dat[i] = -1 - en->theex.dat[i];
+             rem -= nval * en->pi->reddegs[i];
         }
         en->errdeg = rem;
     } while (en->errdeg);
@@ -538,6 +566,8 @@ int nextRedmonAux(enumerator *en) {
         if (firstRedmonAlg(en, en->efflist[en->gencnt].rrideg)) {
             en->theex.gen = en->efflist[en->gencnt].id;
             en->theex.ext = en->efflist[en->gencnt].ext | en->signature.ext;
+            if (!en->ispos) 
+                en->theex.ext = -1 - en->theex.ext;
             return 1;
         }
         ++(en->gencnt);
@@ -567,8 +597,8 @@ int nextSignature(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
         sideg = &_sideg; sedeg = &_sedeg;
         enmUpdateSigInfo(en, sig, sideg, sedeg);
     }
-    maxi = en->ideg - en->minideg;
-    maxe = en->edeg - en->minedeg;
+    maxi = en->ispos ? (en->ideg - en->minideg) : (en->maxideg - en->ideg);
+    maxe = en->ispos ? (en->edeg - en->minedeg) : (en->maxedeg - en->edeg);
     tpmo = en->pi->tpmo;
     remi = maxi - *sideg; /* remaining degree */
     for (i=0;i<NALG;i++) {

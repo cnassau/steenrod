@@ -48,7 +48,7 @@ proc relem {lst} { return [lindex $lst [rint [llength $lst]]] }
 
 
 while 1 {
-    set p [relem {2 3 5 7 11}]
+    set p [relem {2 3 5 7 11 13}]
     #set p 5
     set dim [rint [lindex [prime::primpows $p] 5]]
     set dim [expr int($dim / [prime::tpmo $p]) * [prime::tpmo $p]]
@@ -64,6 +64,10 @@ while 1 {
     x configure -prime $p -ideg $dim -genlist 0
     #x configure -genlist {{0 0} {1 50} {2 -50}}
     #x configure -profile {0 0 {1 0 5} 0} -edeg 0
+
+    x conf -edeg [rint 4]
+    while {![x dim]} { x conf -ideg [expr 1 + [x cget -ideg]] }
+
     set basis [x basis]
     
     set cnt 0
@@ -78,7 +82,7 @@ while 1 {
         }
         incr cnt
     }
-    puts [format "basis with %8d elements checked (prime %2d, deg %d)" $cnt $p $dim]
+    puts [format "basis with %8d elements checked (prime %2d, deg %d, edeg %d)" $cnt $p $dim [x cget -edeg]]
     set bidi [x dim]
     if {$bidi!=$cnt} { error "count mismatch ($bidi!=$cnt)!!" }
 }
