@@ -616,8 +616,7 @@ int nextRedmon(enumerator *en) {
 /**** SIGNATURE ENUMERATION **************************************************/
 
 int nextSignature(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
-    int _sideg, _sedeg, i, maxi, maxe, remi, tpmo;
-    int maxext, newext;
+    int _sideg, _sedeg, i, maxi, maxe, remi, tpmo, newext;
     if ((NULL == sideg) || (NULL == sedeg)) {
         sideg = &_sideg; sedeg = &_sedeg;
         enmUpdateSigInfo(en, sig, sideg, sedeg);
@@ -640,16 +639,16 @@ int nextSignature(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
         *sideg -= coldeg * (--nval); sig->dat[i] = 0;
     }
     /* reduced part has been reset; try to advance exterior component */
-    maxext = getMaxExterior(en->pi, &(en->algebra), &(en->profile), remi);
     newext = sig->ext;
-    while (++newext <= maxext) {
+    do {
+        *sideg = extdeg(en->pi, ++newext);
+        if (*sideg > maxi) break;
         if (newext == (newext & en->algebra.ext & en->profile.ext)) {
             sig->ext = newext;
-            *sideg = extdeg(en->pi, newext);
             *sedeg = BITCOUNT(newext);
             return 1;
         }
-    }
+    } while (1);
     return 0;
 }
 
