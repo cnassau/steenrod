@@ -13,27 +13,24 @@
 
 #include "adlin.h"
 
-/* common macros for dealing with the progress variable: */
-#define PROGVARINIT                    \
-    double perc;                       \
-    Tcl_Obj *ProgVar, *NameObj;        \
-    ProgVar = Tcl_NewDoubleObj(0.0);   \
-    NameObj = Tcl_NewStringObj(LAPROGRESSVAR, sizeof(LAPROGRESSVAR)); \
-    Tcl_IncrRefCount(NameObj)      
+#define  PROGVARINIT     \
+    double perc = 0;     \
+    if (NULL != progvar) Tcl_LinkVar(ip, progvar, (char *) &perc, TCL_LINK_DOUBLE);
 
-#define PROGVARSET(val) if (NULL!=ip)    {                             \
-  Tcl_SetDoubleObj(ProgVar, val);                                      \
-  if (NULL==Tcl_ObjSetVar2(ip, NameObj, NULL, ProgVar,                 \
-                TCL_LEAVE_ERR_MSG | TCL_GLOBAL_ONLY))                  \
-       goto done ; }
+#define PROGVARSET(val)  \
+    if (NULL != progvar) Tcl_UpdateLinkedVar(ip, progvar); \
+    if (LINALG_INTERRUPT_VARIABLE) goto done;
 
 #define PROGVARDONE \
-    Tcl_DecrRefCount(NameObj) 
+    if (NULL != progvar) Tcl_UnlinkVar(ip, progvar);
+
+#define LINALG_INTERRUPT_VARIABLE 0
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 /* orthonormalize the input matrix, return basis of kernel */
-matrix *matrix_ortho(primeInfo *pi, matrix *inp, Tcl_Interp *ip, int pmsk) {
+matrix *matrix_ortho(primeInfo *pi, matrix *inp, 
+                     Tcl_Interp *ip, const char *progvar, int pmsk) {
     int i,j,cols, spr, uspr;
     int failure = 1;     /* pessimistic, eh? */
     vector v1,v2,v3,v4;
@@ -64,7 +61,7 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, Tcl_Interp *ip, int pmsk) {
 
     for (v1.data=inp->data, i=0; i<inp->rows; i++, v1.data+=spr) {
         cint coeff;
-        if ((pmsk) && (0==(i&pmsk))) {
+        if ((NULL != progvar) && (0==(i&pmsk))) {
             perc = i; perc /= inp->rows;
             perc = 1-perc; perc *= perc; perc = 1-perc;
             PROGVARSET(perc);
@@ -110,7 +107,7 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, Tcl_Interp *ip, int pmsk) {
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft, 
-                    Tcl_Interp *ip, int pmsk) {
+                    Tcl_Interp *ip, const char *progvar, int pmsk) {
 
     int i,j,cols, spr, uspr;
     int failure=1;
@@ -137,7 +134,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 
     for (v1.data=inp->data, i=0; i<inp->rows; i++, v1.data+=spr) {
         cint coeff; int pos;
-        if ((pmsk) && (0==(i&pmsk))) {
+        if ((NULL != progvar) && (0==(i&pmsk))) {
             perc = i; perc /= inp->rows;
             perc = 1-perc; perc *= perc; perc = 1-perc;
             PROGVARSET(perc);
@@ -189,7 +186,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im, 
-                    Tcl_Interp *ip, int pmsk) {
+                    Tcl_Interp *ip, const char *progvar, int pmsk) {
     int i,j,cols, spr;
     cint prime = pi->prime;
     int failure = 1;
@@ -212,7 +209,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
 
     for (v1.data=im->data, i=0; i<im->rows; i++, v1.data+=spr) {
         cint coeff; int pos;
-        if ((pmsk) && (0==(i&pmsk))) {
+        if ((NULL != progvar) && (0==(i&pmsk))) {
             perc = i; perc /= im->rows;
             perc = 1-perc; perc *= perc; perc = 1-perc;
             PROGVARSET(perc);
@@ -267,6 +264,6 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
 
     if (TCL_OK != matrix_resize(ker, m1.rows)) return TCL_ERROR;
 
-    return TCL_OK;
+    return SUCCESS;
 }
 
