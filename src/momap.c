@@ -179,6 +179,7 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
                if (Tcl_IsShared(*auxptr)) {
                    DECREFCNT(*auxptr);
                    *auxptr = Tcl_DuplicateObj(*auxptr);
+                   INCREFCNT(*auxptr);
                }
                Tcl_InvalidateStringRep(*auxptr);
                if (SUCCESS != PLappendPoly(polyTypeFromTclObj(*auxptr),
