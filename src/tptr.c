@@ -90,7 +90,7 @@ int Tptr_Init(Tcl_Interp *ip) {
     TPtr_RegType(TP_INTLIST, "list of integers");
     TPtr_RegType(TP_STRING,  "string");
     TPtr_RegType(TP_PTR,     "typed pointer");
-    TPtr_RegType(TP_VARARGS , "...");
+    TPtr_RegType(TP_VARARGS, "...");
 
     return TCL_OK;
 }
@@ -214,11 +214,11 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
         continue;
         case TP_LIST:
         case TP_INTLIST:
-        if (TCL_OK != Tcl_ConvertToType(ip, *objv, &tclListType))
+        if (TCL_OK != Tcl_ListObjLength(ip, *objv, &aux))
             CHCKARGSERR(NULL); 
         if (TP_LIST == type) continue;
         {
-            int obc, i; Tcl_Object **obv;
+            int obc, i; Tcl_Obj **obv;
             /* check list members:*/
             Tcl_ListObjGetElements(ip, *objv, &obc, &obv);
             for (i=0;i<obc;i++)
@@ -253,7 +253,7 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
 
 /*::: Helper functions :::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
-Tcl_Obj *Tcl_ListFromArray(int *list, int len) {
+Tcl_Obj *Tcl_ListFromArray(int len, int *list) {
     Tcl_Obj *res, **array;
     int i;
     array = (Tcl_Obj **) ckalloc(sizeof(Tcl_Obj *) * len);

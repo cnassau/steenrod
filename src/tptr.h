@@ -60,7 +60,7 @@ void TPtr_RegType(int type, const char *name);
 int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[], ...);
 
 /* a few helper functions & macros */
-Tcl_Obj *Tcl_ListFromArray(int *list, int len) ;
+Tcl_Obj *Tcl_ListFromArray(int len, int *list) ;
 
 #define ENSUREARGS0 \
 if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_END)) return TCL_ERROR;
