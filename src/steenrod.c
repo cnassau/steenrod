@@ -605,7 +605,7 @@ int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_LinkVar(ip, POLYNSP "_progvarname", (char *) &theprogvar, TCL_LINK_STRING);
     Tcl_LinkVar(ip, POLYNSP "_progsteps", (char *) &theprogmsk, TCL_LINK_INT);
 
-    theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 0xf;
+    theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 0x1;
 
     Tcl_UnlinkVar(ip, POLYNSP "_objCount");
     Tcl_LinkVar(ip, POLYNSP "_objCount", (char *) &objCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
