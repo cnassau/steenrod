@@ -1,0 +1,97 @@
+[manpage_begin matrix 3st 1.0]
+
+[moddesc {Steenrod Tcl package}]
+
+[titledesc {a collection of linear algebra routines}]
+
+[copyright "2003 Christian Nassau"]
+
+[require Steenrod 1.0]
+
+[description]
+
+[usage namespace import steenrod::matrix]
+[usage [cmd matrix] [cmd subcommand] ?[arg arg] [arg arg] ...?]
+
+The [cmd matrix] command ensemble is a collection of routines that
+help to do linear algebra modulo a prime.
+
+[section Commands]
+
+[list_begin definitions]
+
+[lst_item "[cmd matrix] [cmd test] [arg matrix-candidate]"]
+Tests whether [arg matrix-candidate] is recognized as a matrix.
+An error message is returned if it is not recognized.
+Otherwise the result is an empty string
+
+[lst_item "[cmd matrix] [cmd create] [arg rows] [arg cols]"]
+Returns a zero matrix of size [arg rows] x [arg cols].
+
+[lst_item "[cmd matrix] [cmd iszero] [arg matrix]"]
+Checks whether [arg matrix] is zero.
+
+[lst_item "[cmd matrix] [cmd dimensions] [arg matrix]"]
+Returns the dimensions of [arg matrix] as a list of the form [const "\{rows columns\}"].
+
+[lst_item "[cmd matrix] [cmd addto] [arg matVar] [arg matrix] ?[arg scale]? ?[arg mod]?"]
+Here the variable [arg matVar] is assumed to contain a matrix of the same dimensions
+as [arg matrix]. The command then computes
+"$[arg matVar] + [arg scale] * [arg matrix] modulo [arg mod]"
+and stores the result in [arg matVar].
+
+[lst_item "[cmd matrix] [cmd extract] [cmd rows/cols] [arg matrix] [arg list]"]
+Creates a new matrix by extracting some rows or columns
+from the given matrix [arg matrix]. [arg list] is the list of indices
+of the rows or columns that should be extracted.
+
+[lst_item "[cmd matrix] [cmd orthonormalize] [arg prime] [arg matVar1] [arg matVar2]"]
+This routine orthonormalizes the rows of the matrix given in [arg matVar1] modulo
+the given [arg prime]. The computation produces bases of both the image and the
+kernel
+of the input matrix: the image basis is stored in [arg matVar1]
+and the kernel basis in [arg matVar2].
+
+[lst_item "[cmd matrix] [cmd quotient] [arg prime] [arg matVar] [arg matrix]"]
+This command computes the quotient "$[arg matVar] / [arg matrix]" and stores
+the result back into [arg matVar]. [nl]
+
+[strong Note]: The command assumes that [arg matrix] is the result of a previous
+invokation of [cmd "matrix orthonormalize"]. It will [emph not] work
+correctly otherwise!
+
+[lst_item "[cmd matrix] [cmd lift] [arg prime] [arg matrix] [arg matVar]"]
+The command tries to find preimages for the rows of $[arg matVar]
+under [arg matrix] by reducing $[arg matVar] against [arg matrix].
+It returns the matrix [arg preim] of (approximate, best possible) preimages
+and stores the remainders "$[arg matVar] - [arg matrix] * [arg preim]"
+back into [arg matVar]. [nl]
+
+[strong Note]: The command assumes that [arg matrix] is the result of a previous
+invokation of [cmd "matrix orthonormalize"]. It will [emph not] work
+correctly otherwise!
+
+
+[list_end]
+
+[section Example]
+[example {
+package require Steenrod
+namespace import steenrod::*
+
+# print binomial table mod 5 
+
+for {set i 0} {$i<=25} {incr i} {
+    set line ""
+    for {set j 0} {$j<=40} {incr j} {
+        append line [prime 5 binom $i $j]
+    }   
+    puts [string map {"0" " "} $line]
+}
+}]
+
+[see_also enumerator linalg matrix mono monomap poly prime ]
+
+[keywords {Steenrod algebra} {Tcl package} Mathematics]
+
+[manpage_end]
