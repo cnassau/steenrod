@@ -22,7 +22,7 @@ SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c \
 
 OBJS = $(SRCS:.c=.o)
 
-LIBS = libtlin.so libtprime.so libtptrtest.so libtpoly.so libtprofile.so libtmap.so
+LIBS = libtlin.so libtprime.so libtptrtest.so libtpoly.so libtprofile.so libtmap.so libtenum.so
 
 LINKSTUB = cc -shared -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
 
@@ -66,8 +66,11 @@ libtprime.so: tprime.o tptr.o prime.o
 libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o linwrp.o
 	$(LINKSTUB) -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o linwrp.o
 
-libtpoly.so: prime.o tptr.o tprime.o tpoly.o poly.o mult.o
-	$(LINKSTUB) -o libtpoly.so prime.o tptr.o tprime.o tpoly.o poly.o mult.o
+libtpoly.so: prime.o tptr.o tprime.o tpoly.o poly.o mult.o 
+	$(LINKSTUB) -o libtpoly.so prime.o tptr.o tprime.o tpoly.o poly.o mult.o 
+
+libtenum.so: prime.o tptr.o tprime.o tpoly.o poly.o mult.o enum.o tenum.o
+	$(LINKSTUB) -o libtenum.so prime.o tptr.o tprime.o tpoly.o poly.o mult.o enum.o tenum.o
 
 libtprofile.so: tprime.o tptr.o prime.o profile.o tprofile.o
 	$(LINKSTUB) -o libtprofile.so tprime.o tptr.o prime.o profile.o tprofile.o 
@@ -103,4 +106,4 @@ tmap.o: tptr.h common.h tmap.h tprofile.h profile.h prime.h maps.h
 mult.o: mult.h common.h prime.h poly.h
 linwrp.o: linwrp.h prime.h common.h linalg.h adlin.h
 enum.o: enum.h poly.h common.h prime.h
-tenum.o: tenum.h enum.h poly.h common.h prime.h
+tenum.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tenum.h enum.h
