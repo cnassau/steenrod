@@ -80,7 +80,8 @@ int piiBinom(primeInfo *pi) {
 
     for (b=1;b<prime;b++) {
         for (a=prime-1;a--;)
-            dat[prime*b+a+1] = dat[prime*(b-1)+a] + dat[prime*(b-1)+a+1] ;
+            dat[prime*b+a+1] = 
+                (dat[prime*(b-1)+a] + dat[prime*(b-1)+a+1]) % pi->prime;
         dat[prime*b] = 1;
     }
 

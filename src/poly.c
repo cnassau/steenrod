@@ -246,7 +246,10 @@ void multPoly(primeInfo *pi, poly *f, poly *s,
 }
 
 inline xint XINTMULT(xint a, xint b, xint prime) { 
-    int aa = a, bb = b; return (xint) ((aa * bb) % prime); 
+    int aa = a, bb = b; 
+    xint res = (xint) ((aa * bb) % prime); 
+    /* printf("%2d * %2d => %2d\n",aa,bb,(int)res); */
+    return res;
 }
 
 /* A Xfield represents a xi-box in the multiplication matrix. It 
@@ -329,14 +332,15 @@ void handlePArow(multArgs *ma, int row, xint coeff) {
             xint aux, aux2;
             aux  = s->dat[i] + sum[0][i+1];
             aux2 = msk[1][i]; 
-            if ((0 > (res.dat[i] = aux + aux2)) && ma->sIsPos)
+            if ((0 > (res.dat[i] = aux + aux2)) && ma->sIsPos) {
                 c = 0;
-            else 
-                c = CINTMULT(c, binomp(pi, res.dat[i], aux), prime);
+            } else { 
+                c = XINTMULT(c, binomp(pi, res.dat[i], aux), prime);
+            }        
         }
+        if (0) printf("%d*\n",(int) c);
         if (0 == c) continue;
-        if (0) printf("*\n");
-        res.coeff = CINTMULT(c, s->coeff, prime);
+        res.coeff = XINTMULT(c, s->coeff, prime);
         res.ext   = 0;
         res.id    = s->id; /* should this be done in the callback function ? */
         ma->multCB(ma->clientData, &res);
