@@ -72,8 +72,7 @@ proc do-test {name cmdlist} {
                     ::ENU configure -ideg $i 
                     set val [::ENU dimension]
                     if {$val != $d} {
-                        puts "ideg $i: expected $d got $val"
-                        lappend fail $i 
+                         lappend fail $i 
                     }
                     lappend aux $i $val
                 } 
@@ -131,7 +130,7 @@ if {$XXX} {
     puts $ch "#"
     puts $ch [format "#  \$%s\$" Id]
     puts $ch "#"
-    puts $ch "# Note: this file is to be re-written from the enum test suite."
+    puts $ch "# Note: this file will be re-written from the enum test suite."
     puts $ch ""
     puts $ch $NTD
     close $ch
