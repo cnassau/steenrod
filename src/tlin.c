@@ -44,7 +44,7 @@ int tLinComboCmd(ClientData cd, Tcl_Interp *ip,
     primeInfo *pi;
     char *err;
     vector *vec;
-    matrix *mat;
+    matrix *mat, *mat2;
     Tcl_Obj *obp[2];
 
     if (NULL==ip) return TCL_ERROR; 
@@ -140,6 +140,14 @@ int tLinComboCmd(ClientData cd, Tcl_Interp *ip,
 	    *(mat->data + a*(mat->nomcols)*sizeof(cint) + b) = c;
 	    return TCL_OK;
 	case LIN_MATORTH: 
+	    ENSUREARGS3(TP_MATRIX,TP_PRINFO,TP_INT);
+	    Tcl_GetIntFromObj(ip, objv[3], &a);
+	    mat = (matrix *) TPtr_GetPtr(objv[1]); 
+	    pi = (primeInfo *) TPtr_GetPtr(objv[2]); 
+	    mat2 = matrix_ortho(pi,mat,ip,a);
+	    if (NULL==mat2) return TCL_ERROR;
+	    Tcl_SetObjResult(ip,Tcl_NewTPtr(TP_MATRIX,mat2));
+	    return TCL_OK;
 	case LIN_MATLIFT: 
 	case LIN_MATQUOT:   
     }
