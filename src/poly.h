@@ -38,6 +38,10 @@ int exmoGetLen(exmo *e);    /* look at reduced and exterior parts */
 int exmoGetRedLen(exmo *e); /* look only at reduced part */
 int exmoGetPad(exmo *e);
 
+/* the following functions check if ">=" (resp. "<=") holds for all exponents */
+int exmoIsAbove(const exmo *a, const exmo *b);
+int exmoIsBelow(const exmo *a, const exmo *b);
+
 void copyExmo(exmo *dest, const exmo *src);
 
 #define ADJUSTSIGNS 1 /* should we just xor the exterior data,

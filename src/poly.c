@@ -131,6 +131,24 @@ int exmoIdeg(primeInfo *pi, const exmo *ex) {
     return res + extdeg(pi, ex->ext);
 }
 
+int exmoIsAbove(const exmo *a, const exmo *b) {
+    int i;
+    if (b->ext != (b->ext & a->ext)) return 0;
+    for (i=0;i<NALG;i++)
+        if (a->dat[i] < b->dat[i])
+            return 0;
+    return 1;
+}
+
+int exmoIsBelow(const exmo *a, const exmo *b) {
+    int i;
+    if (a->ext != (b->ext & a->ext)) return 0;
+    for (i=0;i<NALG;i++)
+        if (a->dat[i] > b->dat[i])
+            return 0;
+    return 1;
+}
+
 /**** generic polynomials *********************************************************/
 
 #define CALLIFNONZERO1(func,arg1) \
