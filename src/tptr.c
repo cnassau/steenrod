@@ -15,10 +15,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*::: Implementation of the TPtr object type :::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*::: Implementation of the TPtr object type :::::::::::::::::::::::::::::::::*/
 
 #define TCLRETERR( ip, msg ) \
-do { if ( NULL != ip ) Tcl_SetResult( ip, msg, TCL_VOLATILE ); return TCL_ERROR; } while (0)
+if (NULL!=ip) Tcl_SetResult(ip, msg, TCL_VOLATILE); return TCL_ERROR;
 
 #define TP_FORMAT "<%p:%p>"
 
@@ -29,15 +29,22 @@ void make_TPtr( Tcl_Obj *objPtr, int type, void *ptr ) {
     Tcl_InvalidateStringRep( objPtr );
 }
 
-void *TPtr_GetPtr( Tcl_Obj *obj ) { return obj->internalRep.twoPtrValue.ptr2; } 
-int   TPtr_GetType( Tcl_Obj *obj ) { return (int) obj->internalRep.twoPtrValue.ptr1; } 
+void *TPtr_GetPtr( Tcl_Obj *obj ) { 
+    return obj->internalRep.twoPtrValue.ptr2; 
+} 
+
+int   TPtr_GetType( Tcl_Obj *obj ) { 
+    return (int) obj->internalRep.twoPtrValue.ptr1; 
+} 
 
 /* try to turn objPtr into a TPtr */
 int TPtr_SetFromAnyProc( Tcl_Interp *interp, Tcl_Obj *objPtr ) {
     char *aux = Tcl_GetStringFromObj( objPtr, NULL );
     void *d1, *d2;
     if ( 2 != sscanf( aux, TP_FORMAT, &d1, &d2 ) ) 
-	TCLRETERR( interp, "not recognized as TPtr, proper format = \"" TP_FORMAT "\"" ); 
+	TCLRETERR( interp, 
+		   "not recognized as TPtr, "
+		   "proper format = \"" TP_FORMAT "\"" ); 
     if ( NULL != objPtr->typePtr )
 	if ( NULL != objPtr->typePtr->freeIntRepProc ) 
 	    objPtr->typePtr->freeIntRepProc( objPtr );
@@ -48,13 +55,17 @@ int TPtr_SetFromAnyProc( Tcl_Interp *interp, Tcl_Obj *objPtr ) {
 /* recreate string representation */
 void TPtr_UpdateStringProc( Tcl_Obj *objPtr ) {
     objPtr->bytes = ckalloc( 50 );
-    sprintf( objPtr->bytes, TP_FORMAT, objPtr->internalRep.twoPtrValue.ptr1, objPtr->internalRep.twoPtrValue.ptr2 );
+    sprintf( objPtr->bytes, TP_FORMAT, 
+	     objPtr->internalRep.twoPtrValue.ptr1, 
+	     objPtr->internalRep.twoPtrValue.ptr2 );
     objPtr->length = strlen( objPtr->bytes );
 }
 
 /* create copy */
 void TPtr_DupInternalRepProc( Tcl_Obj *srcPtr, Tcl_Obj *dupPtr ) {
-    make_TPtr( dupPtr, (int) srcPtr->internalRep.twoPtrValue.ptr1, srcPtr->internalRep.twoPtrValue.ptr2 );
+    make_TPtr( dupPtr, 
+	       (int) srcPtr->internalRep.twoPtrValue.ptr1, 
+	       srcPtr->internalRep.twoPtrValue.ptr2 );
 }
 
 int TPtr_Init( Tcl_Interp *ip ) {
@@ -82,7 +93,7 @@ Tcl_Obj *Tcl_NewTPtr( int type, void *ptr ) {
     return res;
 }
 
-/*::: TPtr_CheckArgs and friends :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*::: TPtr_CheckArgs and friends :::::::::::::::::::::::::::::::::::::::::::::*/
 
 typedef struct TPtrTypeInfo {
     int id;
@@ -112,7 +123,7 @@ void TPtr_RegType( int type, const char *name ) {
     }
     while ( NULL != *auxp ) 
 	auxp = &( (*auxp)->next );
-    if ( NULL == ( *auxp = (TPtrTypeInfo *) ckalloc( sizeof( TPtrTypeInfo ) ) ) ) {
+    if (NULL==(*auxp=(TPtrTypeInfo *) ckalloc( sizeof( TPtrTypeInfo )))) {
 	printf("Out of memory\n");
 	exit(1);
     }
@@ -217,7 +228,7 @@ int TPtr_CheckArgs( Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ... ) {
     return TCL_OK;
 }
 
-/*::: Helper functions :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*::: Helper functions :::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 Tcl_Obj *Tcl_ListFromArray( int *list, int len ) {
     Tcl_Obj *res, **array;

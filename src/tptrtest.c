@@ -17,21 +17,14 @@
 
 #include "tptr.h"
 
-#define RETINTERR( msg ) do { \
-  if ( NULL != ip ) \
-     Tcl_SetResult( ip, "Internal error (" msg ") in tptr::create", TCL_VOLATILE ); \
-  return TCL_ERROR; \
-} while (0) 
-
 int create( ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[] ) {
     int a,b;
 
     if ( TCL_OK != TPtr_CheckArgs( ip, objc, objv, TP_INT, TP_INT, TP_END ) ) 
 	return TCL_ERROR;
-    if ( TCL_OK != Tcl_GetIntFromObj( ip, objv[1], &a ) ) 
-	RETINTERR( "#1" );
-    if ( TCL_OK != Tcl_GetIntFromObj( ip, objv[2], &b ) ) 
-	RETINTERR( "#2" );
+
+    Tcl_GetIntFromObj( ip, objv[1], &a );
+    Tcl_GetIntFromObj( ip, objv[2], &b );
     
     Tcl_SetObjResult( ip, Tcl_NewTPtr( a, (void *) b ) );
     return TCL_OK;
@@ -44,9 +37,6 @@ int Tptrtest_Init( Tcl_Interp *ip ) {
     TPtr_Init( ip );
 
     Tcl_CreateObjCommand( ip, "tptr::create", create, 0, NULL );
-
-
-
 
     return TCL_OK;
 }
