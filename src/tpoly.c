@@ -21,7 +21,7 @@
 
 #include <string.h>
 
-#define FREETCLOBJ(obj) { Tcl_IncrRefCount(obj); Tcl_DecrRefCount(obj); }
+#define FREETCLOBJ(obj) { INCREFCNT(obj); DECREFCNT(obj); }
 
 #define RETERR(errmsg) \
 { if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; } 
@@ -321,8 +321,8 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
     int rval, rcode, ash, bsh;
     Tcl_Obj *ac = a, *bc = b;
 
-    Tcl_IncrRefCount(a);
-    Tcl_IncrRefCount(b);
+    INCREFCNT(a);
+    INCREFCNT(b);
 
     ash = Tcl_IsShared(a);
     bsh = Tcl_IsShared(b);
@@ -331,13 +331,13 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
                              PTR1(bc),PTR2(bc), 
                              &rval, (ash || bsh) ? 0 : PLF_ALLOWMODIFY)) {
 
-        Tcl_DecrRefCount(a);
-        Tcl_DecrRefCount(b);
+        DECREFCNT(a);
+        DECREFCNT(b);
         return Tcl_NewIntObj(rval);
     }
 
-    Tcl_DecrRefCount(a);
-    Tcl_DecrRefCount(b);
+    DECREFCNT(a);
+    DECREFCNT(b);
 
     /* need to modify the args, so have to use private copies */
 
@@ -347,8 +347,8 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
     rcode = PLcompare(PTR1(ac),PTR2(ac),PTR1(bc),PTR2(bc),&rval,PLF_ALLOWMODIFY);
 
     /* destroy private copies */
-    if (a != ac) Tcl_DecrRefCount(ac);
-    if (b != bc) Tcl_DecrRefCount(bc);
+    if (a != ac) DECREFCNT(ac);
+    if (b != bc) DECREFCNT(bc);
 
     return (SUCCESS == rcode) ? Tcl_NewIntObj(rval) : NULL;
 }
@@ -398,23 +398,23 @@ Tcl_Obj *Tcl_PolyObjSteenrodProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) 
 Tcl_Obj *Tcl_PolyObjGetCoeff(Tcl_Obj *obj, Tcl_Obj *exm, int mod) {
     int safeflags = 0, rval;
 
-    Tcl_IncrRefCount(obj);
+    INCREFCNT(obj);
 
     if (!Tcl_IsShared(obj)) safeflags |= PLF_ALLOWMODIFY;
     if (SUCCESS != PLcollectCoeffs(PTR1(obj),PTR2(obj),
                                    exmoFromTclObj(exm),&rval,mod,safeflags)) {
-        Tcl_DecrRefCount(obj);
+        DECREFCNT(obj);
         obj = Tcl_DuplicateObj(obj);   
-        Tcl_IncrRefCount(obj);
+        INCREFCNT(obj);
         
         if (SUCCESS != PLcollectCoeffs(PTR1(obj),PTR2(obj),
                                        exmoFromTclObj(exm),&rval,
                                        mod,PLF_ALLOWMODIFY)) {
-            Tcl_DecrRefCount(obj);
+            DECREFCNT(obj);
             return NULL;
         }
     }
-    Tcl_DecrRefCount(obj);
+    DECREFCNT(obj);
     return Tcl_NewIntObj(rval);
 }
 
@@ -475,7 +475,7 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
 
     for (i=0; i<(objc+1); i++) {
         if (NULL == (parray[i] = PLcreate(stdpoly))) {
-            for (;i--;) Tcl_DecrRefCount(array[i]); 
+            for (;i--;) DECREFCNT(array[i]); 
             freex(array); freex(parray);
             RETERR("out of memory");
         }
@@ -491,8 +491,8 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
         if (NULL == Tcl_ObjSetVar2(ip, objv[i], NULL,
                                    array[i+1], TCL_LEAVE_ERR_MSG)) {
             for (;i<objc;i++) 
-                Tcl_DecrRefCount(array[i+1]);
-            Tcl_DecrRefCount(array[0]);
+                DECREFCNT(array[i+1]);
+            DECREFCNT(array[0]);
             return TCL_ERROR;
         }
     
@@ -514,9 +514,9 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
 
         /* invoke filter proc */
 
-        if (NULL != cmd[1]) Tcl_DecrRefCount(cmd[1]); 
+        if (NULL != cmd[1]) DECREFCNT(cmd[1]); 
         cmd[1] = Tcl_NewExmoCopyObj(&mono); 
-        Tcl_IncrRefCount(cmd[1]);
+        INCREFCNT(cmd[1]);
 
         prc = Tcl_EvalObjv(ip, 2, cmd, 0); 
 
@@ -561,13 +561,13 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
     }
 
  leave:
-    if (NULL != cmd[1]) Tcl_DecrRefCount(cmd[1]); 
+    if (NULL != cmd[1]) DECREFCNT(cmd[1]); 
 
     freex(array);
     freex(parray);
 
     if (SUCCESS != rcode) 
-        Tcl_DecrRefCount(*res);
+        DECREFCNT(*res);
 
     return rcode;
 }
@@ -592,16 +592,16 @@ Tcl_Obj *TakePolyFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
         return NULL;
     }
 
-    Tcl_IncrRefCount(res);
+    INCREFCNT(res);
     if (NULL == Tcl_ObjSetVar2(ip, varname, NULL, Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
-        Tcl_DecrRefCount(res);
+        DECREFCNT(res);
         return NULL;
     }
 
     if (Tcl_IsShared(res)) {
-        Tcl_DecrRefCount(res);
+        DECREFCNT(res);
         res = Tcl_DuplicateObj(res);
-        Tcl_IncrRefCount(res);
+        INCREFCNT(res);
     }
 
     return res;
@@ -814,11 +814,11 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             assert(obj1 == varp[1]);
 
             if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, obj1, TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[1]);
+                DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
             
-            Tcl_DecrRefCount(varp[1]);
+            DECREFCNT(varp[1]);
             return TCL_OK;
             
         case VARCANCEL:
@@ -837,11 +837,11 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             assert(obj1 == varp[1]);
 
             if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[1]);
+                DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
             
-            Tcl_DecrRefCount(varp[1]);
+            DECREFCNT(varp[1]);
             return TCL_OK;
 
         case SPLIT:
@@ -865,16 +865,16 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_PolySplitProc(ip, objc-4, varp[1],
                                             objv[3], objv+4, &obj1)) {
-                Tcl_DecrRefCount(varp[1]);
+                DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
 
             if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, obj1, TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[1]);
+                DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
  
-            Tcl_DecrRefCount(varp[1]);
+            DECREFCNT(varp[1]);
             return TCL_OK;
            
         case SHIFT:
@@ -896,16 +896,16 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             obj = objv[2];
 
-            Tcl_IncrRefCount(obj);
+            INCREFCNT(obj);
             if (Tcl_IsShared(obj)) {
-                Tcl_DecrRefCount(obj);
+                DECREFCNT(obj);
                 obj = Tcl_DuplicateObj(obj);
-                Tcl_IncrRefCount(obj);
+                INCREFCNT(obj);
             }
 
             Tcl_SetObjResult(ip, Tcl_PolyObjShift(obj, ex, modval));
             
-            Tcl_DecrRefCount(obj);
+            DECREFCNT(obj);
             return TCL_OK;
 
         case REFLECT:

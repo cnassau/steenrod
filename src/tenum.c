@@ -57,7 +57,7 @@ typedef struct {
 
 #define TRYFREEOBJ(obj) \
 { if ((NULL != (obj)) && (needsUpdate != (obj) && (defaultParameter != (obj)))) \
-  { Tcl_DecrRefCount(obj); obj = NULL; }; }
+  { DECREFCNT(obj); obj = NULL; }; }
 
 #define FREERESRET { freex(res); return NULL; }
 #define FREERESRETERR(msg) \
@@ -215,7 +215,7 @@ int Tcl_EnumConfigureCmd(ClientData cd, Tcl_Interp *ip,
 
         if (needsUpdate == te->sig) {
             te->sig = Tcl_NewExmoCopyObj(&(te->enm->signature));
-            Tcl_IncrRefCount(te->sig);
+            INCREFCNT(te->sig);
         } 
 
         if (needsUpdate == te->genlist) {
@@ -227,7 +227,7 @@ int Tcl_EnumConfigureCmd(ClientData cd, Tcl_Interp *ip,
 co[0] = Tcl_NewStringObj(name,STRLEN(name));                            \
 co[1] = (NULL != (obj)) ? (obj) : Tcl_NewObj();                         \
 if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
-   { Tcl_DecrRefCount(res); return TCL_ERROR; };                        \
+   { DECREFCNT(res); return TCL_ERROR; };                        \
 }
 
         APPENDOPT("-prime", te->prime);
@@ -326,7 +326,7 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
             if ((NULL == te->prime) || (pi2 != pi)) {
                 TRYFREEOBJ(te->prime); 
                 te->prime = aux.prime; 
-                Tcl_IncrRefCount(te->prime);
+                INCREFCNT(te->prime);
                 te->cprime = 1;
             }
         }
@@ -335,7 +335,7 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
 #define SETOPT(old,new,flag)                                           \
 if (NULL != (new)) {                                                   \
    if (defaultParameter != (new)) {                                    \
-      TRYFREEOBJ(old); (old) = (new); Tcl_IncrRefCount(old); flag = 1; \
+      TRYFREEOBJ(old); (old) = (new); INCREFCNT(old); flag = 1; \
    } else { TRYFREEOBJ(old); (old) = NULL; flag = 1; } }
 
     SETOPT(te->alg, aux.alg, te->calg);
@@ -350,7 +350,7 @@ if (NULL != (new)) {                                                   \
         TRYFREEOBJ(te->genlist); 
         te->genlist = aux.genlist; 
         aux.genlist = NULL; te->cgenlist = 1;
-        Tcl_IncrRefCount(te->genlist);
+        INCREFCNT(te->genlist);
     }
 
     DOFLOG("Leaving Tcl_EnumConfigureCmd");
@@ -410,7 +410,7 @@ int Tcl_EnumBasisCmd(ClientData cd, Tcl_Interp *ip,
         do {
             Tcl_Obj *aux =  Tcl_NewExmoCopyObj(&(te->enm->theex));
             Tcl_AppendElement(ip, Tcl_GetString(aux));
-            Tcl_DecrRefCount(aux);
+            DECREFCNT(aux);
         } while (nextRedmon(te->enm));
     
     return TCL_OK;
@@ -459,7 +459,7 @@ int Tcl_EnumSeqnoCmd(ClientData cd, Tcl_Interp *ip,
 
                     if (TCL_ERROR == Tcl_ListObjAppendElement(ip, res, 
                                                               Tcl_NewIntObj(sqn))) {
-                        Tcl_DecrRefCount(res);
+                        DECREFCNT(res);
                         return TCL_ERROR;
                     }
                 } while (nextRedmon(enu));
@@ -606,7 +606,7 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
             aux = Tcl_NewExmoCopyObj(&ex);
             sprintf(err,"could not find {%s} in basis (found seqno = %d)",
                     Tcl_GetString(aux), sqn);
-            Tcl_DecrRefCount(aux);
+            DECREFCNT(aux);
             RETERR(err);
         }
         
@@ -664,7 +664,7 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             if (objc != 2) RETERR("wrong number of arguments");
             TRYFREEOBJ(te->sig); 
             memset(&ex, 0, sizeof(exmo));
-            te->sig = Tcl_NewExmoCopyObj(&ex); Tcl_IncrRefCount(te->sig); te->csig = 1;
+            te->sig = Tcl_NewExmoCopyObj(&ex); INCREFCNT(te->sig); te->csig = 1;
             return TCL_OK;
         case SIGNEXT: 
             if (objc != 2) RETERR("wrong number of arguments");
@@ -797,8 +797,8 @@ int Tenum_Init(Tcl_Interp *ip) {
     if (NULL == ourNegObj) 
         ourNegObj = Tcl_NewStringObj("negative", STRLEN("negative"));
 
-    Tcl_IncrRefCount(ourPosObj); 
-    Tcl_IncrRefCount(ourNegObj); 
+    INCREFCNT(ourPosObj); 
+    INCREFCNT(ourNegObj); 
 
     Tcl_CreateObjCommand(ip, POLYNSP "enumerator", 
                          Tcl_CreateEnumCmd, (ClientData) 0, NULL);

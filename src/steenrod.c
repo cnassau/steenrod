@@ -65,7 +65,7 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
                 "    (found sequence number %d)", 
                 Tcl_GetString(aux), idx);
         Tcl_SetResult(ip, err, TCL_VOLATILE);
-        Tcl_DecrRefCount(aux);
+        DECREFCNT(aux);
     }
 }
 
@@ -228,7 +228,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                     Tcl_Obj *aux = Tcl_NewExmoCopyObj(mc->srcx);
                     sprintf(err, "\nwhile computing image of {%s}", 
                             Tcl_GetString(aux));
-                    Tcl_DecrRefCount(aux);
+                    DECREFCNT(aux);
                     Tcl_AddObjErrorInfo(ip, err, strlen(err));
                 }
                 return FAIL;

@@ -54,5 +54,18 @@ if (_res) memset(_res, 0,_sz); (void *) _res; })
 #define TOSTRING(s) _cxstr(s)
 #define _cxstr(s) #s
 
+#define DONT_USE_VERB_REFCOUNTS
+
+/* wrappers for Tcl reference count management */
+#ifndef USE_VERB_REFCOUNTS
+#  define INCREFCNT(x) Tcl_IncrRefCount(x)
+#  define DECREFCNT(x) Tcl_DecrRefCount(x)
+#else 
+#  define INCREFCNT(x) \
+{ fprintf(stderr, "increfcnt %p " __FILE__ " %d\n", (x), __LINE__); Tcl_IncrRefCount(x); } 
+#  define DECREFCNT(x) \
+{ fprintf(stderr, "decrefcnt %p " __FILE__ " %d\n", (x), __LINE__); Tcl_DecrRefCount(x); } 
+#endif
+
 
 #endif

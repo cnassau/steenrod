@@ -36,7 +36,7 @@ void freeValues(momap *mo) {
     if (NULL != mo->values) { 
         int i, len = stdpoly->getNumsum(mo->keys);
         for (i=0;i<len;i++)
-            Tcl_DecrRefCount(mo->values[i]);
+            DECREFCNT(mo->values[i]);
         freex(mo->values); mo->values = NULL; mo->valloc = 0;
     }
 }
@@ -76,9 +76,9 @@ int momapRemoveValue(momap *mo, const exmo *key) {
 int momapSetValPtr(momap *mo, const exmo *key, Tcl_Obj *val) {
     Tcl_Obj **aux = momapGetValPtr(mo, key);
     if (LOGDATA) printf("momapGetValPtr set val %p\n",val);
-    Tcl_IncrRefCount(val);
+    INCREFCNT(val);
     if (NULL != aux) {
-        Tcl_DecrRefCount(*aux);
+        DECREFCNT(*aux);
         *aux = val;
     } else {
         int len = stdpoly->getNumsum(mo->keys);
@@ -86,7 +86,7 @@ int momapSetValPtr(momap *mo, const exmo *key, Tcl_Obj *val) {
             void *newptr = reallox(mo->values, 
                                    (len + MOMAPSTEPSIZE) * sizeof(Tcl_Obj *));
             if (NULL == newptr) { 
-                Tcl_DecrRefCount(val);
+                DECREFCNT(val);
                 return FAILMEM; 
             }
             mo->valloc = len + MOMAPSTEPSIZE; 
@@ -169,7 +169,7 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
                if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
                    return TCL_ERROR;
                if (Tcl_IsShared(*auxptr)) {
-                   Tcl_DecrRefCount(*auxptr);
+                   DECREFCNT(*auxptr);
                    *auxptr = Tcl_DuplicateObj(*auxptr);
                }
                Tcl_InvalidateStringRep(*auxptr);

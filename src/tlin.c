@@ -14,7 +14,7 @@
 #include "tlin.h"
 #include <string.h>
 
-#define FREETCLOBJ(obj) { Tcl_IncrRefCount(obj); Tcl_DecrRefCount(obj); }
+#define FREETCLOBJ(obj) { INCREFCNT(obj); DECREFCNT(obj); }
 
 #define RETERR(errmsg) \
 { if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
@@ -544,16 +544,16 @@ Tcl_Obj *TakeMatrixFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
         return NULL;
     }
 
-    Tcl_IncrRefCount(res);
+    INCREFCNT(res);
     if (NULL == Tcl_ObjSetVar2(ip, varname, NULL, Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
-        Tcl_DecrRefCount(res);
+        DECREFCNT(res);
         return NULL;
     }
      
     if (Tcl_IsShared(res)) {
-        Tcl_DecrRefCount(res);
+        DECREFCNT(res);
         res = Tcl_DuplicateObj(res);
-        Tcl_IncrRefCount(res);
+        INCREFCNT(res);
     }
 
     return res;
@@ -573,16 +573,16 @@ Tcl_Obj *TakeVectorFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
         return NULL;
     }
 
-    Tcl_IncrRefCount(res);
+    INCREFCNT(res);
     if (NULL == Tcl_ObjSetVar2(ip, varname, NULL, Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
-        Tcl_DecrRefCount(res);
+        DECREFCNT(res);
         return NULL;
     }
      
     if (Tcl_IsShared(res)) {
-        Tcl_DecrRefCount(res);
+        DECREFCNT(res);
         res = Tcl_DuplicateObj(res);
-        Tcl_IncrRefCount(res);
+        INCREFCNT(res);
     }
 
     return res;
@@ -643,17 +643,17 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
                 return TCL_ERROR;
             
             if (TCL_OK != Tcl_QuotCmd(pi, varp[1], objv[4], ip, THEPROGVAR, theprogmsk)) {
-                Tcl_DecrRefCount(varp[1]);
+                DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
 
             /* put result into var1 */
             if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[1]);
+                DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
 
-            Tcl_DecrRefCount(varp[1]);
+            DECREFCNT(varp[1]);
             return TCL_OK;
 
         case LIFT: 
@@ -671,16 +671,16 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             varp[3] = Tcl_LiftCmd(pi, objv[3], varp[2], ip, THEPROGVAR, theprogmsk);
 
             if (NULL == varp[3]) {
-                Tcl_DecrRefCount(varp[2]);
+                DECREFCNT(varp[2]);
                 return TCL_ERROR;
             }
 
             if (NULL == Tcl_ObjSetVar2(ip, objv[4], NULL, varp[2], TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[2]);
+                DECREFCNT(varp[2]);
                 return TCL_ERROR;
             }
 
-            Tcl_DecrRefCount(varp[2]);
+            DECREFCNT(varp[2]);
 
             Tcl_SetObjResult(ip, varp[3]);
             return TCL_OK;
@@ -697,17 +697,17 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             varp[2] = Tcl_OrthoCmd(pi, varp[1], ip, THEPROGVAR, theprogmsk);
             
             if (NULL == varp[2]) {
-                Tcl_DecrRefCount(varp[1]);
+                DECREFCNT(varp[1]);
                 RETERR("orthonormalization failed");
             }
 
             /* set variables and return */
             if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL,
                                        varp[1], TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[1]);
+                DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
-            Tcl_DecrRefCount(varp[1]);
+            DECREFCNT(varp[1]);
 
             if (NULL == Tcl_ObjSetVar2(ip, objv[4], NULL,
                                        varp[2], TCL_LEAVE_ERR_MSG))
@@ -783,13 +783,13 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
                 return TCL_ERROR;
 
             if (TCL_OK != MAddCmd(ip, varp[1], objv[3], scale, modval)) {
-                Tcl_DecrRefCount(varp[1]);
+                DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
             
             if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL,
                                        varp[1], TCL_LEAVE_ERR_MSG)) {
-                Tcl_DecrRefCount(varp[1]);
+                DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
 
