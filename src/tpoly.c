@@ -729,10 +729,12 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             return TCL_OK;
             
         case CANCEL:
-            EXPECTARGS(2, 2, 2, "<polynomial> <integer>"); 
+            EXPECTARGS(2, 1, 2, "<polynomial> ?<integer>?"); 
 
-            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &modval))
-                return TCL_ERROR;
+            modval = 0;
+            if (objc > 3)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &modval))
+                    return TCL_ERROR;
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
                 return TCL_ERROR;
@@ -860,10 +862,12 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             return TCL_OK;
             
         case VARCANCEL:
-            EXPECTARGS(2, 2, 2, "<variable> <integer>"); 
+            EXPECTARGS(2, 1, 2, "<variable> ?<integer>?"); 
 
-            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &modval))
-                return TCL_ERROR;
+            modval = 0;
+            if (objc > 3)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &modval))
+                    return TCL_ERROR;
 
             if (NULL == (varp[1] = TakePolyFromVar(ip, objv[2])))
                 return TCL_ERROR;
