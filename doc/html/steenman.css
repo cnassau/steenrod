@@ -2,12 +2,12 @@
  * based on Joe English's CSS stylesheet for TCL man pages */
 
 HTML {
-    background: 	#FFFFFF;
+    background: 	#ffdead;
     color: 		black;
 }
 
 BODY {
-    background: 	#FFFFFF;
+    background: 	#FFdead;
     color:	 	black;
     font-family:        serif;
 }
@@ -70,7 +70,7 @@ H1, H2, H3, H4 {
     font-family:	cursive;
     font-size:		medium;
     color:		black;
-    background: 	#beef00;
+    background: 	#00beef;
     text-align:		left;
     letter-spacing:     3pt;
     padding-left:       1em;
@@ -151,14 +151,14 @@ PRE {
 
 PRE.syntax {
     color: 		black;
-    background: 	#0deaf0;
+    background: 	#efef66;
     border:		1px solid black;
     font-family:	serif;
 }
 
 PRE.example {
     color: 		black;
-    background: 	#f5dcb3;
+    background: 	#66deaf;
     border:		1px solid black;
 }
 
