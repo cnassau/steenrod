@@ -45,6 +45,7 @@ int exmoIsBelow(const exmo *a, const exmo *b);
 int compareExmo(const void *aa, const void *bb);
 
 void copyExmo(exmo *dest, const exmo *src);
+void clearExmo(exmo *e);
 
 #define USENEGSHIFT 2 /* reflect arguments at -1 */
 #define ADJUSTSIGNS 1 /* should we just xor the exterior data,

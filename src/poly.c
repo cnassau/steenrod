@@ -53,6 +53,11 @@ void copyExmo(exmo *dest, const exmo *src) {
     memcpy(dest,src,sizeof(exmo));
 }
 
+void clearExmo(exmo *e) {
+    memset(e,0,sizeof(exmo));
+    e->coeff = 1;
+}
+
 void shiftExmo(exmo *e, const exmo *s, int flags) {
     int i;
     if (0 != (flags & USENEGSHIFT)) {
