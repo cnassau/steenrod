@@ -44,6 +44,16 @@ and stores the result in [arg matVar].
 Creates a new matrix by extracting some rows or columns
 from the given matrix [arg matrix]. [arg list] is the list of indices
 of the rows or columns that should be extracted.
+[list_end]
+
+[para]
+The next three commands carry out more advanced tasks. Since these can take
+a long time to complete it is advisable to arrange the use of a progress 
+indicator variable. By putting an appropriate write trace on that variable
+one can ensure that user interaction will remain possible during the computation.   
+An exmaple is shown below.
+
+[list_begin definitions]
 
 [lst_item "[cmd matrix] [cmd orthonormalize] [arg prime] [arg matVar1] [arg matVar2]"]
 This routine orthonormalizes the rows of the matrix given in [arg matVar1] modulo
@@ -57,7 +67,7 @@ This command computes the quotient "$[arg matVar] / [arg matrix]" and stores
 the result back into [arg matVar]. [nl]
 
 [strong Note]: The command assumes that [arg matrix] is the result of a previous
-invokation of [cmd "matrix orthonormalize"]. It will [emph not] work
+invocation of [cmd "matrix orthonormalize"]. It will [emph not] work
 correctly otherwise!
 
 [lst_item "[cmd matrix] [cmd lift] [arg prime] [arg matrix] [arg matVar]"]
@@ -68,27 +78,30 @@ and stores the remainders "$[arg matVar] - [arg matrix] * [arg preim]"
 back into [arg matVar]. [nl]
 
 [strong Note]: The command assumes that [arg matrix] is the result of a previous
-invokation of [cmd "matrix orthonormalize"]. It will [emph not] work
+invocation of [cmd "matrix orthonormalize"]. It will [emph not] work
 correctly otherwise!
 
 
 [list_end]
 
-[section Example]
+[section Examples]
+
+This example shows how to keep up user interaction 
+while running [cmd "matrix orthonormalize"],
+[cmd "matrix quotient"] or [cmd "lift"].
+
+[para]
 [example {
-package require Steenrod
-namespace import steenrod::*
+   # choose a name for the progress indicator variable
+   set steenrod::_progvarname ourProgVar 
 
-# print binomial table mod 5 
+   # define a callback proc that invokes update
+   proc ourTraceProc {args} { update }
 
-for {set i 0} {$i<=25} {incr i} {
-    set line ""
-    for {set j 0} {$j<=40} {incr j} {
-        append line [prime 5 binom $i $j]
-    }   
-    puts [string map {"0" " "} $line]
-}
+   # put write trace on the progress variable.  
+   trace add variable ourProgVar write ourTraceProc 
 }]
+
 
 [see_also enumerator linalg matrix mono monomap poly prime ]
 

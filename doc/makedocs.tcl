@@ -31,6 +31,8 @@ foreach name $flst {
 
     puts "-> $name"
 
+    foreach fmt {2html 2man 2tmml} { $fmt configure -file $name }
+
     set inp [open $name]
     set data [read $inp]
     close $inp
