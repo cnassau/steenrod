@@ -1,6 +1,6 @@
 #!/usr/bin/tclsh
 #
-# Move (library) file to platform specific library path  
+# Copy library files to platform specific library path  
 #
 # Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
 #
@@ -13,21 +13,22 @@
 
 set targdir [file join .. lib $tcl_platform(os)]
 
-if {[llength $argv] != 1} {
-    puts "use \"$argv0 <file>\" to move file into $targdir"
+if {[llength $argv] < 1} {
+    puts "use \"$argv0 <file1> <file2> ... \" to copy files into $targdir"
     exit 1
 }
 
-set fname [lindex $argv 0]
+foreach fname $argv {
 
-if {![file readable $fname]} {
-    puts "Can't read file $fname"
-    exit 1
+    if {![file readable $fname]} {
+        puts "Can't read file $fname"
+        exit 1
+    }
+
+    if {![file isdirectory $targdir]} {
+        file mkdir $targdir
+    }
+
+    file copy -force $fname $targdir
+    #file delete $fname 
 }
-
-if {![file isdirectory $targdir]} {
-    file mkdir $targdir
-}
-
-file copy -force $fname $targdir
-file delete $fname 

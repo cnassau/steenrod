@@ -35,7 +35,7 @@ objects: $(OBJS)
 libraries: $(LIBS)
 
 install: libraries
-	for i in $(LIBS) ; do instlib.tcl $$i ; done; 
+	instlib.tcl $(LIBS)
 
 %.c : %.nw
 	$(NOTANGLE) -L -R$*.c $(NOWEBFILES) > $*.c
