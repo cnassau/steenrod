@@ -11,6 +11,7 @@
  *
  */
 
+#include "steenrod.h" 
 #include "tlin.h"
 #include <string.h>
 
@@ -613,11 +614,6 @@ Tcl_Obj *TakeVectorFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
 /**** Implementation of the matrix combi-command ***********************************/
 
-static char *theprogvar;
-static int   theprogmsk;
-
-#define THEPROGVAR ((*theprogvar) ? theprogvar : NULL)
-
 static CONST char *rcnames[] = { "rows", "cols", NULL };
 
 typedef enum { ORTHO, LIFT, QUOT, DIMS, CREATE, ADDTO, 
@@ -879,13 +875,8 @@ int Tlin_Init(Tcl_Interp *ip) {
     }
 
     Tcl_CreateObjCommand(ip, NSP "matrix", MatrixCombiCmd, (ClientData) 0, NULL);
-
-    Tcl_LinkVar(ip, NSP "progvar", (char *) &theprogvar, TCL_LINK_STRING);
-    Tcl_LinkVar(ip, NSP "progsteps", (char *) &theprogmsk, TCL_LINK_INT);
     Tcl_LinkVar(ip, NSP "_matCount", (char *) &matCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
     
-    theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 100;
-        
     Tcl_Eval(ip, "namespace eval " NSP " { namespace export * }");
 
     return TCL_OK;

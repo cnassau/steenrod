@@ -11,6 +11,8 @@
  *
  */
 
+#define STEENROD_C
+
 #include <tcl.h>
 #include <string.h>
 #include "tprime.h"
@@ -18,7 +20,6 @@
 #include "tlin.h"
 #include "steenrod.h"
 #include "mult.h"
-
 
 /* Our multiplication callback function. This interprets ma's client
  * data fields as follows:
@@ -545,6 +546,9 @@ int GetRefCount(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
+char *theprogvar; /* ckalloc'ed name of the progress variable */
+int   theprogmsk; /* progress reporting granularity */
+
 int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_InitStubs(ip, "8.0", 0);
@@ -567,6 +571,15 @@ int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_CreateObjCommand(ip, POLYNSP "_refcount",
                          GetRefCount, (ClientData) 0, NULL);
+
+    /* create links for progress reporting */
+    Tcl_UnlinkVar(ip, POLYNSP "_progvarname");
+    Tcl_UnlinkVar(ip, POLYNSP "_progsteps");
+
+    Tcl_LinkVar(ip, POLYNSP "_progvarname", (char *) &theprogvar, TCL_LINK_STRING);
+    Tcl_LinkVar(ip, POLYNSP "_progsteps", (char *) &theprogmsk, TCL_LINK_INT);
+
+    theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 100;
 
     Tcl_Eval(ip, "namespace eval " POLYNSP " { namespace export -clear \\[a-zA-Z\\]* }");
 

@@ -19,6 +19,13 @@
 #include "tenum.h"
 #include "linwrp.h"
 
+#ifndef STEENROD_C
+extern char *theprogvar; /* ckalloc'ed name of the progress variable */
+extern int   theprogmsk; /* progress reporting granularity */
+#endif
+
+#define THEPROGVAR ((*theprogvar) ? theprogvar : NULL)
+
 int Steenrod_Init(Tcl_Interp *ip) ;
 
 #endif
