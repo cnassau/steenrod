@@ -525,6 +525,7 @@ while {$repcnt} {
         puts stderr "monCount = $steenrod::_monCount"
         puts stderr "matCount = $steenrod::_matCount"
         puts stderr "vecCount = $steenrod::_vecCount"
+        puts stderr "objCount = $steenrod::_objCount"
         catch {
             puts stderr [format "memory   = %s kB" \
                              [lindex [exec egrep VmRSS [file join /proc [pid] status]] 1]]
@@ -534,3 +535,14 @@ while {$repcnt} {
 }
 
 finito
+
+if 0 {
+    # useful for debugging memory leaks: explicitly destroy everything 
+    foreach v [info var] { catch {unset $v} }
+    foreach c [info commands *] {
+        switch -- $c {
+            "switch" - "if" - "catch" - "foreach" - "rename" {}
+            default { catch { rename $c "" } }
+        }
+    }
+}

@@ -607,6 +607,9 @@ int Steenrod_Init(Tcl_Interp *ip) {
 
     theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 0xf;
 
+    Tcl_UnlinkVar(ip, POLYNSP "_objCount");
+    Tcl_LinkVar(ip, POLYNSP "_objCount", (char *) &objCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
+
     Tcl_Eval(ip, "namespace eval " POLYNSP " { namespace export -clear \\[a-zA-Z\\]* }");
 
 #if 0
