@@ -20,7 +20,7 @@
 #include "linwrp.h"
 
 /* the namespace for our commands */
-#define NSP "linalg::"
+#define NSP "steenrod::"
 
 int Tcl_ConvertToVector(Tcl_Interp *ip, Tcl_Obj *obj);
 int Tcl_ObjIsVector(Tcl_Obj *obj);

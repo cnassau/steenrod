@@ -17,8 +17,8 @@
 #include <assert.h>
 
 /* namespaces */
-#define POLYNSP "poly::"
-#define MONONSP "mono::"
+#define POLYNSP "steenrod::"
+#define MONONSP "steenrod::"
 
 /* error codes */
 #define SUCCESS         0 
