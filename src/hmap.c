@@ -184,14 +184,20 @@ void copyTensor(hmap_tensor *dst, hmap_tensor *src, int numMono, int numInt) {
 }
 
 void multTensor(hmap_tensor *dst, hmap_tensor *src, int scale, int numMono, int numInt, int modval) {
-    int i,j;
+    int i,j,sign=0;
     dst->coeff = 1;
     for (i=0;i<numMono;i++) {
+        if (1 & sign) 
+            if (1 & BITCOUNT(dst->edat[i].ext))
+                dst->coeff = - dst->coeff;
         shiftExmo2(&(dst->edat[i]),&(src->edat[i]),scale,ADJUSTSIGNS);
+        dst->coeff *= dst->edat[i].coeff;
+        dst->edat[i].coeff = 1;
         for (j=scale;j--;) {
             dst->coeff *= src->coeff; 
             if (modval) dst->coeff %= modval;
         }
+        sign += BITCOUNT(src->edat[i].ext);
     }
     for (i=0;i<numInt;i++) {
         dst->idat[i] += src->idat[i] * scale;
@@ -475,7 +481,9 @@ int hmapParseSummand(hmap *hm, hmap_summand *nsum,  Tcl_Interp *ip, Tcl_Obj *obj
     if (TCL_OK != Tcl_ConvertToExmo(ip, lst[2]))
         RETERR3;
 
+#if 0
     copyExmo(&(nsum->source), exmoFromTclObj(lst[2]));
+#endif
 
     if (TCL_OK != Tcl_GetIntFromObj(ip, lst[3], &aux)) 
         RETERR3;
@@ -746,6 +754,33 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
 
         next->source.dat[current->idx] = sum;
         next->pardat.coeff = newcoeff;
+
+    } else {
+
+        int sign, val = 1 << current->idx;
+
+        copyTensor(&(next->pardat),&(current->pardat),hm->numMono,hm->numInt);
+        copyExmo(&(next->source),&(current->source));
+
+        if (0 == current->value) 
+            return;
+
+        if (0 != (current->source.ext & val)) {
+            next->pardat.coeff = 0;
+            return;
+        }
+
+        sign = SIGNFUNC(next->source.ext, val);
+
+        /* TODO: check the signs! the current code is almost surely not correct! */
+
+        multTensor(&(next->pardat),&(current->sumdat),
+                   current->value,hm->numMono,hm->numInt,hm->modval);
+
+        if (1 & sign) 
+            next->pardat.coeff = -next->pardat.coeff;
+        next->source.ext |= val; 
+ 
     }
 
 }
