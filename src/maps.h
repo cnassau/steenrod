@@ -14,6 +14,7 @@
 #ifndef MAPS_DEF
 #define MAPS_DEF
 
+#include <common.h>
 #include <prime.h>
 
 /* a sum of reduced powers with a common exterior component and generator */
@@ -49,6 +50,15 @@ typedef struct {
     int alloc;
     mapgenimage *dat;
 } map;
+
+mapsum *mapsumCreate(void);
+void mapsumDestroy(mapsum *mp);
+int mapsumSetlen(mapsum *mp, int len);
+int mapsumRealloc(mapsum *mp, int nalloc);
+mapgenimage *mapgenimageCreate(void);
+int mapgenimageRealloc(mapgenimage *mim, int nalloc);
+map *mapCreate(void);
+int mapRealloc(map *mp, int nalloc);
 
 #endif
 
