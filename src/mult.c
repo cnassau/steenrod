@@ -67,13 +67,16 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
     const exmo *sfx; int idx, i; cint c; 
     int prime = ma->pi->prime; 
     primeInfo *pi = ma->pi;
+    int proext = (NULL == ma->profile) ? 0 : ma->profile->ext;
     for (idx = 0; SUCCESS == (ma->getExmoSF)(ma,SECOND_FACTOR,&sfx,idx); idx++) {
-        exmo res;
+        exmo res; int aux;
         c = coeff;
         /* first check exterior part */
         if (ma->esum[1] != (sfx->ext & ma->esum[1])) continue;
-        if (0 != ((sfx->ext ^ ma->esum[1]) & ma->emsk[1])) continue;
-        res.ext = (sfx->ext ^ ma->esum[1]) | ma->emsk[1];
+        aux = (sfx->ext ^ ma->esum[1]);
+        if (0 != (aux & proext)) continue;
+        if (0 != (aux & ma->emsk[1])) continue;
+        res.ext = aux | ma->emsk[1];
         if (0 != (1 & (SIGNFUNC(ma->emsk[1], sfx->ext ^ ma->esum[1])
                        + SIGNFUNC(ma->esum[1], sfx->ext ^ ma->esum[1]))))
             c = prime - c;
@@ -81,6 +84,11 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
         for (i=NALG;c && i--;) {
             xint aux, aux2;
             aux  = sfx->dat[i] + ma->sum[0][i+1];
+            if (NULL != ma->profile)
+                if (0 != (aux % (ma->profile->dat[i]))) {
+                    c = 0; 
+                    break;
+                }
             aux2 = ma->msk[1][i];
             if ((0 > (res.dat[i] = aux + aux2)) && ma->sfIsPos) {
                 c = 0;
@@ -102,10 +110,12 @@ void stdFetchFuncFF(struct multArgs *ma, int coeff) {
     const exmo *ffx; int idx, i; cint c; 
     int prime = ma->pi->prime; 
     primeInfo *pi = ma->pi;
+    int proext = (NULL == ma->profile) ? 0 : ma->profile->ext;
     for (idx = 0; SUCCESS == (ma->getExmoFF)(ma,FIRST_FACTOR,&ffx,idx); idx++) {
         exmo res;
         c = coeff;
         /* first check exterior part */
+        if (0 != (ma->emsk[1] & proext)) continue;
         if (0 != (ma->emsk[1] & ffx->ext)) continue;
         if (0 != (1 & SIGNFUNC(ffx->ext, ma->emsk[1]))) c = prime-c;
         /* check reduced component */
@@ -113,14 +123,18 @@ void stdFetchFuncFF(struct multArgs *ma, int coeff) {
             xint aux, aux2;
             aux  = ffx->dat[i] + ma->sum[i+1][0];
             aux2 = ma->msk[i][1];
+            if (NULL != ma->profile)
+                if (0 != ((aux2 + ma->sum[i+1][0]) % ma->profile->dat[i])) {
+                    c = 0;
+                    break;
+                }
             res.dat[i] = aux + aux2;
             c = XINTMULT(c, binomp(pi, res.dat[i], aux), prime);
         }
         if (0 == c) continue;
         res.coeff = XINTMULT(c, ffx->coeff, prime);
         res.ext = ffx->ext | ma->emsk[1];
-        /* WRONG: really take gen id from first summand ??? */
-        res.gen = ffx->gen; /* should this be done in the callback function ? */
+        res.gen = ma->sfid; /* shouldn't this be done in the callback function ? */
         (ma->stdSummandFunc)(ma, &res);
     }
 }
@@ -328,6 +342,7 @@ void workPAchain(multArgs *ma) {
         /* clear matrices */
         memset(ma->msk, 0, sizeof(xint)*(NALG+1)*(NALG+1));
         memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
+        ma->ffid = m->gen;
         /* initialize oldmsk, sum, res */
         for (i=NALG;i--;) { ma->sum[0][i+1]=0; ma->msk[i+1][0]=m->dat[i]; }
         inirow = 1 + ma->ffMaxLength;
@@ -338,10 +353,11 @@ void workPAchain(multArgs *ma) {
 
 void workAPchain(multArgs *ma) {
     int i, idx, inicol; const exmo *m;
-    for (idx=0; SUCCESS == (ma->getExmoFF)(ma,SECOND_FACTOR,&m,idx); idx++) {
+    for (idx=0; SUCCESS == (ma->getExmoSF)(ma,SECOND_FACTOR,&m,idx); idx++) {
         /* clear matrices */
         memset(ma->msk, 0, sizeof(xint)*(NALG+1)*(NALG+1));
         memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
+        ma->sfid = m->gen;
         /* initialize oldmsk, sum, res*/
         for (i=NALG;i--;) { ma->sum[i+1][0]=0; ma->msk[0][i+1]=m->dat[i]; }
         inicol = 1 + ma->sfMaxLength;
