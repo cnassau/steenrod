@@ -122,7 +122,7 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
 Tcl_Obj *Tcl_NewListFromExmo(Tcl_Obj *objPtr) {
     exmo *e = (exmo *) PTR1(objPtr);
     Tcl_Obj *res, *(objv[4]), **arr; 
-    int i, len = exmoGetLen(e);
+    int i, len = exmoGetRedLen(e);
     arr = (Tcl_Obj **) ckalloc(sizeof(Tcl_Obj *)*len);
     for (i=0;i<len;i++) arr[i] = Tcl_NewIntObj(e->dat[i]);
     objv[0] = Tcl_NewIntObj(e->coeff);
