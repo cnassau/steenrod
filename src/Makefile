@@ -16,8 +16,9 @@ TCLDIR = /home/cn/selfmade-tcl/include/
 NOTANGLE = notangle
 NOWEAVE  = noweave
 
-SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c
-OBJS = adlin.o linalg.o poly.o prime.o tlin.o tprime.o tptr.o tptrtest.o
+SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c tpoly.c
+OBJS = $(SRCS:.c=.o)
+
 LIBS = libtlin.so libtprime.so libtptrtest.so
 
 LINKSTUB = cc -shared -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
@@ -71,3 +72,4 @@ tlin.o: tlin.h tptr.h tprime.h adlin.h linalg.h prime.h
 tprime.o: tprime.h tptr.h prime.h
 tptr.o: tptr.h
 tptrtest.o: tptr.h
+tpoly.o: tptr.h tpoly.h tprime.h poly.h prime.h
