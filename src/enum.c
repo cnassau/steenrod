@@ -590,6 +590,7 @@ int firstRedmon(enumerator *en) {
     if (NULL == en->efflist) 
         enmRecreateEfflist(en);
     en->gencnt = 0;
+    en->theex.coeff = 1;
     return nextRedmonAux(en);
 }
 

@@ -140,13 +140,13 @@ int stdGetExmoFunc(multArgs *ma, int factor, const exmo **ret, int idx) {
 }
 
 int stdGetSingleExmoFunc(multArgs *ma, int factor, const exmo **ret, int idx) {
-    if (idx) return 0;
+    if (idx) return FAIL;
     if (0 != (FIRST_FACTOR & factor)) {
         *ret = (exmo *) ma->ffdat;
     } else {
         *ret = (exmo *) ma->sfdat;
     }
-    return 1;
+    return SUCCESS;
 }
 
 /* initxfPA & initxfAP are helper functions for initMultargs */

@@ -34,6 +34,7 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
     matrixType *mtp = (matrixType *) ma->cd1;
     void *mat = ma->cd2;
     enumerator *dst = (enumerator *) ma->cd3;
+    int row = (int) ma->cd5;
     int idx;
     int rcode;
 
@@ -44,8 +45,10 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
         return;
     }
 
-    rcode = mtp->addToEntry(mat, (int) ma->cd5, idx, smd->coeff, ma->prime);
-    
+    printf("add %d to (%d,%d)\n", smd->coeff, row, idx);
+
+    rcode = mtp->addToEntry(mat, row, idx, smd->coeff, ma->prime);
+
     if (SUCCESS != rcode) 
         ma->cd4 = (void *) rcode;
 }
@@ -109,11 +112,13 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
     ma->cd2 = *mat;
     ma->cd3 = dst;
     ma->cd4 = SUCCESS;
-    ma->cd5 = 0;
+    ma->cd5 = (void *) -1;
     ma->stdSummandFunc = &addToMatrixCB;
 
     if (firstRedmon(src)) 
         do {
+            ++((int) ma->cd5); /* row indicator */
+
             /* find differential of src->theex'es generator */
             ma->ffdat = &(src->theex);
             ma->ffMaxLength = exmoGetRedLen(&(src->theex));
@@ -162,8 +167,6 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
                 ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
 
             }
-            
-            ++((int) ma->cd5); /* row indicator */
 
             if (NULL == dg) continue;
      

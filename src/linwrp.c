@@ -119,6 +119,7 @@ void stdQuotFunc(primeInfo *pi, void *ker, void *im, progressInfo *prg) {
 matrixType stdMatrixType = {
     .getEntry      = stdGetEntry,
     .setEntry      = stdSetEntry,
+    .addToEntry    = stdAddToEntry,
     .getDimensions = stdGetDimensions,
     .createMatrix  = stdCreateMatrix,
     .createCopy    = stdCreateMCopy,
