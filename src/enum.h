@@ -25,7 +25,7 @@ typedef struct {
 
 typedef struct {
     /* description of the algebra/subalgebra pair */
-    exmo      *algebra, *profile;
+    exmo       algebra, profile;
     primeInfo *pi;
 
     /* genList is a list of 4-tuples (gen-id, ideg, edeg, hdeg) */

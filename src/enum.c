@@ -32,12 +32,6 @@ void enmDestroySeqtab(enumerator *en) {
     }
 }
 
-void enmDestroyAlgPair(enumerator *en) {
-    FREEPTR(en->algebra);
-    FREEPTR(en->profile);
-    en->pi = NULL;
-}
-
 void enmDestroySeqOff(enumerator *en) {
     FREEPTR(en->seqoff);
 }
@@ -55,7 +49,7 @@ void enmDestroyGenList(enumerator *en) {
 }
 
 void enmDestroy(enumerator *en) {
-    enmDestroyAlgPair(en);
+    en->pi = NULL;
     enmDestroyGenList(en);
     enmDestroySeqtab(en);
 }
@@ -103,7 +97,7 @@ int enmRecreateEfflist(enumerator *en) {
         int id = glp[0], ideg = glp[1], edeg = glp[2], hdeg = glp[3];
         if ((edeg <= en->edeg) && (ideg <= en->ideg) && (hdeg == en->hdeg)) {
             int rideg = en->ideg - ideg, redeg = en->edeg - edeg;
-            ext = getMaxExterior(en->pi, en->algebra, en->profile, rideg);
+            ext = getMaxExterior(en->pi, &(en->algebra), &(en->profile), rideg);
             for (;ext>=0;ext--) 
                 if (BITCOUNT(ext) == redeg) {
                     int extideg = extdeg(en->pi, ext);
@@ -140,7 +134,7 @@ int enmRecreateEfflist(enumerator *en) {
 int enmCreateSeqtab(enumerator *en, int maxdim) {
     primeInfo *pi = en->pi;    
     int reddim, i, j, k, n;
-    exmo *alg = en->algebra, *pro = en->profile;
+    exmo *alg = &(en->algebra), *pro = &(en->profile);
 
     if (NULL == pi) return FAILIMPOSSIBLE;
     enmDestroySeqtab(en);
@@ -163,13 +157,13 @@ int enmCreateSeqtab(enumerator *en, int maxdim) {
     /* compute effective degrees */
     for (i=NALG;i--;) {
         double aux = pi->reddegs[i]; 
-        if (NULL != pro) aux *= pro->dat[i];
+        aux *= pro->dat[i];
         if (aux > (65536.0 * 32000.0)) {
             /* we choose a very, very big fantasy value */
             en->effdeg[i] = 0xefffffff;
         } else { 
             en->effdeg[i] = pi->reddegs[i];
-            if (NULL != pro) en->effdeg[i] *= pro->dat[i]; 
+            en->effdeg[i] *= pro->dat[i]; 
         }
     }
     
@@ -177,8 +171,7 @@ int enmCreateSeqtab(enumerator *en, int maxdim) {
 
     /* dimtab[0] is the dimension of k[xi_1] (restricted to A//B) */
     for (j=0;j<reddim;j++)
-        if (((NULL == alg) || (j < alg->dat[0]))
-            && ((NULL == pro) || ((j % pro->dat[0]) == 0)))
+        if ((j < alg->dat[0]) && ((j % pro->dat[0]) == 0))
             en->dimtab[0][j] = 1;
         else
             en->dimtab[0][j] = 0;
@@ -188,8 +181,7 @@ int enmCreateSeqtab(enumerator *en, int maxdim) {
         for (j=0;j<reddim;j++) {
             int sum=0, d = pi->reddegs[i];
             for (k=j/d;k>=0;k--)
-                if (((NULL == alg) || (k<alg->dat[i]))
-                    && ((NULL == pro) || ((k % pro->dat[i]) == 0)))
+                if ((k<alg->dat[i]) && ((k % pro->dat[i]) == 0))
                     sum += en->dimtab[i-1][j-k*d];
             en->dimtab[i][j] = sum;
         }
@@ -216,9 +208,8 @@ int algSeqnoWithRDegree(enumerator *en, exmo *ex, int deg) {
     int res=0, k;
     for (k=NALG-1;k--;) {
         int prd, maxdeg, actdeg;
-        prd = (NULL == en->profile) ? 1 : en->profile->dat[k];
-        maxdeg = (NULL == en->algebra) ? deg : 
-            ((en->algebra->dat[k] - prd) * en->pi->reddegs[k]);
+        prd = en->profile.dat[k];
+        maxdeg = (en->algebra.dat[k] - prd) * en->pi->reddegs[k];
         actdeg = ex->dat[k] * en->pi->reddegs[k];
         if (maxdeg > deg) maxdeg = deg;
         res += en->seqtab[k][deg - actdeg] - en->seqtab[k][deg - maxdeg];
@@ -271,7 +262,7 @@ int nextExmoAux(enumerator *en) {
     exmo *ex = &(en->varex);
     do {
         if (0 == (msk=ex->ext)) return 0;
-        while (0 != ((--msk) & (en->profile->ext))) ;
+        while (0 != ((--msk) & (en->profile.ext))) ;
         edeg = extdeg(en->pi, msk); ex->ext = msk;
         en->remdeg = en->totdeg - edeg;
         if (firstRedmon(en, en->remdeg)) return 1;
@@ -281,7 +272,7 @@ int nextExmoAux(enumerator *en) {
 int firstExmon(enumerator *en, int deg) {
     exmo *ex = &(en->varex);
     en->remdeg = en->totdeg = deg;
-    ex->ext = getMaxExterior(en->pi, en->algebra, en->profile, en->remdeg);
+    ex->ext = getMaxExterior(en->pi, &(en->algebra), &(en->profile), en->remdeg);
     en->remdeg -=  extdeg(en->pi, ex->ext);
     en->extdeg = deg - en->remdeg;
     if (firstRedmon(en, en->remdeg)) return 1;
@@ -302,14 +293,12 @@ int firstRedmon(enumerator *en, int deg) {
     deg /= en->pi->tpmo;
     for (i=NALG;i--;) {
         int nval = deg / en->pi->reddegs[i];
-        /* restrict redpows to env->alg */
-        if ((NULL != en->algebra) && (nval > en->algebra->dat[i]-1)) 
-            nval = en->algebra->dat[i]-1;
-        /* remove part forbidden by env->pro */
-        if (NULL != en->profile) {
-            nval /= en->profile->dat[i]; 
-            nval *= en->profile->dat[i];
-        }
+        /* restrict redpows to the algebra */
+        if (nval > en->algebra.dat[i]-1) 
+            nval = en->algebra.dat[i]-1;
+        /* remove part forbidden by profile */
+        nval /= en->profile.dat[i]; 
+        nval *= en->profile.dat[i];
         ex->dat[i] = nval;
         deg -= nval * en->pi->reddegs[i];
     }
@@ -327,22 +316,18 @@ int nextRedmon(enumerator *en) {
         for (i=1;0==ex->dat[i];)
             if (++i >= NALG) return 0;
         nval = ex->dat[i] - 1;
-        if (NULL != en->profile) {
-            nval /= en->profile->dat[i]; 
-            nval *= en->profile->dat[i];
-        }
+        nval /= en->profile.dat[i]; 
+        nval *= en->profile.dat[i];
         rem += (ex->dat[i] - nval) * en->pi->reddegs[i];
         ex->dat[i] = nval;
         for (;i--;) {
             nval = rem / en->pi->reddegs[i];
-            /* restrict redpows to env->alg */
-            if ((NULL != en->algebra) && (nval>en->algebra->dat[i]-1)) 
-                nval=en->algebra->dat[i]-1;
-            /* remove part forbidden by env->pro */
-            if (NULL != en->profile) {
-                nval /= en->profile->dat[i]; 
-                nval *= en->profile->dat[i];
-            }
+            /* restrict redpows to the algebra */
+            if (nval>en->algebra.dat[i]-1) 
+                nval=en->algebra.dat[i]-1;
+            /* remove part forbidden by profile */
+            nval /= en->profile.dat[i]; 
+            nval *= en->profile.dat[i];
             ex->dat[i] = nval;
             rem -= nval * en->pi->reddegs[i];
         }
