@@ -676,7 +676,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
     switch (pCmdmap[index]) {
         case CREATE:
-            EXPECTARGS(2, 0, 0, "");
+            EXPECTARGS(2, 0, 0, NULL);
             
             Tcl_SetObjResult(ip, Tcl_NewPolyObj(stdpoly, PLcreate(stdpoly)));
             return TCL_OK;
