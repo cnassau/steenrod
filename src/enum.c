@@ -135,6 +135,8 @@ int enmRecreateEfflist(enumerator *en) {
     return SUCCESS;
 }
 
+/**** SEQUENCE NUMBERS ******************************************************/
+
 int enmCreateSeqtab(enumerator *en, int maxdim) {
     primeInfo *pi = en->pi;    
     int reddim, i, j, k, n;
@@ -259,6 +261,96 @@ int enmCreateSeqoff(enumerator *en) {
 
     return SUCCESS;
 }
+
+/**** ENUMERATION ************************************************************/
+
+int firstRedmon(enumerator *en, int deg);
+
+int nextExmoAux(enumerator *en) {
+    int msk, edeg;
+    exmo *ex = &(en->varex);
+    do {
+        if (0 == (msk=ex->ext)) return 0;
+        while (0 != ((--msk) & (en->profile->ext))) ;
+        edeg = extdeg(en->pi, msk); ex->ext = msk;
+        en->remdeg = en->totdeg - edeg;
+        if (firstRedmon(en, en->remdeg)) return 1;
+    } while (1);
+}
+
+int firstExmon(enumerator *en, int deg) {
+    exmo *ex = &(en->varex);
+    en->remdeg = en->totdeg = deg;
+    ex->ext = getMaxExterior(en->pi, en->algebra, en->profile, en->remdeg);
+    en->remdeg -=  extdeg(en->pi, ex->ext);
+    en->extdeg = deg - en->remdeg;
+    if (firstRedmon(en, en->remdeg)) return 1;
+    return nextExmoAux(en);
+}
+
+int nextRedmon(enumerator *en);
+
+int nextExmon(enumerator *en) {
+    if (nextRedmon(en)) return 1;
+    return nextExmoAux(en);
+}
+
+int firstRedmon(enumerator *en, int deg) {
+    exmo *ex = &(en->varex);
+    int i;
+    if (0 != (deg % (en->pi->tpmo))) return 0;
+    deg /= en->pi->tpmo;
+    for (i=NALG;i--;) {
+        int nval = deg / en->pi->reddegs[i];
+        /* restrict redpows to env->alg */
+        if ((NULL != en->algebra) && (nval > en->algebra->dat[i]-1)) 
+            nval = en->algebra->dat[i]-1;
+        /* remove part forbidden by env->pro */
+        if (NULL != en->profile) {
+            nval /= en->profile->dat[i]; 
+            nval *= en->profile->dat[i];
+        }
+        ex->dat[i] = nval;
+        deg -= nval * en->pi->reddegs[i];
+    }
+    en->errdeg = deg;
+    if (deg) return nextRedmon(en);
+    return 1;
+}
+
+int nextRedmon(enumerator *en) {
+    exmo *ex = &(en->varex);
+    int rem, i;
+    do {
+        int nval;
+        rem = en->errdeg + ex->dat[0];
+        for (i=1;0==ex->dat[i];)
+            if (++i >= NALG) return 0;
+        nval = ex->dat[i] - 1;
+        if (NULL != en->profile) {
+            nval /= en->profile->dat[i]; 
+            nval *= en->profile->dat[i];
+        }
+        rem += (ex->dat[i] - nval) * en->pi->reddegs[i];
+        ex->dat[i] = nval;
+        for (;i--;) {
+            nval = rem / en->pi->reddegs[i];
+            /* restrict redpows to env->alg */
+            if ((NULL != en->algebra) && (nval>en->algebra->dat[i]-1)) 
+                nval=en->algebra->dat[i]-1;
+            /* remove part forbidden by env->pro */
+            if (NULL != en->profile) {
+                nval /= en->profile->dat[i]; 
+                nval *= en->profile->dat[i];
+            }
+            ex->dat[i] = nval;
+            rem -= nval * en->pi->reddegs[i];
+        }
+        en->errdeg = rem;
+    } while (en->errdeg);
+    return 1;
+}
+
 
 polyType enumPolyType = {
 #if 0
