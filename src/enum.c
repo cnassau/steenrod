@@ -117,12 +117,20 @@ int getMaxExterior(primeInfo *pi, exmo *alg, exmo *pro, int ideg) {
     return res;
 }
 
+#define COMPRET(x,y) if (0 != (res = (x)-(y))) return res;
 int compareEffgen(const void *a, const void *b) {
     const effgen *aa = (const effgen *) a;
     const effgen *bb = (const effgen *) b;
     int res;
-    if ((res = (aa->id - bb->id))) return res;
-    return aa->ext - bb->ext;
+
+    /* Note: in order to optimize the computation of differentials we
+     * might later want to combine the computation of d(Q(E)P(R)g) for 
+     * common Q(E)P(R) and varying g; therefore "ext" has to be more 
+     * significant than "id". */
+
+    COMPRET(aa->ext, bb->ext);
+    COMPRET(aa->id,  bb->id);
+    return 0;
 }
 
 void enmSortEfflist(enumerator *en) {
