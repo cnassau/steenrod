@@ -261,7 +261,7 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
 
 #define ISDEFAULTARG(var) \
 ({ value = objv[1]; Tcl_GetStringFromObj(value, &length); \
- if (0 == length) var = value = defaultParameter; (0 == length); })
+ if (0 == length) var = value = defaultParameter; (0==length); })
 
         switch (optmap[index]) {
             case PRIME:
@@ -354,6 +354,7 @@ if (NULL != (new)) {                                                   \
 
     DOFLOG("Leaving Tcl_EnumConfigureCmd");
 
+    Tcl_ResetResult(ip);
     return TCL_OK;
 } 
 

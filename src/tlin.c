@@ -779,7 +779,7 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
                 RETERR("var1 does not contain a valid matrix");
 
             /* get matrix from var2 */
-            varp[1] = Tcl_ObjGetVar2(ip, objv[3], NULL, TCL_LEAVE_ERR_MSG);
+            varp[2] = Tcl_ObjGetVar2(ip, objv[3], NULL, TCL_LEAVE_ERR_MSG);
             if (NULL == varp[2]) return TCL_ERROR;
             if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[2])) 
                 RETERR("var2 does not contain a valid matrix");

@@ -547,7 +547,7 @@ int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_CreateObjCommand(ip, POLYNSP "ComputeMatrix",
                          TMakeMatrixSameSig, (ClientData) 0, NULL);
 
-    Tcl_CreateObjCommand(ip, POLYNSP "ComputeImages",
+    Tcl_CreateObjCommand(ip, POLYNSP "ComputeImage",
                          TMakeImages, (ClientData) 0, NULL);
 
     Tcl_CreateObjCommand(ip, STEALCOMMAND,
