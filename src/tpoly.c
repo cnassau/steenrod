@@ -148,6 +148,7 @@ void ExmoDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     TCLMEMASSERT(new); 
     memcpy(new, PTR1(srcPtr), sizeof(exmo));
     PTR1(dupPtr) = new;
+    dupPtr->typePtr = srcPtr->typePtr;
 }
 
 /**************************************************************************
