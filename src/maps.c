@@ -1,5 +1,5 @@
 /*
- * Representation of a map from one free module to another
+ * Representation of a map from one freex module to another
  *
  * Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
  *
@@ -23,8 +23,8 @@ void mapsumInit(mapsum *res) {
 
 void mapsumDestroy(mapsum *mp) {
     if (0 != mp->alloc) {
-        free(mp->cdat); 
-        free(mp->xdat);
+        freex(mp->cdat); 
+        freex(mp->xdat);
     }
 }
 
@@ -42,7 +42,7 @@ int mapsumSetLen(mapsum *mp, int len) {
     int i, j, min, max;
     if (mp->len == len) return SUCCESS;
     if (0 == mp->num) {
-        if (0!=mp->alloc) { free(mp->xdat); free(mp->cdat); }
+        if (0!=mp->alloc) { freex(mp->xdat); freex(mp->cdat); }
         mp->alloc = 0;
         mp->len = len;
         return SUCCESS;
@@ -64,7 +64,7 @@ int mapsumSetLen(mapsum *mp, int len) {
       for (j=min;j<max;j++) dst[j] = mp->pad;
     }
     mp->len = len;
-    free(mp->xdat);
+    freex(mp->xdat);
     mp->xdat = nxd;
     return SUCCESS;
 }
@@ -145,7 +145,7 @@ void mapgenDestroy(mapgen *mim) {
     for (i=mim->num;i--;)
         mapsumDestroy(&(mim->dat[i]));
     if (mim->alloc)
-        free(mim->dat);
+        freex(mim->dat);
 }
 
 mapsum *mapgenCreateSum(mapgen *mpg, int gen, int edat) {
@@ -189,8 +189,8 @@ void mapDestroy(map *mp) {
     for (i=mp->num;i--;) 
         mapgenDestroy(&(mp->dat[i]));
     if (mp->alloc) 
-        free(mp->dat);
-    free(mp);
+        freex(mp->dat);
+    freex(mp);
 }
 
 int compareMapGenById(const mapgen *a, const mapgen *b) {
@@ -315,9 +315,9 @@ mapsqndata *mapCreateSqnData(map *mp, enumEnv *env, int edeg, int ideg) {
 }
 
 void mapDestroySqnData(mapsqndata *mps) {
-    if (NULL != mps->dat) free(mps->dat);
+    if (NULL != mps->dat) freex(mps->dat);
     if (NULL != mps->sqn) destroySeqno(mps->sqn);
-    free(mps);
+    freex(mps);
 }
 
 /* enumeration based on mapsqndata 

@@ -357,7 +357,7 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
             if (TCL_OK != Tcl_ConvertToType(ip, *objv, tpi->type)) {
                 char *aux = strdup(Tcl_GetStringResult(ip));
                 CHCKARGSERR(aux);
-                free(aux);
+                freex(aux);
             }
             continue;
         }

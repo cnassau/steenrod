@@ -203,7 +203,7 @@ void *stdCreateCopy(void *src) {
         return n;
     }
     if (NULL == (n->dat = (exmo *) mallox(sizeof(exmo) * s->num))) {
-        free(n); return NULL; 
+        freex(n); return NULL; 
     }
     n->num = n->nalloc = s->num;
     memcpy(n->dat,s->dat,sizeof(exmo) * s->num);
@@ -218,11 +218,11 @@ void stdFree(void *self) {
     printf("nalloc = 0x%x, num = 0x%x, dat = %p\n",s->nalloc,s->num,s->dat);
     if (s->nalloc) { 
         s->nalloc = s->num = 0;
-        if (DEADPTR == s->dat) assert(NULL == "stdpoly data freed twice!");
-        free(s->dat); 
+        if (DEADPTR == s->dat) assert(NULL == "stdpoly data freexd twice!");
+        freex(s->dat); 
         s->dat = DEADPTR;
     }
-    free(s); 
+    freex(s); 
 }
 
 void stdSwallow(void *self, void *other) { 

@@ -42,7 +42,7 @@ int mkGenList(Tcl_Interp *ip, map *mp) {
     for (i=0;i<mp->num;i++) 
         obptr[i] = Tcl_NewTPtr(TP_MAPGEN, &(mp->dat[i]));
     res = Tcl_NewListObj(mp->num, obptr);
-    free(obptr);
+    freex(obptr);
     Tcl_SetObjResult(ip, res);
     return TCL_OK;
 }
@@ -57,7 +57,7 @@ int getTarget(Tcl_Interp *ip, mapgen *mpg) {
     for (i=0;i<mpg->num;i++) 
         obptr[i] = Tcl_NewTPtr(TP_MAPSUM, &(mpg->dat[i]));
     res = Tcl_NewListObj(mpg->num, obptr);
-    free(obptr);
+    freex(obptr);
     Tcl_SetObjResult(ip, res);
     return TCL_OK;
 }
@@ -83,7 +83,7 @@ int getSumData(Tcl_Interp *ip, mapsum *mps) {
             obptr[j++] = Tcl_NewIntObj(*xptr++);
     }
     res[5] = Tcl_NewListObj(sz, obptr);
-    free(obptr);
+    freex(obptr);
     rval   = Tcl_NewListObj(6, res);
     Tcl_SetObjResult(ip, rval);
     return TCL_OK;

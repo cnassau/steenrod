@@ -24,7 +24,7 @@ vector * vector_create(int size) {
     return v;
 }
 
-void vector_dispose(vector *v) { free(v->data); }
+void vector_dispose(vector *v) { freex(v->data); }
 
 void vector_clear(vector *v) {
     int k; cint *dat;

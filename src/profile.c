@@ -277,10 +277,10 @@ seqnoInfo *createSeqno(enumEnv *env, int maxdim) {
 void destroySeqno(seqnoInfo *s) {
     int i;
     for (i=NPRO;i>=0;i--) {
-        if (NULL != (s->dimtab[i])) free(s->dimtab[i]);
-        if (NULL != (s->seqtab[i])) free(s->seqtab[i]);
+        if (NULL != (s->dimtab[i])) freex(s->dimtab[i]);
+        if (NULL != (s->seqtab[i])) freex(s->seqtab[i]);
     }
-    free(s);
+    freex(s);
 }
 
 int SqnInfGetDim(seqnoInfo *sqn, int dim) {

@@ -69,10 +69,10 @@ Tcl_Obj *Tcl_NewExmoCopyObj(exmo *ex) {
 
 /* free internal representation */
 void ExmoFreeInternalRepProc(Tcl_Obj *obj) {
-    free(PTR1(obj));
+    freex(PTR1(obj));
 }
 
-#define FREEEANDRETERR { free((char *) e); return TCL_ERROR; }
+#define FREEEANDRETERR { freex((char *) e); return TCL_ERROR; }
 
 /* try to turn objPtr into an Exmo */
 int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {

@@ -100,7 +100,7 @@ int findPrimeInfo(int prime, primeInfo **pi) {
         if (prime == (*nextp)->pi.prime) { *pi = &((*nextp)->pi); return PI_OK; }
     if (NULL == ((*nextp) = mallox(sizeof(piList)))) return PI_NOMEM;
     if (PI_OK != (rcode = makePrimeInfo(&((*nextp)->pi), prime))) { 
-        free(*nextp); 
+        freex(*nextp); 
         *nextp = NULL; 
         return rcode; 
     }
