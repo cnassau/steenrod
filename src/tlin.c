@@ -535,7 +535,7 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
 
             /* put result into var2 */
             if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
-                                      varp[2], TCL_LEAVE_ERR_MSG)) {
+                                       varp[2], TCL_LEAVE_ERR_MSG)) {
                 Tcl_DecrRefCount(varp[2]);
                 return TCL_ERROR;
             }
