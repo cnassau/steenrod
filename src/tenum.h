@@ -17,7 +17,7 @@
 #include <tcl.h>
 #include "enum.h"
 
-#define TP_ENUM 27
+enumerator *Tcl_EnumFromObj(Tcl_Interp *ip, Tcl_Obj *obj); 
 
 int Tenum_Init(Tcl_Interp *ip) ;
 
