@@ -38,6 +38,7 @@ typedef struct {
     int totdeg;
     int remdeg;
     int extdeg;
+    int id;      /* id of a generator */
 } exmon; 
 
 /* the profile of a sub Hopf-algebra */
@@ -76,7 +77,7 @@ typedef struct {
     enumEnv *env;
     int *(dimtab[NPRO+1]); 
     int *(seqtab[NPRO+1]);
-    int effdeg[NPRO+1];     /* effective degree := red. deg. / sub.alg.-profile */
+    int effdeg[NPRO+1];     /* effective degree := red.deg. / sub.alg.-profile */
 } seqnoInfo;
 
 /* sequence number computations */

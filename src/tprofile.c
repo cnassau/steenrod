@@ -27,7 +27,8 @@ typedef enum {
     PR_CREATE, PR_DESTROY, PR_GETCORE, 
     ENV_CREATE, ENV_DISPOSE, 
     SQN_CREATE, SQN_DESTROY, SQN_GETDIM, SQN_GETSEQNO, 
-    EXM_CREATE, EXM_DISPOSE, EXM_GETCORE, EXM_FIRST, EXM_NEXT
+    EXM_CREATE, EXM_DISPOSE, EXM_GETCORE, EXM_FIRST, EXM_NEXT, 
+    EXM_GETID, EXM_SETID
 } ProfileCmdCode;
 
 int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip, 
@@ -160,6 +161,17 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
             i2 = nextExmon(exmo, env);
             Tcl_SetObjResult(ip, Tcl_NewBooleanObj(i2));
             return TCL_OK;  
+        case EXM_GETID:
+            ENSUREARGS1(TP_EXMON);
+            exmo = (exmon *) TPtr_GetPtr(objv[1]);
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(exmo->id));
+            return TCL_OK;
+        case EXM_SETID:
+            ENSUREARGS2(TP_EXMON,TP_INT);
+            exmo = (exmon *) TPtr_GetPtr(objv[1]);
+            Tcl_GetIntFromObj(ip, objv[2], &i1);
+            exmo->id = i1;
+            return TCL_OK;
         default:    
             Tcl_SetResult(ip, 
                           "error in tProfileCombiCmd: command not implemented", 
@@ -215,6 +227,8 @@ Tcl_CreateObjCommand(ip,name,tProfileCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND(NSX "create", EXM_CREATE); 
     CREATECOMMAND(NSX "dispose", EXM_DISPOSE); 
     CREATECOMMAND(NSX "getCore", EXM_GETCORE); 
+    CREATECOMMAND(NSX "getId", EXM_GETID); 
+    CREATECOMMAND(NSX "setId", EXM_SETID); 
     CREATECOMMAND(NSX "first", EXM_FIRST); 
     CREATECOMMAND(NSX "next", EXM_NEXT);
 
