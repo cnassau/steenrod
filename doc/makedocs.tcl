@@ -15,6 +15,18 @@ lappend auto_path /home/cn/ActiveTcl8.4.3.0-linux-ix86/lib/
 
 package require doctools
 
+proc preformat {data} {
+    foreach {kw text} {
+        %crossrefs% "enumerator linalg matrix vector mono monomap poly prime"
+        %keywords%  "Mathematics {Steenrod algebra} {Tcl package}"
+        %copyright% "{2004 Christian Nassau}"
+        %homepage%  "http://www.nullhomotopie.de/steenrod"
+    } {
+        set data [regsub -all $kw $data $text]
+    }
+    return $data
+}
+
 # hack: we 'cd html' because '-format html' would otherwise 
 # get confused by the directory 'html'  
 cd html
@@ -36,6 +48,8 @@ foreach name $flst {
     set inp [open $name]
     set data [read $inp]
     close $inp
+
+    set data [preformat $data]
 
     set rname [file rootname $name]
     

@@ -2,9 +2,9 @@
 
 [moddesc {Steenrod Tcl package}]
 
-[titledesc {Manipulate extended monomials}]
+[titledesc {manipulate extended monomials}]
 
-[copyright "2004 Christian Nassau"]
+[copyright %copyright%]
 
 [require Steenrod 1.0]
 
@@ -12,6 +12,9 @@
 
 The [cmd mono] command ensemble is a collection of various 
 commands that deal with [strong "extended monomials"]. 
+
+[usage namespace import steenrod::mono]
+[usage [cmd mono] [cmd subcommand] ?[arg arg] [arg arg] ...?]
 
 [section Overview]
 
@@ -57,10 +60,10 @@ hhu
 
 
 [para] The most recent version of the package should be available from 
-the [strong cnext] homepage at [uri http://www.nullhomotopie.de/cnext].
+the program homepage at [uri %homepage%].
 
-[see_also enumerator linalg matrix mono monomap poly prime ]
+[see_also %crossrefs%]
 
-[keywords {Steenrod algebra} {Tcl package} Mathematics]
+[keywords %keywords%]
 
 [manpage_end]

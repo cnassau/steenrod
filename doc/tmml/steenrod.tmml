@@ -86,7 +86,7 @@ hhu
 
 
 <p> The most recent version of the package should be available from 
-the <emph>cnext</emph> homepage at <url>http://www.nullhomotopie.de/cnext</url>.
+the program homepage at <url>http://www.nullhomotopie.de/steenrod</url>.
 
 
 
@@ -98,15 +98,16 @@ the <emph>cnext</emph> homepage at <url>http://www.nullhomotopie.de/cnext</url>.
 <ref>enumerator</ref>
 <ref>linalg</ref>
 <ref>matrix</ref>
+<ref>vector</ref>
 <ref>mono</ref>
 <ref>monomap</ref>
 <ref>poly</ref>
 <ref>prime</ref>
 </seealso>
 <keywords>
+<keyword>Mathematics</keyword>
 <keyword>Steenrod algebra</keyword>
 <keyword>Tcl package</keyword>
-<keyword>Mathematics</keyword>
 </keywords>
 
 </manpage>

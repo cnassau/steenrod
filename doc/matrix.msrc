@@ -4,7 +4,7 @@
 
 [titledesc {a collection of linear algebra routines}]
 
-[copyright "2004 Christian Nassau"]
+[copyright %copyright%]
 
 [require Steenrod 1.0]
 
@@ -103,8 +103,8 @@ while running [cmd "matrix orthonormalize"],
 }]
 
 
-[see_also enumerator linalg matrix mono monomap poly prime ]
+[see_also %crossrefs%]
 
-[keywords {Steenrod algebra} {Tcl package} Mathematics]
+[keywords %keywords%]
 
 [manpage_end]
