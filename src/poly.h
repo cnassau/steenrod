@@ -75,6 +75,8 @@ typedef struct polyType {
 
     void (*cancel)(void *self, int modulo);  /* cancel as much as possible */
 
+    void (*reflect)(void *self);  /* let (new exp.) = -1 - (old exp.) */
+
     int  (*compare)(void *pol1, 
                     void *pol2,
                     int *result);    /* comparison result as in qsort */
@@ -93,6 +95,10 @@ typedef struct polyType {
     int  (*scaleMod)(void *self, 
                      int scale, 
                      int modulo);  /* scale poly and reduce (if modulo != 0) */
+
+    void (*shift)(void *self, 
+                  const exmo *shift,
+                  int shiftflags); /* shift entire polynomial */
 } polyType;
 
 /* wrappers for the polyType member functions; these check whether 
@@ -112,6 +118,20 @@ int   PLappendPoly(polyType *dtp, void *dst,
                    const exmo *shift, int shiftflags,
                    int scale, int modulo);
 void *PLcreateCopy(polyType *newtype, polyType *oldtype, void *poly);
+
+/* The multiplication routines take as input descriptions (fftp,ff) resp.
+ * (sftp,sf) of the first factor (ff) resp. second factor (sf). If successful
+ * they create a new polynomial and store its type (resp. data pointer)
+ * in *rtp (resp. *res). */
+int   PLposMultiply(polyType **rtp, void **res,
+                    polyType *fftp, void *ff,
+                    polyType *sftp, void *sf, int mod);
+int   PLnegMultiply(polyType **rtp, void **res,
+                    polyType *fftp, void *ff,
+                    polyType *sftp, void *sf, int mod);
+int   PLsteenrodMultiply(polyType **rtp, void **res,
+                         polyType *fftp, void *ff,
+                         polyType *sftp, void *sf, int mod);
 
 #ifndef POLYC
 extern polyType stdPolyType;

@@ -29,8 +29,7 @@ void     *polyFromTclObj(Tcl_Obj *obj);
 
 Tcl_Obj *Tcl_NewPolyObj(polyType *tp, void *data);
 
-/* our poly type */
-#define TP_PLO  199928  
+/* our poly type */  
 #define TP_POLY  19  
 #define TP_EXMO  18 
 

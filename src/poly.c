@@ -18,7 +18,7 @@
 #include "poly.h"
 #include "common.h"
 
-#define LOGSTD(msg) if (0) printf("stdpoly: %s\n", msg) 
+#define LOGSTD(msg) if (0) printf("stdpoly::%s\n", msg) 
 
 /**** extended monomials ***********************************************************/
 
@@ -44,6 +44,12 @@ void shiftExmo(exmo *e, const exmo *s, int flags) {
         e->dat[i] += s->dat[i];
     /* TODO: signs not yet implemented */
     e->ext ^= s->ext;
+}
+
+void reflectExmo(exmo *e) {
+    int i;
+    for (i=NALG;i--;) e->dat[i] = -1 - e->dat[i];
+    e->ext = -1 - e->ext;
 }
 
 #define COMPRET(x,y) if (0 != (diff = ((x)-(y)))) return diff;
@@ -158,6 +164,17 @@ void stdFree(void *self) {
     stp *s = (stp *) self;
     LOGSTD("Free");
     if (s->nalloc) { s->nalloc = s->num = 0; free(s->dat); }
+    free(s);
+}
+
+void stdSwallow(void *self, void *other) { 
+    stp *s = (stp *) self;
+    stp *o = (stp *) other;
+    LOGSTD("Swallow");
+    if (s == o) return;
+    stdFree(self); 
+    memcpy(s,o,sizeof(stp));
+    o->num = o->nalloc = 0; o->dat = NULL;
 }
 
 void stdClear(void *self) {
@@ -221,6 +238,22 @@ int stdCompare(void *pol1, void *pol2, int *res) {
     return SUCCESS;
 }
 
+void stdReflect(void *self) {
+    stp *s = (stp *) self;
+    int i;
+    LOGSTD("Reflect");
+    for (i=0;i<s->num;i++) 
+        reflectExmo(&(s->dat[i]));
+}
+
+void stdShift(void *self, const exmo *ex, int flags) {
+    stp *s = (stp *) self;
+    int i;
+    LOGSTD("Reflect");
+    for (i=0;i<s->num;i++) 
+        shiftExmo(&(s->dat[i]), ex, flags);
+}
+
 int stdGetExmoPtr(void *self, exmo **ptr, int idx) {
     stp *s = (stp *) self;
     LOGSTD("GetExmoPtr");
@@ -266,13 +299,16 @@ int stdScaleMod(void *self, int scale, int modulo) {
 struct polyType stdPolyType = {
     .createCopy = &stdCreateCopy,
     .free       = &stdFree,
+    .swallow    = &stdSwallow,
     .clear      = &stdClear,
     .cancel     = &stdCancel,
     .compare    = &stdCompare,
+    .reflect    = &stdReflect,
     .getExmoPtr = &stdGetExmoPtr,
     .getLength  = &stdGetLength,
     .appendExmo = &stdAppendExmo,
-    .scaleMod   = &stdScaleMod
+    .scaleMod   = &stdScaleMod,
+    .shift      = &stdShift
 };
 
 void *PLcreateStdCopy(polyType *type, void *poly) {
@@ -305,6 +341,43 @@ int PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *res) {
     if (st1 != pol1) PLfree(stdpoly,st1);
     if (st2 != pol2) PLfree(stdpoly,st2);
     return rcode;
+}
+
+int PLposMultiply(polyType **rtp, void **res,
+                  polyType *fftp, void *ff,
+                  polyType *sftp, void *sf, int mod) {
+    exmo aux; int i, len, rc;
+    *rtp = stdpoly; 
+    *res = stdCreateCopy(NULL);
+    len = PLgetLength(sftp,sf);
+    for (i=0;i<len;i++) {
+        if (SUCCESS != (rc = PLgetExmo(sftp,sf,&aux,i))) {
+            PLfree(*rtp,*res); return rc;
+        }
+        if (SUCCESS != (rc = PLappendPoly(*rtp,*res,
+                                          fftp,ff,
+                                          &aux,ADJUSTSIGNS,
+                                          aux.coeff,mod))) {
+            PLfree(*rtp,*res); return rc;
+        }
+    }
+    PLcancel(*rtp,*res,mod);
+    return SUCCESS;  
+}
+
+int PLnegMultiply(polyType **rtp, void **res,
+                  polyType *fftp, void *ff,
+                  polyType *sftp, void *sf, int mod) {
+
+    
+    return FAILIMPOSSIBLE;
+}
+
+int PLsteenrodMultiply(polyType **rtp, void **res,
+                       polyType *fftp, void *ff,
+                       polyType *sftp, void *sf, int mod) {
+    
+    return FAILIMPOSSIBLE;
 }
 
 #if 0
