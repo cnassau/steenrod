@@ -304,6 +304,8 @@ typedef struct {
     hmap_tensor comparison1; /* result of the last comparison operation */
     int comparison2;
 
+    int error;
+
     /* callback */
     int (*callback)(void *self);
     void *callbackdata1;
@@ -357,12 +359,8 @@ int invokeCallback(Tcl_Interp *ip, Tcl_Obj *callback, hmap *hm,  hmap_summand *r
     INCREFCNT(command[3]);
     INCREFCNT(command[4]);
 
-#if 0
-    retval = TCL_OK;
-    { int i; for (i=0;i<5;i++) printf("command[%d] = %s\n", i, Tcl_GetString(command[i])); }
-#else
     retval = Tcl_EvalObjv(ip, 5, command, 0);
-#endif
+    if (TCL_OK != retval) hm->error = 1;
 
     DECREFCNT(command[1]);
     DECREFCNT(command[2]);
@@ -614,6 +612,8 @@ int hmapSelectFunc(hmap *hm, Tcl_Interp *ip, Tcl_Obj *rest, Tcl_Obj *callback) {
     if (TCL_OK != hmapParseRestrictions(hm, ip, rest))
         return TCL_ERROR;
 
+    hm->error = 0;
+
     hm->callback = stdTclCallback;
     hm->callbackdata1 = ip;
     hm->callbackdata2 = callback;
@@ -622,6 +622,9 @@ int hmapSelectFunc(hmap *hm, Tcl_Interp *ip, Tcl_Obj *rest, Tcl_Obj *callback) {
     clearExmo(&(hm->summands[0]->source));
 
     handleSummand(hm, 0);
+
+    if (hm->error)
+        return TCL_ERROR;
 
     return TCL_OK;
 }
@@ -709,6 +712,8 @@ void handleSummand(hmap *hm, int numsum) {
             return; 
 
         handleSummand(hm, numsum+1);
+        
+        if (hm->error) return;
     }
 
 }
