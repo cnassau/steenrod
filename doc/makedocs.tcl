@@ -1,15 +1,3 @@
-lappend auto_path /home/cn/ActiveTcl8.4.3.0-linux-ix86/lib/
-
-package require doctools
-
-# hack: we 'cd html' because '-format html' would otherwise 
-# get confused by the directory 'html'  
-cd html
-::doctools::new 2html -format html 
-::doctools::new 2man  -format nroff
-::doctools::new 2tmml -format tmml
-cd ..
-
 #!/usr/bin/tclsh
 #
 # Create html, tmml, and manpage from *.msrc
@@ -22,6 +10,18 @@ cd ..
 # it under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
 #
+
+lappend auto_path /home/cn/ActiveTcl8.4.3.0-linux-ix86/lib/
+
+package require doctools
+
+# hack: we 'cd html' because '-format html' would otherwise 
+# get confused by the directory 'html'  
+cd html
+::doctools::new 2html -format html 
+::doctools::new 2man  -format nroff
+::doctools::new 2tmml -format tmml
+cd ..
 
 set flst [glob -nocomplain *.msrc]
 
