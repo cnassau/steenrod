@@ -16,6 +16,15 @@
 The [cmd matrix] command ensemble is a collection of routines that
 help to do linear algebra modulo a prime.
 
+[para]
+
+Vectors and matrices are represent in the straightforward way as
+lists of integers (resp. lists of lists of integers): 
+for example, [const {{0 1 2 0 1 0 1}}] is a valid vector and
+[const {{{2 1} {0 -1} {0 0}}}] a valid matrix. 
+There is a limit, however, on the allowable size of the entries:
+they currently have to be representable by one byte.  
+
 [section Commands]
 
 [list_begin definitions]
