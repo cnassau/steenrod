@@ -21,7 +21,7 @@
 #define TP_PROCORE 19
 #define TP_PROFILE 20
 #define TP_EXMON   21
-#define TP_ENVMNT  22
+#define TP_ENENV   22
 
 int Tprofile_Init(Tcl_Interp *ip);
 

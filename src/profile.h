@@ -28,6 +28,8 @@ typedef struct {
     int rdat[NPRO];
 } procore;
 
+void clearProcore(procore *core, int rval);
+
 /* extended monomials [= monomials with a few helper fields] */
 typedef struct {
     procore core; 
@@ -63,7 +65,7 @@ typedef struct {
 } enumEnv;
 
 /* constructor & destructor */
-enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro);
+enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro, int maxdim);
 void disposeEnumEnv(enumEnv *env);
 
 seqnoInfo *createSeqno(primeInfo *pi, profile *alg, profile *pro, int maxdim);
@@ -71,7 +73,7 @@ void disposeSeqno(seqnoInfo *s);
 
 /* enumeration of exmons of a given degree */
 int firstExmon(exmon *ex, enumEnv *env, int deg);
-int nextExmon(exmon *ex, enumEnv *env, int deg);
+int nextExmon(exmon *ex, enumEnv *env);
 
 /* enumeration again, this time restricted to the reduced part */
 int firstRedmon(exmon *ex, enumEnv *env, int deg);

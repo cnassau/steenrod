@@ -15,6 +15,14 @@
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
+void clearProcore(procore *core, int rval) {
+    int i;
+    core->edat = 0;
+    for (i=NPRO;i--;) core->rdat[i]=rval;
+}
+
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+
 void makeZeroProfile(profile *pro) {
     int i;
     pro->core.edat = 0;
@@ -36,7 +44,7 @@ void makeFullProfile(profile *pro, primeInfo *pi, int maxdim) {
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
-enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro) {
+enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro, int maxdim) {
     enumEnv *res = cmalloc(sizeof(enumEnv)); 
     if (NULL==res) return NULL;
     /* we keep references to our parameters (not copies) */
@@ -53,8 +61,6 @@ void disposeEnumEnv(enumEnv *env) {
     /* don't destroy given parameters, just the derived private data */
 
 
-    /* harakiri */
-    cfree(env);
 }
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
@@ -90,7 +96,7 @@ int firstExmon(exmon *ex, enumEnv *env, int deg) {
     return nextExmonAux(ex, env);
 }
 
-int nextExmon(exmon *ex, enumEnv *env, int deg) {
+int nextExmon(exmon *ex, enumEnv *env) {
     if (nextRedmon(ex, env)) return 1;
     return nextExmonAux(ex, env);
 }
