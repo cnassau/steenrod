@@ -260,6 +260,7 @@ void printTypename(char *buf, int type) {
 void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, char *msg) {
     char err[500], *wrk = err;
     char typename[100];
+    const char *space = " ";
     int type; 
     int optional = 0;
     if (NULL == ip) return ;
@@ -268,14 +269,18 @@ void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, char *msg) {
     if (NULL != name) {
         wrk += sprintf(wrk, "\nusage: %s", name);
         while (TP_END != (type = va_arg(*ap, int))) {
+            wrk += sprintf(wrk, space);
             if (TP_OPTIONAL == type) { 
                 optional = 1; 
-                wrk += sprintf(wrk, " [ ");
+                wrk += sprintf(wrk, "?");
+                space = "";
+                continue;
             }
             printTypename(typename, type);
-            wrk += sprintf(wrk, " %s", typename);
+            wrk += sprintf(wrk, "%s", typename);
+            space = " ";
         }
-        if (optional) wrk += sprintf(wrk, " ]");
+        if (optional) wrk += sprintf(wrk, "?");
     }
     Tcl_SetResult(ip, err, TCL_VOLATILE);
 }
@@ -306,8 +311,8 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
     for (pos=1; TP_END != (type = va_arg(ap, int)); objc--, objv++, pos++) {
         /* process control args */
         if (TP_VARARGS   == type) { va_end(ap); return TCL_OK; }
-        if (TP_OPTIONAL  == type) { optional = 1; continue; }
-        if (TP_MANDATORY == type) { optional = 0; continue; }
+        if (TP_OPTIONAL  == type) { optional = 1; objc++; objv--; pos--; continue; }
+        if (TP_MANDATORY == type) { optional = 0; objc++; objv--; pos--; continue; }
 
         if (!objc) { /* no more args available */
             if (optional) { va_end(ap); return TCL_OK; }
