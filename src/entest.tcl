@@ -97,6 +97,8 @@ while 1 {
 
         set sqn [sqninfo::create $evn $dim]
 
+        # (superfluos comment)
+
         set cnt 0
         if {[extmono::first $exm $evn $dim]} {
             set goon 1
