@@ -1,4 +1,4 @@
-[manpage_begin prime n 1.0]
+[manpage_begin prime 3st 1.0]
 
 [moddesc {Steenrod Tcl package}]
 
@@ -19,7 +19,7 @@ that are often needed by Steenrod algebra computations.
 [list_begin definitions]
 
 [lst_item "[cmd prime] [arg integer] [cmd test]"]
-Tests whether [arg integer] is an (acceptable) prime. 
+Tests whether [arg integer] is an acceptable prime. 
 If the argument is not a prime or is not acceptable for other reasons,
 an error message is returned. Otherwise the result is an empty string. 
 

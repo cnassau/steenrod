@@ -37,7 +37,7 @@ foreach name $flst {
 
     set rname [file rootname $name]
     
-    set mname [file join man mann $rname.n]
+    set mname [file join man man3 $rname.3steenrod]
     set ch [open aux.n w]
     puts $ch [2man format $data]
     close $ch
