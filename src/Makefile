@@ -66,7 +66,7 @@ clean:
 	$(RM) $(OBJS) $(LIBS) *~  2> /dev/null
 
 reformat:
-	refmt.sh *.c *.h *.tcl
+	refmt.sh *.c *.h 
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 

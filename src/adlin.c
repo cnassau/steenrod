@@ -110,7 +110,7 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, Tcl_Interp *ip, int pmsk) {
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft, 
-             Tcl_Interp *ip, int pmsk) {
+                    Tcl_Interp *ip, int pmsk) {
 
     int i,j,cols, spr, uspr;
     int failure=1;
@@ -140,7 +140,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
         if ((pmsk) && (0==(i&pmsk))) {
             perc = i; perc /= inp->rows;
             perc = 1-perc; perc *= perc; perc = 1-perc;
-        PROGVARSET(perc);
+            PROGVARSET(perc);
         }
         /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
@@ -150,13 +150,13 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
         } else {
             pos = aux - v1.data;
             coeff = pi->inverse[(unsigned) *aux]; 
-        coeff = prime-coeff; coeff %= prime;
+            coeff = prime-coeff; coeff %= prime;
             /* go through all other rows and normalize */
             v2.data = v1.data + spr; aux += spr;
             v3.data = un->data + i * uspr;
             v4.data = v3.data + uspr;
             for (j=i+1; j<inp->rows; 
-          j++, v2.data+=spr, v4.data+=uspr, aux+=spr)
+                 j++, v2.data+=spr, v4.data+=uspr, aux+=spr)
                 if (0 != *aux) {
                     vector_add(&v4, &v3, CINTMULT(*aux,coeff,prime), prime);
                     vector_add(&v2, &v1, CINTMULT(*aux,coeff,prime), prime);
@@ -179,8 +179,8 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
     matrix_destroy(un);
 
     if (failure) { 
-    matrix_destroy(res);
-    res = NULL; 
+        matrix_destroy(res);
+        res = NULL; 
     }
 
     return res;
@@ -189,7 +189,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im, 
-             Tcl_Interp *ip, int pmsk) {
+                    Tcl_Interp *ip, int pmsk) {
     int i,j,cols, spr;
     cint prime = pi->prime;
     int failure = 1;
@@ -225,7 +225,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
         else {
             pos = aux - v1.data;
             coeff = pi->inverse[(unsigned) *aux]; 
-        coeff = prime-coeff; coeff %= prime;
+            coeff = prime-coeff; coeff %= prime;
             /* reduce vectors in ker in the usual way */
             v2.data = ker->data; aux = v2.data + pos;
             for (j=0; j<ker->rows; j++, v2.data+=spr,  aux+=spr)
@@ -250,7 +250,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
             pos = aux - v1.data;
             matrix_collect(&m1, i); /* collect this row */
             coeff = pi->inverse[(unsigned) *aux]; 
-        coeff = prime-coeff; coeff %= prime;
+            coeff = prime-coeff; coeff %= prime;
             /* reduce other vectors in ker */
             v2.data = v1.data + spr; aux = v2.data + pos;
             for (j=i+1; j<ker->rows; j++, v2.data+=spr,  aux+=spr)
