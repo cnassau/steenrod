@@ -32,16 +32,17 @@ typedef short xint;  /* data type for exponents        */
 
 typedef struct {
     cint prime;
-    int maxdeg;      /* maximum dimension for which this data is complete */
+    int maxdeg;        /* maximum dimension for which this data is complete */
     /* basic */
-    int *primpows;   /* prime powers */
-    int *extdegs;    /* exterior degrees */
-    int *reddegs;    /* degrees of the reduced part, divided by 2(p-1) */
-    int tpmo;        /* 2(p-1) */
+    int *primpows;     /* prime powers */
+    int *extdegs;      /* exterior degrees */
+    int *reddegs;      /* degrees of the reduced part, divided by 2(p-1) */
+    int tpmo;          /* 2(p-1) */
+    int maxpowerXint;  /* largest prime power that fits in a xint */
     /* inverse */
-    cint *inverse;   /* table of inverses */
+    cint *inverse;     /* table of inverses */
     /* binom */
-    cint *binom;     /* table of binomials (a over b) with 0 <= a,b < prime */
+    cint *binom;       /* table of binomials (a over b) with 0 <= a,b < prime */
 } primeInfo;
 
 /* possible return values of makePrimeInfo: */

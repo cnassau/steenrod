@@ -17,7 +17,8 @@
 
 /* primpows, extdegs, reddegs */
 int piiBasic(primeInfo *pi) {
-    int i;
+    int i, havempx=0;
+    xint mpx;
     pi->tpmo = (pi->prime - 1) << 1;
     if (NULL==(pi->primpows = mallox(sizeof(int) * NALG))) return PI_NOMEM;
     if (NULL==(pi->extdegs  = mallox(sizeof(int) * NALG))) return PI_NOMEM;
@@ -30,6 +31,9 @@ int piiBasic(primeInfo *pi) {
         pi->extdegs[i]  = pi->prime * (pi->extdegs[i-1] + 1) - 1;
         pi->reddegs[i]  = 
             (pi->prime * (pi->reddegs[i-1] * pi->tpmo + 2) - 2) / pi->tpmo;
+        mpx = pi->primpows[i];
+        if (pi->primpows[i] != mpx) havempx = 1;
+        if (!havempx) pi->maxpowerXint = mpx;
     }
     return PI_OK;
 }
