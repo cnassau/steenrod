@@ -36,8 +36,8 @@ typedef struct {
     int id;          /* numerical id */
     int edeg, ideg;  /* exterior and internal degree */
     /* description of its image: */
-    int num;   /* number of used mapsum's */
-    int alloc; /* number of allocated mapsum's */
+    int num;         /* number of used mapsum's */
+    int alloc;       /* number of allocated mapsum's */
     mapsum *dat; 
 } mapgenimage;
 
@@ -51,16 +51,20 @@ typedef struct {
     mapgenimage *dat;
 } map;
 
-mapsum *mapsumCreate(void);
+void mapsumInit(mapsum *mps);
 void mapsumDestroy(mapsum *mp);
 int mapsumSetlen(mapsum *mp, int len);
 int mapsumRealloc(mapsum *mp, int nalloc);
-mapgenimage *mapgenimageCreate(void);
+
+void mapgenimageInit(mapgenimage *mpi);
 int mapgenimageRealloc(mapgenimage *mim, int nalloc);
+void mapgenimageDestroy(mapgenimage *mim);
+
 map *mapCreate(void);
 int mapRealloc(map *mp, int nalloc);
+void mapDestroy(map *mp);
+
+mapgenimage *mapFindGen(map *mp, int id);
+int mapAddGen(map *mp, int id);
 
 #endif
-
-
-

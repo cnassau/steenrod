@@ -11,15 +11,13 @@
  *
  */
 
+#include <string.h>
 #include "maps.h"
 
-mapsum *mapsumCreate(void) {
-    mapsum *res = malloc(sizeof(mapsum));
-    if (NULL == res) return NULL;
+void mapsumInit(mapsum *res) {
     res->num = res->alloc = 0;
     res->len = 0; 
     res->cdat = NULL; res->xdat = NULL;
-    return res;
 }
 
 void mapsumDestroy(mapsum *mp) {
@@ -27,7 +25,6 @@ void mapsumDestroy(mapsum *mp) {
         free(mp->cdat); 
         free(mp->xdat);
     }
-    free(mp);
 }
 
 int mapsumSetlen(mapsum *mp, int len) {
@@ -77,6 +74,15 @@ int mapsumRealloc(mapsum *mp, int nalloc) {
     return SUCCESS;
 }
 
+int mapsumCompFunc(const void *aa, const void *bb) {
+    const mapsum *a = (const mapsum *) aa;
+    const mapsum *b = (const mapsum *) bb;
+    int res;
+    if ((res = (a->gen - b->gen))) return res;
+    if ((res = (a->edat - b->edat))) return res;
+    return 0;
+}
+
 mapgenimage *mapgenimageCreate(void) {
     mapgenimage *res = malloc(sizeof(mapgenimage));
     if (NULL == res) return NULL;
@@ -94,10 +100,26 @@ int mapgenimageRealloc(mapgenimage *mim, int nalloc) {
     return SUCCESS;
 }
   
+void mapgenimageDestroy(mapgenimage *mim) {
+    int i;
+    for (i=mim->num;i--;)
+        mapsumDestroy(&(mim->dat[i]));
+    if (mim->alloc)
+        free(mim->dat);
+}
+
+mapsum *mapgenimageAddSum(mapgenimage *mpi, int id, int edat) {
+    mapsum aux, *res;
+    aux.gen = id;
+    aux.edat = edat;
+    res = bsearch(&aux, mpi->dat, mpi->num, sizeof(mapsum), mapsumCompFunc);
+    return res;
+}
+
 map *mapCreate(void) {
     map *res = malloc(sizeof(map));
     if (NULL == res) return NULL;
-    res->num = res->alloc = 0;
+    res->num = res->alloc = 0; res->dat = NULL;
     return res;
 }
 
@@ -108,5 +130,40 @@ int mapRealloc(map *mp, int nalloc) {
     if (NULL == mpi) return FAILMEM;
     mp->dat = mpi;
     mp->alloc = nalloc;
+    return SUCCESS;
+}
+
+void mapDestroy(map *mp) {
+    int i;
+    for (i=mp->num;i--;) 
+        mapgenimageDestroy(&(mp->dat[i]));
+    if (mp->alloc) 
+        free(mp->dat);
+    free(mp);
+}
+
+int compareMapGenById(const mapgenimage *a, const mapgenimage *b) {
+    return a->id - b->id;
+}
+
+int mpgSortFunc (const void *aa, const void *bb) {
+    return compareMapGenById((const mapgenimage *)aa, (const mapgenimage *)bb);
+} 
+
+mapgenimage *mapFindGen(map *mp, int id) {
+    mapgenimage aux, *res;
+    aux.id = id;
+    res = bsearch(&aux, mp->dat, mp->num, sizeof(mapgenimage), mpgSortFunc);
+    return res;
+}
+
+int mapAddGen(map *mp, int id) {
+    mapgenimage *res;
+    if (mp->num == mp->alloc) 
+        mapRealloc(mp, mp->num + 10);
+    res = &(mp->dat[mp->num++]);
+    mapgenimageInit(res);
+    res->id = id;
+    qsort(mp->dat, mp->num, sizeof(mapgenimage), mpgSortFunc);
     return SUCCESS;
 }
