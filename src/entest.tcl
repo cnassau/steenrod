@@ -47,9 +47,9 @@ proc rint {max} { return [expr int(rand()*$max)] }
 proc relem {lst} { return [lindex $lst [rint [llength $lst]]] }
 
 
-while 0 {
-    set p [relem {2 3 5 7 11 23}]
-    set p 5
+while 1 {
+    set p [relem {2 3 5 7 11}]
+    #set p 5
     set dim [rint [lindex [prime::primpows $p] 5]]
     set dim [expr int($dim / [prime::tpmo $p]) * [prime::tpmo $p]]
 
@@ -79,6 +79,8 @@ while 0 {
         incr cnt
     }
     puts [format "basis with %8d elements checked (prime %2d, degree %d)" $cnt $p $dim]
+    set bidi [x dim]
+    if {$bidi!=$cnt} { error "count mismatch ($bidi!=$cnt)!!" }
 }
 
 

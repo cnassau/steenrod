@@ -52,6 +52,7 @@ typedef struct {
     int tabmaxrideg;       /* maximal reduced internal degree */
     int *(dimtab[NALG+1]); 
     int *(seqtab[NALG+1]); 
+    int totaldim;
 
     /* list of effective generators, and their sequence number offsets */
     effgen    *efflist;
@@ -86,6 +87,7 @@ int firstRedmon(enumerator *en);
 int nextRedmon(enumerator *en);
 
 int SeqnoFromEnum(enumerator *en, exmo *ex);
+int DimensionFromEnum(enumerator *en);
 
 /* signature enumeration; the first signature is always zero */
 int nextSignature(enumerator *en, exmo *sig, int *sideg, int *sedeg);

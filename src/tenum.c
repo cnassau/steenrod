@@ -349,6 +349,22 @@ int Tcl_EnumBasisCmd(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 } 
 
+int Tcl_EnumDimensionCmd(ClientData cd, Tcl_Interp *ip, 
+                      int objc, Tcl_Obj * const objv[]) {
+    tclEnum *te = (tclEnum *) cd;
+    int res;
+
+    if (objc != 2) RETERR("too many arguments");
+
+    if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
+    
+    res = DimensionFromEnum(te->enm);
+    
+    Tcl_SetObjResult(ip, Tcl_NewIntObj(res));
+
+    return TCL_OK;
+} 
+
 int Tcl_EnumSeqnoCmd(ClientData cd, Tcl_Interp *ip, 
                       int objc, Tcl_Obj * const objv[]) {
     tclEnum *te = (tclEnum *) cd;
@@ -396,16 +412,16 @@ int Tcl_EnumSiglistCmd(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
-typedef enum { CGET, CONFIGURE, BASIS, SEQNO, 
+typedef enum { CGET, CONFIGURE, BASIS, SEQNO, DIMENSION,
                SIGRESET, SIGNEXT, SIGLIST } enumcmdcode;
 
 static CONST char *cmdNames[] = { "cget", "configure", 
-                                  "basis", "seqno", 
+                                  "basis", "seqno", "dimension", 
                                   "sigreset", "signext", "siglist",
                                   (char *) NULL };
 
-static enumcmdcode cmdmap[] = { CGET, CONFIGURE, BASIS, 
-                                SEQNO, SIGRESET, SIGNEXT, SIGLIST };
+static enumcmdcode cmdmap[] = { CGET, CONFIGURE, BASIS, SEQNO, DIMENSION,
+                                SIGRESET, SIGNEXT, SIGLIST };
 
 int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip, 
                       int objc, Tcl_Obj * const objv[]) {
@@ -432,6 +448,8 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             return Tcl_EnumBasisCmd(cd, ip, objc, objv);
         case SEQNO:
             return Tcl_EnumSeqnoCmd(cd, ip, objc, objv);
+        case DIMENSION:
+            return Tcl_EnumDimensionCmd(cd, ip, objc, objv);            
         case SIGRESET:
             if (objc != 2) RETERR("wrong number of arguments");
             memset(&ex, 0, sizeof(exmo));

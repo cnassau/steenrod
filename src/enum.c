@@ -396,6 +396,8 @@ int enmCreateSeqoff(enumerator *en) {
         cnt += algDimension(en, en->efflist[i].rrideg);
     }
 
+    en->totaldim = cnt;
+
     return SUCCESS;
 }
 
@@ -440,6 +442,13 @@ int SeqnoFromEnum(enumerator *en, exmo *ex) {
     cnt2 = algSeqnoWithRDegree(en, ex, res->rrideg);
     if (cnt2 < 0) return -1;
     return cnt + cnt2;
+}
+
+int DimensionFromEnum(enumerator *en) {
+    if (NULL == en->seqoff) 
+        if (SUCCESS != enmCreateSeqoff(en))
+            return -666;
+    return en->totaldim;
 }
 
 /**** ENUMERATION ************************************************************/
