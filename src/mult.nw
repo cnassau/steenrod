@@ -1,0 +1,49 @@
+% -*- mode: Noweb; noweb-code-mode: c-mode -*-
+%
+% Multiplication routine(s) for the Steenrod algebra
+%
+% Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
+%
+%  $Id$
+%
+% This program is free software; you can redistribute it and/or modify
+% it under the terms of the GNU General Public License version 2 as
+% published by the Free Software Foundation.
+%
+
+% our custom header; using it requires that we use noweave's -delay option
+
+\documentclass{article}
+\usepackage{a4}
+\usepackage{noweb}
+
+\begin{document} 
+\title{The multiplication routine}
+\author{C.\ Nassau}
+
+\maketitle
+
+\begin{center}
+\begin{minipage}{10cm}{\small
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 2 as
+published by the Free Software Foundation.
+}\end{minipage} \\[.6cm]
+{\small {\sc Version} \verb|$Id$|} 
+\end{center}
+
+@ \begin{section}{What this is}
+Our header file:
+<<mult.h>>=
+#ifndef MULT_DEF
+#define MULT_DEF
+#include <prime.h>
+#endif
+
+@ The implementation
+<<mult.c>>=
+#include "mult.h"
+
+@ \end{section}
+
+@ \end{document}

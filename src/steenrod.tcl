@@ -42,7 +42,7 @@ class algpair {
 
 class milnor {
 
-    private variable exmo   ;# the underlying exmon 
+    private variable exmon   ;# the underlying extended monomial
 
 }
 

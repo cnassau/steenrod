@@ -18,7 +18,7 @@ NOWEAVE  = noweave
 
 NOWEBFILES = 
 SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c \
-       tpoly.c profile.c tprofile.c
+       tpoly.c profile.c tprofile.c mult.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -46,8 +46,11 @@ libraries: $(LIBS)
 %.ps : %.dvi
 	dvips $*.dvi
 
+%.dvi : %.tex
+	latex $*.tex
+
 %.tex : %.nw
-	$(NOWEAVE) -n  $*.nw  > $*.tex
+	$(NOWEAVE) -delay $*.nw  > $*.tex
 
 depend: 
 	makedepend -Y -- $(CFLAGS) -- $(SRCS) 2> /dev/null
