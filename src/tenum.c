@@ -637,7 +637,6 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
 
     tclEnum *te = (tclEnum *) cd;
-    Tcl_Obj *auxobj;
     exmo ex;
     int result, index, scale;
 
@@ -662,9 +661,9 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             return Tcl_EnumDimensionCmd(cd, ip, objc, objv);            
         case SIGRESET:
             if (objc != 2) RETERR("wrong number of arguments");
+            TRYFREEOBJ(te->sig); 
             memset(&ex, 0, sizeof(exmo));
-            auxobj = Tcl_NewExmoCopyObj(&ex);
-            SETOPT(te->sig, auxobj, te->csig);
+            te->sig = Tcl_NewExmoCopyObj(&ex); Tcl_IncrRefCount(te->sig); te->csig = 1;
             return TCL_OK;
         case SIGNEXT: 
             if (objc != 2) RETERR("wrong number of arguments");

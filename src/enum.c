@@ -283,6 +283,7 @@ int enmSetSignature(enumerator *en, exmo *sig) {
     else                  
         copyExmo(&(en->signature), sig);
     enmDestroyEffList(en);
+    enmUpdateSigInfo(en, &(en->signature), &(en->sigideg), &(en->sigedeg));
     /* sigideg & sigedeg are determined when Efflist is recreated */
     return SUCCESS;
 }
