@@ -508,7 +508,9 @@ int PLsteenrodMultiply(polyType **rtp, void **res,
     
     *rtp = stdpoly; 
     *res = stdCreateCopy(NULL);
-    stdAddProductToPoly(*rtp,*res,fftp,ff,sftp,sf,pi,pro,fpos,spos);
+    stdAddProductToPoly(*rtp, *res, fftp, ff, sftp, sf, pi, pro, fpos, spos);
+
+    PLcancel(*rtp, *res, pi->prime);
 
     return SUCCESS;
 }
