@@ -18,7 +18,7 @@
 /*::: Implementation of the TPtr object type :::::::::::::::::::::::::::::::::*/
 
 #define TCLRETERR( ip, msg ) \
-if (NULL!=ip) Tcl_SetResult(ip, msg, TCL_VOLATILE); return TCL_ERROR;
+{ if (NULL!=ip) Tcl_SetResult(ip, msg, TCL_VOLATILE); return TCL_ERROR; }
 
 #define TP_FORMAT "<%p:%p>"
 
@@ -68,7 +68,7 @@ void TPtr_DupInternalRepProc( Tcl_Obj *srcPtr, Tcl_Obj *dupPtr ) {
 	       srcPtr->internalRep.twoPtrValue.ptr2 );
 }
 
-int TPtr_Init( Tcl_Interp *ip ) {
+int Tptr_Init( Tcl_Interp *ip ) {
 
     /* set up type and register */
     TPtr.name = "typed pointer";
@@ -214,6 +214,7 @@ int TPtr_CheckArgs( Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ... ) {
     
 	if ( TCL_OK != Tcl_ConvertToType( ip, *objv, &TPtr ) ) 
 	    CHCKARGSERR( NULL ); 
+
 	if ( TPtr_GetType( *objv ) != type ) 
 	    CHCKARGSERR( NULL ); 
 

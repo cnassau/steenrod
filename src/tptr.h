@@ -25,7 +25,7 @@
 Tcl_ObjType TPtr;
  
 /* Initialize this library */
-int TPtr_Init( Tcl_Interp *ip );
+int Tptr_Init( Tcl_Interp *ip );
 
 /* Retrieve values from a TPtr object */
 void *TPtr_GetPtr( Tcl_Obj *obj );

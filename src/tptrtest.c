@@ -34,7 +34,7 @@ int Tptrtest_Init( Tcl_Interp *ip ) {
     
     Tcl_InitStubs( ip, "8.0", 0 ) ;   
 
-    TPtr_Init( ip );
+    Tptr_Init( ip );
 
     Tcl_CreateObjCommand( ip, "tptr::create", create, 0, NULL );
 

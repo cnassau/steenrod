@@ -148,8 +148,11 @@ int tLinComboCmd( ClientData cd, Tcl_Interp *ip,
 }
 
 int Tlin_Init( Tcl_Interp *ip ) {
+
+    if ( NULL == Tcl_InitStubs( ip, "8.0", 0 ) ) return TCL_ERROR;
+
+    Tprime_Init( ip );
     
-    Tcl_InitStubs( ip, "8.0", 0 );
 
 #define CREATECOMMAND( name, code) \
 Tcl_CreateObjCommand(ip,NSP name,tLinComboCmd,(ClientData) code, NULL);

@@ -35,7 +35,7 @@ SRCS = adlin.c  linalg.c  prime.c  tlin.c  tprime.c  tptr.c  tptrtest.c
 %.tex : %.nw
 	$(NOWEAVE) -n  $*.nw  > $*.tex
 
-all: libtptrtest.so libtprime.so linalg.o adlin.o tlin.o
+all: libtptrtest.so libtprime.so libtlin.so
 
 depend: 
 	makedepend -Y -- $(CFLAGS) -- $(SRCS) 2> /dev/null
@@ -45,6 +45,9 @@ libtptrtest.so : tptr.o tptrtest.o
 
 libtprime.so: tprime.o tptr.o prime.o
 	cc -shared -o libtprime.so tptr.o prime.o tprime.o
+
+libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o
+	cc -shared -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 

@@ -115,9 +115,9 @@ Tcl_SetObjResult(ip,Tcl_ListFromArray(list,len)); return TCL_OK
 
 int Tprime_Init( Tcl_Interp *ip ) {
 
-    Tcl_InitStubs( ip, "8.0", 0 );
-
-    TPtr_Init( ip );
+    if ( NULL == Tcl_InitStubs( ip, "8.0", 0 ) ) return TCL_ERROR;
+    
+    Tptr_Init( ip );
 
     TPtr_RegType( TP_PRINFO, "primeinfo" );
 
