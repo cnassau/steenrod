@@ -137,7 +137,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     stdmatrix->clearMatrix(*mat);
 
     memset(&theG, 0, sizeof(exmo));
-    theG.gen = -654321; /* invalid (=highly unusual) generator id */
+    theG.gen = -653421; /* invalid (=highly unusual) generator id */
 
     initMultargs(ma, dst->pi, profile);
 
@@ -162,7 +162,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
         do {
             ((int) ma->cd5) = mc->currow; /* row indicator */
 
-            /* find differential of src->theex'es generator */
+            /* find differential of mc->srcx'es generator */
             ma->ffdat = mc->srcx;
             ma->ffMaxLength = exmoGetRedLen(mc->srcx);
             ma->ffMaxLength = MIN(ma->ffMaxLength, NALG-2);
@@ -237,8 +237,9 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
         } while (mc->nextSource(mc));
 
     return SUCCESS;
-
 }
+
+/* --------- MakeMatrixSameSig */
 
 int MCTfsourceEnum(void *s) {
     MatCompTaskInfo *mc = (MatCompTaskInfo *) s;
@@ -331,6 +332,186 @@ int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
 }
 
 
+/* --------- MakeImages */
+
+/* A "PlistCtrlStruct" is used to iterate through the monomials of a list
+ * of polynomials. This is a utility for the "MakeImages" function below. */
+
+typedef struct {
+    polyType **pt;
+    void     **pdat;
+    int npoly;
+    int idx, aux, pcnt;
+    exmo xm;
+    int ispos;
+} PlistCtrlStruct; 
+
+int MCTnpcs(void *s) {
+    MatCompTaskInfo *mct = (MatCompTaskInfo *) s;
+    PlistCtrlStruct *pcs = (PlistCtrlStruct *) mct->cd1;
+    ++(pcs->idx);
+    do {
+        if (pcs->idx < pcs->aux) {
+            polyType *pt = pcs->pt[pcs->pcnt];
+            void *pdat = pcs->pdat[pcs->pcnt];
+            if (SUCCESS != PLgetExmo(pt, pdat, &(pcs->xm), pcs->idx))
+                return 0;
+            return 1;
+        }
+        pcs->idx = 0;    
+        ++(mct->currow);
+    } while (++(pcs->pcnt) < pcs->npoly);
+    return 0;
+}
+
+int MCTfpcs(void *s) {
+    MatCompTaskInfo *mct = (MatCompTaskInfo *) s;
+    PlistCtrlStruct *pcs = (PlistCtrlStruct *) mct->cd1;
+    if (0 == pcs->npoly) return 0;
+    pcs->idx = pcs->pcnt = 0; 
+    pcs->aux = PLgetNumsum(pcs->pt[0], pcs->pdat[0]);
+    if (0 == pcs->aux) return MCTnpcs(s);
+    if (SUCCESS != PLgetExmo(pcs->pt[0], pcs->pdat[0], &(pcs->xm), 0))
+        return 0;
+    mct->currow = 0;
+    return 1;
+}
+
+void destroyPCS(PlistCtrlStruct *pcs) {
+    if (NULL != pcs->pt) freex(pcs->pt);
+    if (NULL != pcs->pdat) freex(pcs->pdat);
+}
+
+#define THROWUP { destroyPCS(pcs); return FAILMEM; }
+
+int makePCS(PlistCtrlStruct *pcs, Tcl_Obj *plist) {
+    int i, ispos, isneg, obc; Tcl_Obj **obv;
+    
+    pcs->pt = NULL; pcs->pdat = NULL;
+
+    if (TCL_OK != Tcl_ListObjGetElements(NULL, plist, &obc, &obv))
+        return FAIL;
+
+    pcs->npoly = obc;
+    pcs->ispos = 1;
+    pcs->pt    = mallox(obc * sizeof(polyType *));
+    pcs->pdat  = mallox(obc * sizeof(void *));
+    
+    if ((NULL == pcs->pt) || (NULL == pcs->pdat)) 
+        THROWUP;
+    
+    for (i=0; i<obc; i++) 
+        if (TCL_OK == Tcl_ConvertToPoly(NULL, obv[i])) {
+            pcs->pt[i]   = polyTypeFromTclObj(obv[i]);
+            pcs->pdat[i] = polyFromTclObj(obv[i]);
+            ispos = (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISPOSITIVE)); 
+            isneg = (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISNEGATIVE));
+            if (!ispos && !isneg) 
+                THROWUP;
+            if (i) {
+                if ((pcs->ispos && isneg) || (!pcs->ispos && ispos))
+                    THROWUP;
+            } else {
+                pcs->ispos = ispos;
+            }
+        } else THROWUP;
+
+    return SUCCESS;
+}
+
+int MakeImages(Tcl_Interp *ip, Tcl_Obj *plist, momap *map, enumerator *dst,
+               progressInfo *pinf, matrixType **mtp, void **mat) {
+    MatCompTaskInfo mct; 
+    int rcode;
+    PlistCtrlStruct pcs;
+    
+    if (SUCCESS != makePCS(&pcs, plist))
+        return FAIL;
+
+    mct.srcIspos = pcs.ispos;
+    mct.srcdim = pcs.npoly;
+
+    mct.cd1 = &pcs; 
+    mct.srcx = &(pcs.xm);
+    mct.firstSource = MCTfpcs;
+    mct.nextSource  = MCTnpcs;
+
+    mct.dst = dst; 
+    mct.map = map;
+
+    rcode = MakeMatrix(ip, &mct, &(dst->profile), pinf, mtp, mat);
+
+    destroyPCS(&pcs);
+
+    return rcode;
+}
+
+
+
+
+int TMakeImages(ClientData cd, Tcl_Interp *ip,
+                int objc, Tcl_Obj * CONST objv[]) {
+
+    enumerator *dst;
+    momap *map; 
+    progressInfo info, *infoptr;
+    matrixType *mtp;
+    void *mat;
+    int i, obc; Tcl_Obj **obv;
+    
+    if ((objc<4) || (objc>6)) {
+        Tcl_WrongNumArgs(ip, 1, objv, 
+                         "<monomap> <enumerator> <list of polynomials>"
+                         " ?<varname>? ?<int>?");
+        return TCL_ERROR;
+    }
+    
+    info.ip = ip; 
+    info.progvar = NULL;
+    info.pmsk = 0;
+    infoptr = NULL;
+
+    if (objc > 4) { 
+        info.progvar = Tcl_GetString(objv[4]);
+        infoptr = &info;
+    }
+
+    if (objc > 5) 
+        if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &info.pmsk))
+            return TCL_ERROR;
+
+    if (NULL == (map = Tcl_MomapFromObj(ip, objv[1]))) {
+        Tcl_AppendResult(ip, " (argument #1)", NULL);
+        return TCL_ERROR;
+    }
+
+    if (NULL == (dst = Tcl_EnumFromObj(ip, objv[2]))) {
+        Tcl_AppendResult(ip, " (argument #2)", NULL);
+        return TCL_ERROR;
+    }
+
+    /* check that objv[3] is a list of polynomials */
+    
+    if (TCL_OK != Tcl_ListObjGetElements(ip, objv[3], &obc, &obv)) {
+        Tcl_AppendResult(ip, " (expected list of polynomials)", NULL);
+        return TCL_ERROR;
+    }
+
+    for (i=0;i<obc;i++) 
+        if (TCL_OK != Tcl_ConvertToPoly(ip, obv[i])) 
+            RETERR("argument 3 should be a list of polynomials");
+       
+    if (SUCCESS != MakeImages(ip, objv[3], map, dst, infoptr, &mtp, &mat)) {
+        if (NULL != mat) mtp->destroyMatrix(mat);
+        return TCL_ERROR;
+    }
+  
+    Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mtp, mat));
+
+    return TCL_OK;
+}
+
+
 
 /* Removing the string representation can sometimes help to save memory: */
 
@@ -365,6 +546,9 @@ int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_CreateObjCommand(ip, POLYNSP "ComputeMatrix",
                          TMakeMatrixSameSig, (ClientData) 0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "ComputeImages",
+                         TMakeImages, (ClientData) 0, NULL);
 
     Tcl_CreateObjCommand(ip, STEALCOMMAND,
                          StealStringRep, (ClientData) 0, NULL);
