@@ -632,22 +632,123 @@ Tcl_Obj *TakeVectorFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
     return res;
 }
 
+/**** Encoding and decoding ********************************************************/
+
+int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
+    return TCL_OK;
+}
+
+int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
+    
+    matrixType *mt;
+    void *mdat;
+
+    int blocksize = -1, nrows, ncols, len, entperbyte, i, j, k, val, rcs, mask;
+    
+    Tcl_Obj *res[5];
+    char *enc, *wrk;
+
+    /* For the moment we support only a very basic hexadecimal encoding:
+     *
+     * The format is {hex <blocksize> <num rows> <num cols> {col1 col2 ...}}.
+     *
+     * Each column is is encoded as a string of hexadecimal digits. Supported
+     * blocksizes are 1, 2, 4, and 8.
+     */
+ 
+    if ((base>=1) && (base<2)) {
+        blocksize = 1;
+    } else if ((base>=2) && (base<4)) {
+        blocksize = 2;
+    } else if ((base>=4) && (base<16)) {
+        blocksize = 4;
+    } else if ((base>=16) && (base<256)) {
+        blocksize = 8;
+    }
+    
+    if (blocksize < 0) {
+        Tcl_SetResult(ip, "base must be between 1 and 255", TCL_STATIC);
+        return TCL_ERROR;
+    }
+
+    entperbyte = 8 / blocksize;
+    mask = (1 << blocksize) - 1;
+    
+    mt   = matrixTypeFromTclObj(mat);
+    mdat = matrixFromTclObj(mat);
+
+    mt->getDimensions(mdat, &nrows, &ncols);
+
+    /* Calculate and allocate necessary space */
+    
+    len  = nrows;                       /* number of spaces as separators + one newline */
+    rcs = (7 + ncols * blocksize) / 4;  /* twice the number of bytes per row */
+    len += nrows * rcs;
+    len++;                              /* trailing zero */
+
+    if (NULL == (enc = Tcl_AttemptAlloc(len))) {
+        Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+        return TCL_ERROR;
+    }
+
+    wrk = enc;
+    
+    for (i=0;i<nrows;i++) {
+        if (i) *wrk++ = ' '; 
+        
+        for (k=j=0;k<rcs;k+=2) {
+            int u,x;
+            char h,l;
+            for (x=0,u=entperbyte; u--;) {
+                if (j<ncols) {
+                    mt->getEntry( mdat, i, j, &val );
+                    j++;
+                } else {
+                    val = 0;
+                }
+                x <<= blocksize;
+                x |= (val & mask); 
+            }
+ 
+#define TOHEX(z) (((z)<10) ? ('0'+(z)) : ('a'+(z)-10))
+
+            l = TOHEX( (x & 0xf) );
+            x >>= 4;
+            h = TOHEX( (x & 0xf) );
+
+            *wrk++ = h; 
+            *wrk++ = l;
+        }
+    }
+    *wrk++ = 0;
+    
+    res[0] = Tcl_NewStringObj( "hex", 3 );
+    res[1] = Tcl_NewIntObj( blocksize );
+    res[2] = Tcl_NewIntObj( nrows );
+    res[3] = Tcl_NewIntObj( ncols );
+    res[4] = Tcl_NewObj();
+    res[4]->length = len;
+    res[4]->bytes = enc;
+
+    Tcl_SetObjResult(ip, Tcl_NewListObj(5, res));
+    return TCL_OK;
+}
 
 /**** Implementation of the matrix combi-command ***********************************/
 
 static CONST char *rcnames[] = { "rows", "cols", NULL };
 
 typedef enum { ORTHO, LIFT, QUOT, DIMS, CREATE, ADDTO, 
-               ISZERO, TEST, EXTRACT } matcmdcode;
+               ISZERO, TEST, EXTRACT, ENCODE64, DECODE } matcmdcode;
 
 static CONST char *mCmdNames[] = { "orthonormalize", "lift", 
                                    "quotient", "extract", "dimensions", 
                                    "create", "addto", "iszero", 
-                                   "test", 
+                                   "test", "encode64", "decode", 
                                    (char *) NULL };
 
 static matcmdcode mCmdmap[] = { ORTHO, LIFT, QUOT, EXTRACT, 
-                                DIMS, CREATE, ADDTO, ISZERO, TEST };
+                                DIMS, CREATE, ADDTO, ISZERO, TEST, ENCODE64, DECODE };
 
 int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index, scale, modval, rows, cols;
@@ -669,6 +770,30 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
        return TCL_ERROR; } }
 
     switch (mCmdmap[index]) {
+        case ENCODE64: 
+            EXPECTARGS(2, 2, 2, "<base> <matrix>");
+            
+            if (TCL_OK != Tcl_GetIntFromObj(ip,objv[2],&scale))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[3])) 
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_Encode64Cmd(ip, scale, objv[3])) {
+                return TCL_ERROR;
+            }
+
+            return TCL_OK;
+
+        case DECODE: 
+            EXPECTARGS(2, 1, 1, "<string>");
+            
+            if (TCL_OK != Tcl_DecodeCmd(ip, objv[2])) {
+                return TCL_ERROR;
+            }
+
+            return TCL_OK;
+
         case QUOT: 
             EXPECTARGS(2, 3, 3, "<prime> <varname> <matrix>");
             
