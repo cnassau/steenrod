@@ -144,116 +144,116 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
     result = Tcl_GetIndexFromObj(ip, objv[1], cmdNames, "subcommand", 0, &index);
     if (result != TCL_OK) return result;
 
-   switch (cmdmap[index]) {
-       case CLEAR:
-           if (objc != 2) {
-               Tcl_WrongNumArgs(ip, 2, objv, NULL);
-               return TCL_ERROR;
-           }
-           momapClear(mo);
-           return TCL_OK;
+    switch (cmdmap[index]) {
+        case CLEAR:
+            if (objc != 2) {
+                Tcl_WrongNumArgs(ip, 2, objv, NULL);
+                return TCL_ERROR;
+            }
+            momapClear(mo);
+            return TCL_OK;
 
-       case SET:
-           if (objc != 4) {
-               Tcl_WrongNumArgs(ip, 2, objv, "<monomial> value");
-               return TCL_ERROR;
-           }
-           if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
-               return TCL_ERROR;
-           result = momapSetValPtr(mo, objv[2], objv[3]);
-           if (TCL_OK != result) RETERR("out of memory");
-           return TCL_OK;
+        case SET:
+            if (objc != 4) {
+                Tcl_WrongNumArgs(ip, 2, objv, "<monomial> value");
+                return TCL_ERROR;
+            }
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+                return TCL_ERROR;
+            result = momapSetValPtr(mo, objv[2], objv[3]);
+            if (TCL_OK != result) RETERR("out of memory");
+            return TCL_OK;
 
-       case ADD:
-           scale = 1; modulo = 0;
-           if ((objc<4) || (objc>6)) {
-               Tcl_WrongNumArgs(ip, 2, objv, 
-                                "<monomial> <polynomial> ?scale? ?modulo?");
-               return TCL_ERROR;
-           }
-           if (objc>4) 
-               if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &scale))
-                   return TCL_ERROR;
-           if (objc>5) 
-               if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &modulo))
-                   return TCL_ERROR;
-           if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
-               return TCL_ERROR;
-           auxptr = momapGetValPtr(mo, objv[2]);
-           if (NULL == auxptr) {
-               result = momapSetValPtr(mo, objv[2], objv[3]);
-               if (SUCCESS != result) RETERR("out of memory");
-           } else {
-               if (TCL_OK != Tcl_ConvertToPoly(ip, auxptr))
-                   RETERR("current value not of polynomial type");
-               if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
-                   return TCL_ERROR;
-               if (Tcl_IsShared(auxptr)) {
-		   auxptr= Tcl_DuplicateObj(auxptr);
-		   momapSetValPtr(mo, objv[2], auxptr);
-               }
-               Tcl_InvalidateStringRep(auxptr);
-               if (SUCCESS != PLappendPoly(polyTypeFromTclObj(auxptr),
-                                           polyFromTclObj(auxptr),
-                                           polyTypeFromTclObj(objv[3]),
-                                           polyFromTclObj(objv[3]),
-                                           NULL, 0,
-                                           scale,modulo))
-                   return TCL_ERROR;
-               if (SUCCESS != PLcancel(polyTypeFromTclObj(auxptr),
-                                       polyFromTclObj(auxptr),
-                                       modulo))
-                   return TCL_ERROR;
-               return TCL_OK;
-           }
-           return TCL_OK;
-       case GET:
-           if (objc != 3) {
-               Tcl_WrongNumArgs(ip, 2, objv, "<monomial>");
-               return TCL_ERROR;
-           }
-           if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
-               return TCL_ERROR;
-           auxptr = momapGetValPtr(mo, objv[2]);
-           if (NULL == auxptr) {
-               Tcl_SetObjResult(ip, Tcl_NewObj());
-               return TCL_OK;
-           }
-           Tcl_SetObjResult(ip, auxptr);
-           return TCL_OK;
+        case ADD:
+            scale = 1; modulo = 0;
+            if ((objc<4) || (objc>6)) {
+                Tcl_WrongNumArgs(ip, 2, objv, 
+                                 "<monomial> <polynomial> ?scale? ?modulo?");
+                return TCL_ERROR;
+            }
+            if (objc>4) 
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &scale))
+                    return TCL_ERROR;
+            if (objc>5) 
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &modulo))
+                    return TCL_ERROR;
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+                return TCL_ERROR;
+            auxptr = momapGetValPtr(mo, objv[2]);
+            if (NULL == auxptr) {
+                result = momapSetValPtr(mo, objv[2], objv[3]);
+                if (SUCCESS != result) RETERR("out of memory");
+            } else {
+                if (TCL_OK != Tcl_ConvertToPoly(ip, auxptr))
+                    RETERR("current value not of polynomial type");
+                if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                    return TCL_ERROR;
+                if (Tcl_IsShared(auxptr)) {
+                    auxptr= Tcl_DuplicateObj(auxptr);
+                    momapSetValPtr(mo, objv[2], auxptr);
+                }
+                Tcl_InvalidateStringRep(auxptr);
+                if (SUCCESS != PLappendPoly(polyTypeFromTclObj(auxptr),
+                                            polyFromTclObj(auxptr),
+                                            polyTypeFromTclObj(objv[3]),
+                                            polyFromTclObj(objv[3]),
+                                            NULL, 0,
+                                            scale,modulo))
+                    return TCL_ERROR;
+                if (SUCCESS != PLcancel(polyTypeFromTclObj(auxptr),
+                                        polyFromTclObj(auxptr),
+                                        modulo))
+                    return TCL_ERROR;
+                return TCL_OK;
+            }
+            return TCL_OK;
+        case GET:
+            if (objc != 3) {
+                Tcl_WrongNumArgs(ip, 2, objv, "<monomial>");
+                return TCL_ERROR;
+            }
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+                return TCL_ERROR;
+            auxptr = momapGetValPtr(mo, objv[2]);
+            if (NULL == auxptr) {
+                Tcl_SetObjResult(ip, Tcl_NewObj());
+                return TCL_OK;
+            }
+            Tcl_SetObjResult(ip, auxptr);
+            return TCL_OK;
 
-       case LIST:
-           if (objc != 2) {
-               Tcl_WrongNumArgs(ip, 2, objv, "");
-               return TCL_ERROR;
-           }
-	   {
-	       Tcl_Obj *res = Tcl_NewObj(), *key, *val;
-	       Tcl_HashSearch src;
-	       Tcl_HashEntry *ent = Tcl_FirstHashEntry(mo->tab, &src);
-	       while (NULL != ent) {
-		   val = (Tcl_Obj *) Tcl_GetHashValue(ent);
-		   key = keyFromHE(ent);
-		   Tcl_ListObjAppendElement(ip, res, key);
-		   Tcl_ListObjAppendElement(ip, res, val);
-		   ent = Tcl_NextHashEntry(&src);
-	       }
-	       Tcl_SetObjResult(ip, res);
-	       return TCL_OK;
-	   }
+        case LIST:
+            if (objc != 2) {
+                Tcl_WrongNumArgs(ip, 2, objv, "");
+                return TCL_ERROR;
+            }
+            {
+                Tcl_Obj *res = Tcl_NewObj(), *key, *val;
+                Tcl_HashSearch src;
+                Tcl_HashEntry *ent = Tcl_FirstHashEntry(mo->tab, &src);
+                while (NULL != ent) {
+                    val = (Tcl_Obj *) Tcl_GetHashValue(ent);
+                    key = keyFromHE(ent);
+                    Tcl_ListObjAppendElement(ip, res, key);
+                    Tcl_ListObjAppendElement(ip, res, val);
+                    ent = Tcl_NextHashEntry(&src);
+                }
+                Tcl_SetObjResult(ip, res);
+                return TCL_OK;
+            }
 
-       case UNSET:
-           if (objc != 3) {
-               Tcl_WrongNumArgs(ip, 2, objv, "<monomial>");
-               return TCL_ERROR;
-           }
-           if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
-               return TCL_ERROR;
-           momapRemoveValue(mo, objv[2]);
-           return TCL_OK;
-   }
+        case UNSET:
+            if (objc != 3) {
+                Tcl_WrongNumArgs(ip, 2, objv, "<monomial>");
+                return TCL_ERROR;
+            }
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+                return TCL_ERROR;
+            momapRemoveValue(mo, objv[2]);
+            return TCL_OK;
+    }
 
-   RETERR("internal error in Tcl_MomaWidgetCmd");
+    RETERR("internal error in Tcl_MomaWidgetCmd");
 }
 
 void Tcl_DestroyMoma(ClientData cd) {

@@ -107,7 +107,7 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         return TCL_ERROR;
     if (4 != objc) 
         RETERR("malformed monomial: wrong number of entries");
-   if (NULL == (e = (exmo *) mallox(sizeof(exmo))))
+    if (NULL == (e = (exmo *) mallox(sizeof(exmo))))
         RETERR("out of memory");
     if (TCL_OK != Tcl_GetIntFromObj(ip,objv[0],&(e->coeff))) 
         FREEEANDRETERR;
