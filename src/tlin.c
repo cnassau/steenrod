@@ -287,6 +287,9 @@ Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft,
     if ((NULL == (mt->liftFunc)) || (mt != mt2)) 
         assert(NULL == "lift computation not fully implemented");
 
+    if (PTR2(inp) == PTR2(lft))
+        assert(NULL == "lifting matrix through itself not yet supported");
+
     /* Note: a matrix with 0 rows does not have a well defined number 
      * of columns, since the string representation is always {}. So
      * we must only complain if (krows != 0). */
