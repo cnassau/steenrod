@@ -676,6 +676,8 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
                 return TCL_ERROR;
             
+            /* TODO: check if we should increment the refcount first! */
+
             obj = objv[2];
             if (Tcl_IsShared(obj)) 
                 obj = Tcl_DuplicateObj(obj);

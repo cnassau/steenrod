@@ -711,6 +711,8 @@ int stdpolySortWithValues(void *poly, void **values) {
         if (SLOG) printf(" %p", values[i]);  
     }
 
+    freex(sit); 
+
     if (SLOG) printf("\n");
 
     return SUCCESS;
