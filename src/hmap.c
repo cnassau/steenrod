@@ -201,7 +201,7 @@ void multTensor(hmap_tensor *dst, hmap_tensor *src, int scale, int numMono, int 
 int compareTensor(hmap_tensor *a, hmap_tensor *b, hmap_tensor *res, int numMono, int numInt) {
     int i;
     for (i=0;i<numMono;i++)
-        res->edat[i].coeff = compareExmo(&(a->edat[i]),&(b->edat[i]));
+        res->edat[i].coeff = exmoIsBelow(&(a->edat[i]),&(b->edat[i]));
     for (i=0;i<numInt;i++) {
         res->idat[i] = a->idat[i] - b->idat[i];
     }
@@ -342,29 +342,32 @@ void hmapTclTensor(hmap_tensor *h,
 #define LOGMSG(format,arg) { if (LogStuff) {printf("> " format "\n", arg);}; }
 
 int invokeCallback(Tcl_Interp *ip, Tcl_Obj *callback, hmap *hm,  hmap_summand *result) {
-    Tcl_Obj *(command[4]);
+    Tcl_Obj *(command[5]);
     int retval;
 
     LOGMSG("invokeCallback result=%p",result);
 
     command[0] = callback;
     command[1] = Tcl_NewExmoCopyObj(&(result->source));
-    hmapTclTensor(&(result->pardat),&(command[2]),&(command[3]),hm->numMono,hm->numInt);
+    command[2] = Tcl_NewIntObj(result->pardat.coeff);
+    hmapTclTensor(&(result->pardat),&(command[3]),&(command[4]),hm->numMono,hm->numInt);
 
     INCREFCNT(command[1]);
     INCREFCNT(command[2]);
     INCREFCNT(command[3]);
+    INCREFCNT(command[4]);
 
 #if 0
     retval = TCL_OK;
-    { int i; for (i=0;i<4;i++) printf("command[%d] = %s\n", i, Tcl_GetString(command[i])); }
+    { int i; for (i=0;i<5;i++) printf("command[%d] = %s\n", i, Tcl_GetString(command[i])); }
 #else
-    retval = Tcl_EvalObjv(ip, 4, command, 0);
+    retval = Tcl_EvalObjv(ip, 5, command, 0);
 #endif
 
     DECREFCNT(command[1]);
     DECREFCNT(command[2]);
     DECREFCNT(command[3]);
+    DECREFCNT(command[4]);
 
     return retval;
 }
@@ -625,14 +628,27 @@ int hmapSelectFunc(hmap *hm, Tcl_Interp *ip, Tcl_Obj *rest, Tcl_Obj *callback) {
 
 void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next);
 
+void pexmo(exmo *e) {
+    Tcl_Obj *x = Tcl_NewExmoCopyObj(e);
+    printf("%s",Tcl_GetString(x));
+    DECREFCNT(x);
+}
+
 int checkPartialRestriction(hmap *hm, hmap_summand *next) {
     int i;
     LOGMSG("checkPartialRestriction %p",next);
+
+    if (hm->sourceRestriction.coeff != 0) {
+        hm->comparison2 = exmoIsBelow(&(next->source),&(hm->sourceRestriction));
+        if (!hm->comparison2) 
+            return 0; /* constraint violated */
+    }
+
     compareTensor(&(next->pardat), &(hm->restrictions1), 
                   &(hm->comparison1), hm->numMono, hm->numInt);
     for (i=0;i<hm->numMono;i++) 
         if (hm->restrictions1.edat[i].coeff)
-            if (hm->comparison1.edat[i].coeff > 0)
+            if (!hm->comparison1.edat[i].coeff)
                 return 0; /* constraint violated */
     for (i=0;i<hm->numInt;i++) 
         if (hm->restrictions2.idat[i])
@@ -656,9 +672,14 @@ void handleSummand(hmap *hm, int numsum) {
         LOGMSG("numsum == hm->numSummands == %d", numsum);
         
         /* check whether constraints have been *exactly* met */
+        if (1 == hm->sourceRestriction.coeff) {
+            if (compareExmo(&(current->source),&(hm->sourceRestriction)))
+                return;
+        }
+
         for (i=0;i<hm->numMono;i++) {
             if (1 == hm->restrictions1.edat[i].coeff) {
-                if (hm->comparison1.edat[i].coeff)
+                if (compareExmo(&(hm->restrictions1.edat[i]),&(current->pardat.edat[i])))
                     return; 
             }
         }
@@ -679,7 +700,7 @@ void handleSummand(hmap *hm, int numsum) {
         
         makeNextPartial(hm, current, next);
 
-        // invokeCallback((Tcl_Interp *) hm->callbackdata1, (Tcl_Obj *) hm->callbackdata2, hm, next);
+        //invokeCallback((Tcl_Interp *) hm->callbackdata1, (Tcl_Obj *) hm->callbackdata2, hm, next);
 
         if (!next->pardat.coeff) 
             continue;
@@ -699,15 +720,21 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
 
         sum = current->source.dat[current->idx] + current->value;
         newcoeff = current->pardat.coeff * binom(sum, current->value);
-        
+        //printf("newcoeff = %d, sum=%d, value=%d\n",newcoeff,sum,current->value);
+
         if (hm->modval) {
-            next->pardat.coeff %= hm->modval;
-            if (0 == next->pardat.coeff) 
-                return; 
+            newcoeff %= hm->modval;
+            if (0 == newcoeff) {
+                next->pardat.coeff = 0;
+                return ;
+            } 
         }         
 
         copyTensor(&(next->pardat),&(current->pardat),hm->numMono,hm->numInt);
         copyExmo(&(next->source),&(current->source));
+
+        next->source.dat[current->idx] = sum;
+        next->pardat.coeff = newcoeff;
 
         multTensor(&(next->pardat),&(current->sumdat),
                    current->value,hm->numMono,hm->numInt,hm->modval);
@@ -716,7 +743,6 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
         next->pardat.coeff = newcoeff;
     }
 
-    
 }
 
 
