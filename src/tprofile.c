@@ -95,7 +95,7 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
         case PR_DESTROY: 
             ENSUREARGS1(TP_PROFILE);
             prof = (profile *) TPtr_GetPtr(objv[1]); 
-            cfree(prof);
+            freex(prof);
             return TCL_OK;
         case PR_GETCORE: 
             ENSUREARGS1(TP_PROFILE);
@@ -142,7 +142,7 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
             ENSUREARGS1(TP_ENENV);
             env = (enumEnv *) TPtr_GetPtr(objv[1]); 
             disposeEnumEnv(env);
-            cfree(env);
+            freex(env);
             return TCL_OK;
         case EXM_CREATE:
             ENSUREARGS0;
@@ -152,7 +152,7 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
         case EXM_DISPOSE:
             ENSUREARGS1(TP_EXMON); 
             exmo = (exmon *) TPtr_GetPtr(objv[1]);
-            cfree(exmo);
+            freex(exmo);
             return TCL_OK;
         case EXM_GETCORE:
             ENSUREARGS1(TP_EXMON); 

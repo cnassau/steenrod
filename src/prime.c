@@ -35,9 +35,9 @@ int piiBasic(primeInfo *pi) {
 }
 
 int pidBasic(primeInfo *pi) {
-    cfree(pi->primpows);
-    cfree(pi->extdegs);
-    cfree(pi->reddegs);
+    freex(pi->primpows);
+    freex(pi->extdegs);
+    freex(pi->reddegs);
     return PI_OK;
 } 
 
@@ -64,7 +64,7 @@ int piiInv(primeInfo *pi) {
 }
 
 int pidInv(primeInfo *pi) {
-    cfree(pi->inverse);
+    freex(pi->inverse);
     return PI_OK;
 }
 
@@ -90,7 +90,7 @@ int piiBinom(primeInfo *pi) {
 }
 
 int pidBinom(primeInfo *pi) {
-    cfree(pi->binom);
+    freex(pi->binom);
     return PI_OK;
 }
 

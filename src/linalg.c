@@ -19,7 +19,7 @@ vector * vector_create(int size) {
     vector *v = mallox(sizeof(vector));
     if (NULL == v) return NULL;
     v->data = mallox(sizeof(cint) * size);
-    if (NULL == v->data) { cfree(v); return NULL; }
+    if (NULL == v->data) { freex(v); return NULL; }
     v->num = size;
     return v;
 }
@@ -80,13 +80,13 @@ matrix *matrix_create(int rows, int cols) {
     res->nomcols /= sizeof(cint); /* ... now cint again  .. */
     res->data = (cint *) mallox(sizeof(cint) * res->nomcols * res->rows);
     if (NULL == res->data) {
-        cfree(res); return NULL;
+        freex(res); return NULL;
     }
     return res;
 }
 
 void matrix_destroy(matrix *mat) {
-    cfree(mat->data); cfree(mat);
+    freex(mat->data); freex(mat);
 }
 
 void matrix_clear(matrix *mat) {
