@@ -103,8 +103,15 @@ B.term {
          letter-spacing: 0pt;
          padding-left: 2pt;
          padding-right: 2pt;
+         font-size: 100%;
+         font-variant:normal;
 }
 
+I.m { 
+      color: #d04040; 
+      font-size: 110%; text-decoration:underline;
+      padding-left: 2pt; padding-right: 2pt;
+}
 /*
 TT { 
      font-family: monospace;
