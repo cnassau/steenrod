@@ -20,7 +20,10 @@
 
 int Tcl_ConvertToExmo(Tcl_Interp *ip, Tcl_Obj *obj);
 int Tcl_ObjIsExmo(Tcl_Obj *obj);
-exmo *exmoFromTclObj(Tcl_Obj *obj); 
+exmo *exmoFromTclObj(Tcl_Obj *obj);
+
+Tcl_Obj *Tcl_NewExmoObj(exmo *ex);       /* keeps reference to *ex */
+Tcl_Obj *Tcl_NewExmoCopyObj(exmo *ex);   /* creates private copy of *ex */
 
 int Tcl_ConvertToPoly(Tcl_Interp *ip, Tcl_Obj *obj);
 int Tcl_ObjIsPoly(Tcl_Obj *obj);
