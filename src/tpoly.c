@@ -307,14 +307,12 @@ Tcl_Obj *Tcl_PolyObjScaleMod(Tcl_Obj *obj, int scale, int mod) {
 }
 
 Tcl_Obj *Tcl_PolyObjAppend(Tcl_Obj *obj, Tcl_Obj *pol2, int scale, int mod) {
-    Tcl_IncrRefCount(obj);
-    if (Tcl_IsShared(obj)) {    
-        Tcl_DecrRefCount(obj);
-        obj = Tcl_DuplicateObj(obj);    
-        Tcl_IncrRefCount(obj);
-    }
+    if (Tcl_IsShared(obj)) 
+        assert(NULL == "obj must not be shared in Tcl_PolyObjAppend");
+
     if (SUCCESS != PLappendPoly(PTR1(obj),PTR2(obj),PTR1(pol2),PTR2(pol2),NULL,0,scale,mod))
         return NULL;
+
     Tcl_InvalidateStringRep(obj);
     return obj;
 }
@@ -329,14 +327,17 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
     ash = Tcl_IsShared(a);
     bsh = Tcl_IsShared(b);
 
-    Tcl_DecrRefCount(a);
-    Tcl_DecrRefCount(b);
-
     if (SUCCESS == PLcompare(PTR1(ac),PTR2(ac),
                              PTR1(bc),PTR2(bc), 
                              &rval, (ash || bsh) ? 0 : PLF_ALLOWMODIFY)) {
+
+        Tcl_DecrRefCount(a);
+        Tcl_DecrRefCount(b);
         return Tcl_NewIntObj(rval);
     }
+
+    Tcl_DecrRefCount(a);
+    Tcl_DecrRefCount(b);
 
     /* need to modify the args, so have to use private copies */
 
@@ -901,23 +902,29 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
                 return TCL_ERROR;
+            
+            obj = objv[2];
+            if (Tcl_IsShared(obj)) 
+                obj = Tcl_DuplicateObj(obj);
 
-            if (NULL == (obj1 = Tcl_PolyObjAppend(objv[2], objv[3], scale, modval)))
+            if (NULL == (obj1 = Tcl_PolyObjAppend(obj, objv[3], scale, modval)))
                 RETERR("PLappendPoly failed");
+
+            assert(obj == obj1);
 
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;
             
         case CANCEL:
-            EXPECTARGS(2, 2, 2, "<integer> <polynomial>"); 
+            EXPECTARGS(2, 2, 2, "<polynomial> <integer>"); 
 
-            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2], &modval))
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &modval))
                 return TCL_ERROR;
 
-            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
                 return TCL_ERROR;
 
-            Tcl_SetObjResult(ip, Tcl_PolyObjCancel(objv[3], modval));
+            Tcl_SetObjResult(ip, Tcl_PolyObjCancel(objv[2], modval));
             return TCL_OK;
 
         case ADD:
@@ -937,9 +944,15 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
                 return TCL_ERROR;
+            
+            obj = objv[2];
+            if (Tcl_IsShared(obj)) 
+                obj = Tcl_DuplicateObj(obj);
 
-            if (NULL == (obj1 = Tcl_PolyObjAppend(objv[2], objv[3], scale, modval)))
+            if (NULL == (obj1 = Tcl_PolyObjAppend(obj, objv[3], scale, modval)))
                 RETERR("PLappendPoly failed");
+
+            assert(obj == obj1);
 
             Tcl_SetObjResult(ip, Tcl_PolyObjCancel(obj1, modval));
             return TCL_OK;  
@@ -1023,7 +1036,9 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             if (NULL == (obj1 = Tcl_PolyObjAppend(varp[1], objv[3], scale, modval)))
                 RETERR("PLappendPoly failed");
 
-            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
+            assert(obj1 == varp[1]);
+
+            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, obj1, TCL_LEAVE_ERR_MSG)) {
                 Tcl_DecrRefCount(varp[1]);
                 return TCL_ERROR;
             }
@@ -1032,12 +1047,12 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             return TCL_OK;
             
         case VARCANCEL:
-            EXPECTARGS(2, 2, 2, "<integer> <variable>"); 
+            EXPECTARGS(2, 2, 2, "<variable> <integer>"); 
 
-            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2], &modval))
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &modval))
                 return TCL_ERROR;
 
-            if (NULL == (varp[1] = TakePolyFromVar(ip, objv[3])))
+            if (NULL == (varp[1] = TakePolyFromVar(ip, objv[2])))
                 return TCL_ERROR;
 
             obj1 = Tcl_PolyObjCancel(varp[1], modval);
@@ -1046,7 +1061,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             assert(obj1 == varp[1]);
 
-            if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
+            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
                 Tcl_DecrRefCount(varp[1]);
                 return TCL_ERROR;
             }
@@ -1079,7 +1094,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 return TCL_ERROR;
             }
 
-            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
+            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, obj1, TCL_LEAVE_ERR_MSG)) {
                 Tcl_DecrRefCount(varp[1]);
                 return TCL_ERROR;
             }
@@ -1104,7 +1119,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             ex = exmoFromTclObj(objv[3]);
 
-            obj = objv[1];
+            obj = objv[2];
 
             Tcl_IncrRefCount(obj);
             if (Tcl_IsShared(obj)) {
