@@ -1,0 +1,88 @@
+# -*- tcl -*-
+#
+# This file provides a test suite for the enumerator functions
+#
+# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+package require Steenrod 1.0
+
+namespace import steenrod::*
+
+# --------------------------------------------------------------------------
+
+proc rint max { expr {int(rand()*($max))} }
+
+proc rmat base {
+    set nrow [rint 53]
+    set ncol [rint 53]
+    set mat {}
+    for {set i 0} {$i<$nrow} {incr i} {
+        set row {}
+        for {set j 0} {$j<$ncol} {incr j} {
+            lappend row [rint $base]
+        }
+        lappend mat $row
+    }
+    return $mat
+}
+
+proc mputs val {
+    #puts $val
+}
+
+proc do-test {base mat} {
+mputs -----------------
+mputs "do-test $base $mat"
+    set enc [matrix encode $base $mat]
+mputs $enc
+    set dec [matrix decode $enc]
+mputs $dec
+    matrix addto dec $mat -1
+mputs $dec
+    matrix iszero $dec
+}
+
+# carry out the tests 
+for {set base 2} {$base < 45} {incr base} {
+    set cnt 0
+    while {[incr cnt] < 130} {
+        set mat [rmat $base]
+        test matenc-$base-$cnt {} {} [list do-test $base $mat] 1
+    }
+}
+
+
+
+# some previously problematic cases: 
+
+do-test 2 {{1 0 0} {0 0 0} {1 1 0} {1 1 1} {0 1 0}}
+do-test 4 {{1 2 2} {3 0 1} {2 2 0} {3 3 1}}
+do-test 8 {{1 5 5} {7 0 7} {2 2 7} {7 6 0}}
+do-test 14 {{0 1 13 6 13} {4 5 4 4 4} {13 0 6 8 2} {11 0 7 8 3}}
+do-test 15 {{10 5} {0 9} {7 8} {14 2}}
+do-test 13 {{10 0 2 5 3 2 4} {8 2 5 12 7 8 8} {2 10 9 0 1 9 10} {5 8 3 6 2 9 1}}
+do-test 35 {{33 29 24 4 2 28} {19 4 12 33 30 9} {17 11 19 10 0 31} {19 5 19 15 23 23}}
+do-test 12 {0 1 2 2 8 9 2 3 3 6 6 11}
+
+
+
+
+
+
+# --------------------------------------------------------------------------
+
+# cleanup
+::tcltest::cleanupTests
+return
