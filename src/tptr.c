@@ -405,3 +405,10 @@ void copyStringRep(Tcl_Obj *dest, Tcl_Obj *src) {
     memcpy(dest->bytes, str, slen + 1);
     dest->length = slen;
 }
+
+void printObj(const char *vname, Tcl_Obj *obj) {
+    printf("Tcl_Obj (%s) at %p:\n",(NULL != vname) ? vname : "no name given", obj);
+    printf("  refCount=%d, bytes=%p, length=%d, type=%p (%s)\n", 
+           obj->refCount, obj->bytes, obj->length, obj->typePtr,
+           (NULL != obj->typePtr) ? (obj->typePtr->name) : "---");
+}

@@ -107,5 +107,8 @@ if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,T1,T2,T3,T4,T5,T6,T7,TP_END)) return TCL
 
 void copyStringRep(Tcl_Obj *dest, Tcl_Obj *src);
 
+/* a debug routine */
+void printObj(const char *vname, Tcl_Obj *obj);
+
 #endif
 
