@@ -28,7 +28,8 @@ int piiBasic(primeInfo *pi) {
     for (i=1; i<NALG; i++) {
         pi->primpows[i] = pi->prime * pi->primpows[i-1];
         pi->extdegs[i]  = pi->prime * (pi->extdegs[i-1] + 1) - 1;
-        pi->reddegs[i]  = pi->prime * (pi->reddegs[i-1] + 2) - 2;
+        pi->reddegs[i]  = 
+            (pi->prime * (pi->reddegs[i-1] * pi->tpmo + 2) - 2) / pi->tpmo;
     }
     return PI_OK;
 }
