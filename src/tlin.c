@@ -46,6 +46,15 @@ int Tcl_ObjIsVector(Tcl_Obj *obj) { return &tclVector == obj->typePtr; }
 void *vectorFromTclObj(Tcl_Obj *obj) { return PTR2(obj); }
 vectorType *vectorTypeFromTclObj(Tcl_Obj *obj) { return (vectorType *) PTR1(obj); }
 
+Tcl_Obj *Tcl_NewVectorObj(vectorType *vt, void *dat) {
+    Tcl_Obj *res = Tcl_NewObj();
+    res->typePtr = &tclVector;
+    PTR1(res) = vt;
+    PTR2(res) = dat;
+    Tcl_InvalidateStringRep(res);
+    return res;
+}
+
 void VectorFreeInternalRepProc(Tcl_Obj *obj) {
     vectorType *vt = vectorTypeFromTclObj(obj);
     (vt->destroyVector)(vectorFromTclObj(obj));
