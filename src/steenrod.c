@@ -69,12 +69,40 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
     }
 }
 
+/* A MatCompTaskInfo structure is used to compute the differential of
+ * a collection of polynomials and to store the result in a matrix. 
+ * This abstraction is useful because we have at least two routines that 
+ * carry out such a computation. */
+
+typedef struct { 
+    /* description of the result matrix */
+    int srcdim;   /* number of rows to allocate */
+    int currow;   /* number of row that is currently used */
+
+    int srcIspos; /* our exmos should either be all positive or all negative */
+
+    /* callbacks for going through the exmo; the "void *" points to ourself  */
+    exmo *srcx;                  /* read-only pointer to the current exmo */
+    int (*firstSource)(void *);  /* start iteration, setup srcx and currow */
+    int (*nextSource)(void *);   /* go to next iteration, update src and currow */
+
+    /* Client data, used by iterator callbacks */
+    void *cd1;
+    
+    /* data needed to interpret the result(s) */
+    momap *map;                    /* the map */
+    enumerator *dst;               /* where the targets live */ 
+
+} MatCompTaskInfo;
 
 #define RETERR(msg)\
 { if (NULL != ip) Tcl_SetResult(ip,msg,TCL_VOLATILE); return FAIL; }
 
-int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *dst, 
-                      progressInfo *pinf, matrixType **mtp, void **mat) {
+/* MakeMatrix carries out the computation that's described in the 
+ * MatCompTaskInfo argument. */
+
+int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
+               progressInfo *pinf, matrixType **mtp, void **mat) {
     
     int srcdim, dstdim;
     Tcl_Obj **dg = NULL;
@@ -83,15 +111,13 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
     void *dgpoly;
     int dgispos, dgnumsum = 0; 
     multArgs ourMA, *ma = &ourMA;
+    enumerator *dst = mc->dst;
+    momap *map = mc->map;
 
     *mtp = NULL; *mat = NULL; /* if non-zero, caller will free this */
 
-    /* check whether src and target are compatible */
-    if ((NULL == src->pi) || (src->pi != dst->pi))
-        RETERR("prime mismatch");
-
     /* see what kind of dg's we have to expect */
-    if (src->ispos) {
+    if (mc->srcIspos) {
         dgispos = dst->ispos;
     } else {
         if (dst->ispos) {
@@ -100,7 +126,7 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
         dgispos = 1;
     }
 
-    srcdim = DimensionFromEnum(src);
+    srcdim = mc->srcdim;
     dstdim = DimensionFromEnum(dst);
 
     *mtp = stdmatrix;
@@ -113,9 +139,9 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
     memset(&theG, 0, sizeof(exmo));
     theG.gen = -654321; /* invalid (=highly unusual) generator id */
 
-    initMultargs(ma, src->pi, &(src->profile));
+    initMultargs(ma, dst->pi, profile);
 
-    ma->ffIsPos = src->ispos;
+    ma->ffIsPos = mc->srcIspos;
     ma->sfIsPos = dgispos;
 
     ma->getExmoFF = &stdGetSingleExmoFunc;
@@ -132,19 +158,19 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
     ma->TclInterp = ip;
     ma->stdSummandFunc = &addToMatrixCB;
 
-    if (firstRedmon(src)) 
+    if (mc->firstSource(mc)) 
         do {
-            ++((int) ma->cd5); /* row indicator */
+            ((int) ma->cd5) = mc->currow; /* row indicator */
 
             /* find differential of src->theex'es generator */
-            ma->ffdat = &(src->theex);
-            ma->ffMaxLength = exmoGetRedLen(&(src->theex));
+            ma->ffdat = mc->srcx;
+            ma->ffMaxLength = exmoGetRedLen(mc->srcx);
             ma->ffMaxLength = MIN(ma->ffMaxLength, NALG-2);
 
-            if (theG.gen != src->theex.gen) {
+            if (theG.gen != mc->srcx->gen) {
                 /* new generator: need to get its differential dg */
 
-                theG.gen = src->theex.gen; 
+                theG.gen = mc->srcx->gen; 
                 dg = momapGetValPtr(map, &theG);
                 
                 if (NULL == dg) continue;
@@ -187,9 +213,9 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
 
             if (NULL == dg) continue;
      
-            /* compute src->theex * dg */
+            /* compute mc->srcx * dg */
             
-            if (src->ispos)
+            if (mc->srcIspos)
                 workPAchain(ma);
             else
                 workAPchain(ma);
@@ -199,7 +225,7 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
             if (SUCCESS != (int) ma->cd4) {
                 if (NULL != ip) {
                     char err[500];
-                    Tcl_Obj *aux = Tcl_NewExmoCopyObj(&(src->theex));
+                    Tcl_Obj *aux = Tcl_NewExmoCopyObj(mc->srcx);
                     sprintf(err, "\nwhile computing image of {%s}", 
                             Tcl_GetString(aux));
                     Tcl_DecrRefCount(aux);
@@ -208,9 +234,46 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
                 return FAIL;
             }
 
-        } while (nextRedmon(src));
+        } while (mc->nextSource(mc));
 
     return SUCCESS;
+
+}
+
+int MCTfsourceEnum(void *s) {
+    MatCompTaskInfo *mc = (MatCompTaskInfo *) s;
+    enumerator *enu = (enumerator *) mc->cd1;
+    mc->currow = 0; mc->srcx = &(enu->theex); 
+    return firstRedmon(enu);
+}
+
+int MCTnsourceEnum(void *s) {
+    MatCompTaskInfo *mc = (MatCompTaskInfo *) s;
+    enumerator *enu = (enumerator *) mc->cd1;
+    ++(mc->currow); 
+    return nextRedmon(enu);
+}
+
+int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *dst, 
+                      progressInfo *pinf, matrixType **mtp, void **mat) {
+    MatCompTaskInfo mct; 
+
+    /* check whether src and target are compatible */
+    if ((NULL == src->pi) || (src->pi != dst->pi))
+        RETERR("prime mismatch");
+
+    mct.srcIspos = src->ispos;
+    mct.srcdim = DimensionFromEnum(src);
+
+    mct.cd1 = (void *) src; 
+    mct.srcx = &(src->theex);
+    mct.firstSource = MCTfsourceEnum;
+    mct.nextSource  = MCTnsourceEnum;
+
+    mct.dst = dst; 
+    mct.map = map;
+
+    return MakeMatrix(ip, &mct, &(src->profile), pinf, mtp, mat);
 }
 
 int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
