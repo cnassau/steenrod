@@ -365,8 +365,8 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             return TCL_OK;
         case TPPOSMULT:
             ENSUREARGS4(TP_POLY,TP_POLY,TP_OPTIONAL,TP_INT);
-            if (3 == objc) 
-                Tcl_GetIntFromObj(ip, objv[2], &ivar);
+            if (4 == objc) 
+                Tcl_GetIntFromObj(ip, objv[3], &ivar);
             else 
                 ivar = 0;
             if (NULL == (obj1 = Tcl_PolyObjPosProduct(objv[1], objv[2], ivar)))

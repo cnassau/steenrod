@@ -205,18 +205,20 @@ void stdCancel(void *self, int mod) {
     int i,j,k; double d;
     LOGSTD("Cancel");
     stdSort(self);
-    for (k=i=0,j=1;j<=s->num;) 
-        if ((j<s->num) && (0==compareExmo(&(s->dat[i]),&(s->dat[j])))) {
-            s->dat[i].coeff += s->dat[j].coeff;
+    for (k=i=0,j=0;i<s->num;) 
+        if (((j+1)<s->num) && (0==compareExmo(&(s->dat[i]),&(s->dat[j+1])))) {
+            s->dat[i].coeff += s->dat[j+1].coeff;
             if (mod) s->dat[i].coeff %= mod;
             j++;
         } else {
+            int oval = s->dat[i].coeff;
             if (mod) s->dat[i].coeff %= mod;
-            if (0 != s->dat[i].coeff) {
-                if (k != i) copyExmo(&(s->dat[k]),&(s->dat[i]));
+            if (0!=s->dat[i].coeff) {
+                if ((k!=i) || (oval != s->dat[i].coeff)) 
+                    copyExmo(&(s->dat[k]),&(s->dat[i]));
                 k++;
             }
-            i=j; j=i+1;
+            i=j+1; j=i; 
         }
     s->num = k;
     if (s->nalloc) { 
