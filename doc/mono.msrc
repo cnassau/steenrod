@@ -10,57 +10,92 @@
 
 [description]
 
-The [cmd mono] command ensemble is a collection of various 
-commands that deal with [strong "extended monomials"]. 
-
 [usage namespace import steenrod::mono]
 [usage [cmd mono] [cmd subcommand] ?[arg arg] [arg arg] ...?]
 
-[section Overview]
+The [cmd mono] command ensemble is a collection of various 
+commands that deal with [strong "extended monomials"]. 
+These are used to represent basis elements of (a direct sum of) 
+algebras [const E(t1,t2,...)] * [const P(x1,x2,...)]
+where [const E(...)] and [const P(...)] stand for 
+exterior (resp. polynomial) algebras.
+In Tcl we represent such a basis element as a list 
+[arg {{coeff exterior exponents id}}] where
 
-The package consists...
+[list_begin definitions]
+[lst_item [arg coeff]]     
+          an arbitrary coeffcient.
+[lst_item [arg exterior]]  
+          an integer: this is interpreted as a bitmask that represents 
+          an element of an exterior algebra [const E(t1,t2,...)].
+[lst_item [arg exponents]] 
+          a list of exponents: this represents an element of a polynomial 
+          algebra [const P(x1,x2,...)]. the maximal acceptable length of 
+          this list is given by the [const NALG] parameter (see [cmd prime] manpage).
+[lst_item [arg id]]       
+          an integer: this is used as an extra identifier.
+[list_end]
+
+[para]
+Note the following:
+[list_begin bullet]
+[bullet]
+        Extended monomials are used to represent elements of the 
+        Steenrod algebra: the Milnor Bocksteins [const Q_0], [const Q_1],...
+        are represented as [const "{1 1 {} 0}"], [const "{1 2 {} 0}"],
+        [const "{1 4 {} 0}"], etc. Similarly, reduced powers are 
+        represented like [const "3 P(0,2) = {3 0 {0 2} 0}"],
+        [const "-P(1,0,1) = {-1 0 {1 0 1} 0}"], and so on. 
+        
+[bullet]
+        For [const p=2] one actually works with an extended 
+        version of the Steenrod algebra that contains an extra exterior part.
+ 
+[bullet]
+        We allow two kinds of exponent sequences [const "{e1 e2 ...}"]: 
+        [emph ordinary] ones, where the [const e_i] are eventually zero, 
+        and [emph negative] ones, where they are eventually [const -1].
+        These negative monomials are used to represent elements of 
+        the dual Steenrod algebra, according to the correspondences
+        [const "P(-1-R) = zeta^R"], [const "E(1-S) = conj(tau)^S"].
+[list_end]
+
+[section Commands]
 
 [list_begin definitions]
 
-[call [cmd mono] [cmd subcommand] ?arg arg ...?]
+[lst_item "[cmd mono] [cmd test] [arg monomial-candidate]"]
+Tests whether [arg monomial-candidate] is recognized as an extended
+monomial. An error message is returned if it is not recognized.
+Otherwise the result is an empty string
+
+[lst_item "[cmd mono] [cmd isabove] [arg monomial1] [arg monomial2]"]
+          This command checks whether each exponent in [arg monomial1]
+          is at least as big as the corresponding exponent of [arg monomial2].
+
+[lst_item "[cmd mono] [cmd isbelow] [arg monomial1] [arg monomial2]"]
+          This command checks whether each exponent in [arg monomial1]
+          is less or equal to the corresponding exponent of [arg monomial2].
+
+[lst_item "[cmd mono] [cmd length] [arg monomial]"]
+          For ordinary monomials this returns the smallest [const i+1] 
+          such that the monomial lies in 
+          [const E(t0,...,t_i)] * [const P(x0,...,x_i)]. 
+          For negative monomials the argument is first reversed
+          by mapping [const t^Rx^S] to [const t^{1-R}x^{1-s}].
+
+[lst_item "[cmd mono] [cmd rlength] [arg monomial]"]
+          Returns the reduced length of the monomial: this is similar 
+          to [cmd mono] [cmd length] except that the exterior
+          part is ignored.        
+
+[lst_item "[cmd mono] [cmd padding] [arg monomial]"]
+          Returns the common value of the exponents [const e_i]
+          for large [const i]: 0 for ordinary monomials
+          and -1 for negative ones. 
+          
 
 [list_end]
-
-hihi
-
-[para]
-huhu
-
-[list_begin definitions]
-
-[lst_item "mono degree"] ?arg arg ...?
-
-[list_end]
-
-
-
-
-[para]
-hhu
-
-[para] [example_begin]
-lappend auto_path [strong "<path to steenrod.tcl>"]
-package require Steenrod
-namespace import poly::*[example_end]
-
-hihi
-
-[example_begin]poly steenmult 3 {{1 0 5 0}} {{2 1 {0 1} 0}} [example_end]
-
-aha
-
-[example "poly steenmult 3 {{1 0 5 0}} {{2 1 {0 1} 0}}" ]
-
-hhu
-
-
-[para] The most recent version of the package should be available from 
-the program homepage at [uri %homepage%].
 
 [see_also %crossrefs%]
 
