@@ -16,9 +16,12 @@ TCLDIR = /home/cn/selfmade-tcl/include/
 NOTANGLE = notangle
 NOWEAVE  = noweave
 
-SRCS = adlin.c  linalg.c  prime.c  tlin.c  tprime.c  tptr.c  tptrtest.c
+# SRCS = adlin.c  linalg.c  prime.c  tlin.c  tprime.c  tptr.c  tptrtest.c
+OBJS = adlin.o linalg.o poly.o prime.o tlin.o tprime.o tptr.o tptrtest.o
 
-.PHONY: depend all clean
+.PHONY: depend all clean objects
+
+objects: $(OBJS)
 
 %.c : %.nw
 	$(NOTANGLE) -L -R$*.c $(NOWEBFILES) > $*.c
@@ -50,7 +53,7 @@ libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o
 	cc -shared -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
 
 clean:
-	rm *.o *.so
+	rm $(OBJS)
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 
