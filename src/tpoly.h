@@ -16,9 +16,15 @@
 
 #include <tcl.h>
 #include "tptr.h"
+#include "poly.h"
+
+int Tcl_ConvertToExmo(Tcl_Interp *ip, Tcl_Obj *obj);
+int Tcl_ObjIsExmo(Tcl_Obj *obj);
+exmo *exmoFromTclObj(Tcl_Obj *obj); 
 
 /* our poly type */
-#define TP_POLY 19
+#define TP_POLY  19  
+#define TP_EXMO  18 
 
 int Tpoly_Init(Tcl_Interp *ip) ;
 

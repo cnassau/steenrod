@@ -17,6 +17,79 @@
 #include "prime.h"
 #include <stdio.h>
 
+/* An extended monomial represents the tuple
+ *
+ *     ( coefficient, exterior part, exponent sequence, generator id )
+ **/
+
+typedef struct {
+    int coeff;
+    int ext;
+    int dat[NALG];
+    int gen;
+} exmo;
+
+/* For us the "padding value" of an exponent sequence (r1, r2, r3,...) is
+ * the common value of the rj for j large. Its length is the biggest 
+ * j for which "rj != padding value". */
+
+int exmoGetLen(exmo *e);
+int exmoGetPad(exmo *e);
+
+void copyExmo(exmo *dest, exmo *src);
+
+/* A polynomial is an arbitrary collection of extended monomials. 
+ * Different realizations are thinkable (compressed vs. uncompressed, 
+ * vector vs. list style, etc...), so we try to support many different 
+ * implementations; such an implementation type is described opaquely 
+ * by a polyType structure. */
+
+typedef struct polyType {
+    void *(*createCopy)(void *src);  /* create a copy; if src is NULL, 
+                                      * create a new empty polynomial */
+    void (*clear)(void *self);       /* clear */
+    void (*free)(void *self);        /* free all allocated storage */
+    int (*getLength)(void *self);    /* return number of summands */
+    int (*getExmo)(void *self, 
+                   exmo *exmo, 
+                   int index);       /* retrieve extended monomial 
+                                      * from given index */
+    int (*getExmoPtr)(void *self, 
+                      exmo **exmo, 
+                      int index);    /* try to get in-place pointer to 
+                                      * a summand (read-only pointer!) */
+    void (*cancel)(void *self);      /* cancel as much as possible */
+    int  (*appendScaledPolyMod)(void *self, 
+                                void *other, 
+                                int scale, 
+                                int modulo);    /* append scaled version of another 
+                                                 * poly of the same type */
+    int  (*appendExmo)(void *self, exmo *exmo); /* append an extended monomial */
+    int  (*scaleMod)(void *self, 
+                     int scale, 
+                     int modulo);  /* scale polyand reduce if modulo nonzero */
+} polyType;
+
+/* wrappers for the polyType member functions; these check whether 
+ * the member function is non-zero, and try to use work-arounds if 
+ * a method is not implemented */
+
+int   PLgetLength(polyType *type, void *poly);
+void  PLfree(polyType *type, void *poly);
+int   PLcancel(polyType *type, void *poly);
+int   PLclear(polyType *type, void *poly);
+void *PLcreate(polyType *type);
+int   PLgetExmo(polyType *type, void *self, exmo *exmo, int index);
+int   PLappendExmo(polyType *dtp, void *dst, exmo *e);
+int   PLappendScaledPolyMod(polyType *dtp, void *dst, 
+                            polyType *stp, void *src, 
+                            int scale, int modulo);
+
+extern polyType stdPolyType;
+#define stdpoly &(stdPolyType)
+
+/* old stuff follows */
+
 /* monomial = coefficient + exterior part + exponent sequence + generator id */
 typedef struct {
     xint coeff;

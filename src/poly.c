@@ -14,6 +14,178 @@
 #include <stdlib.h>
 #include <string.h>
 #include "poly.h"
+#include "common.h"
+
+/**** extended monomials ***********************************************************/
+
+int exmoGetLen(exmo *e) {
+    int pad = exmoGetPad(e), j;
+    for (j=NALG;j--;) 
+        if (e->dat[j] != pad) 
+            return (j+1);
+    return 0;
+}
+
+int exmoGetPad(exmo *e) {
+    return (e->dat[0]<0) ? -1 : 0;
+}
+
+void copyExmo(exmo *dest, exmo *src) {
+    memcpy(dest,src,sizeof(exmo));
+}
+
+/**** generic polynomials *********************************************************/
+
+#define CALLIFNONZERO1(func,arg1) \
+if (NULL != (func)) (func)(arg1);
+
+int   PLgetLength(polyType *type, void *poly) {
+    return (type->getLength)(poly);
+}
+
+void PLfree(polyType *type, void *poly) { 
+    CALLIFNONZERO1(type->free,poly); 
+}
+
+int PLclear(polyType *type, void *poly) { 
+    CALLIFNONZERO1(type->clear,poly) else return FAILIMPOSSIBLE;
+    return SUCCESS;
+}
+
+void *PLcreate(polyType *type) {
+    void *res = NULL;
+    if (NULL != type->createCopy) 
+        res = (type->createCopy)(NULL);
+    return res;
+}
+
+int PLcancel(polyType *type, void *poly) { 
+    CALLIFNONZERO1(type->cancel,poly) else return FAILIMPOSSIBLE;
+    return SUCCESS;
+}
+
+int PLgetExmo(polyType *type, void *self, exmo *ex, int index) {
+    exmo *aux;
+    if (NULL != type->getExmo) return (type->getExmo)(self, ex, index);
+    if (NULL != type->getExmoPtr) 
+        if (SUCCESS == (type->getExmoPtr)(self, &aux, index)) {
+            copyExmo(ex,aux);
+            return SUCCESS;
+        }
+    return FAILIMPOSSIBLE;
+}
+
+int PLappendExmo(polyType *dtp, void *dst, exmo *e) {
+    if (NULL != dtp->appendExmo) return (dtp->appendExmo)(dst,e);
+    return FAILIMPOSSIBLE;
+}
+
+int PLappendScaledPolyMod(polyType *dtp, void *dst, 
+                          polyType *stp, void *src, 
+                          int scale, int modulo) {
+    exmo e; int i, len;
+    if ((dtp == src) && (NULL != dtp->appendScaledPolyMod))
+        return (dtp->appendScaledPolyMod)(dst,src,scale,modulo);
+    len = (stp->getLength)(src);
+    if (modulo) scale %= modulo;
+    for (i=0;i<len;i++) {
+        if (SUCCESS != PLgetExmo(stp,src,&e,i)) 
+            return FAILIMPOSSIBLE;
+        e.coeff *= scale; if (modulo) e.coeff %= modulo;
+        if (SUCCESS != PLappendExmo(dtp,dst,&e)) 
+            return FAILIMPOSSIBLE;
+    }
+    return SUCCESS;
+}
+
+/**** standard polynomial type ****************************************************/
+
+/* The naive standard implementation of polynomials is as an array 
+ * of exmo. This is represented by the stp structure. */
+
+typedef struct {
+    int num, nalloc;
+    exmo *dat;
+} stp;
+
+void *stdCreateCopy(void *src) {
+    stp *s = (stp *) src, *n;
+    if (NULL == (n = (stp *) malloc(sizeof(stp)))) return NULL;
+    if (NULL == s) {
+        n->num = n->nalloc = 0; n->dat = NULL;
+        return n;
+    }
+    if (NULL == (n->dat = (exmo *) malloc(sizeof(exmo) * s->num))) {
+        free(n); return NULL; 
+    }
+    n->num = n->nalloc = s->num;
+    memcpy(n->dat,s->dat,sizeof(exmo) * s->num);
+    return n;
+}
+
+void stdFree(void *self) { 
+    stp *s = (stp *) self;
+    if (s->nalloc) { s->nalloc = s->num = 0; free(s->dat); }
+}
+
+int stdGetExmoPtr(void *self, exmo **ptr, int idx) {
+    stp *s = (stp *) self;
+    if ((idx < 0) || (idx >= s->num)) return FAILIMPOSSIBLE;
+    *ptr = &(s->dat[idx]);
+    return SUCCESS;
+} 
+
+int stdGetLength(void *self) {
+    stp *s = (stp *) self;
+    return s->num;
+}
+
+int stdRealloc(void *self, int nalloc) {
+    stp *s = (stp *) self;
+    exmo *ndat;
+    if (nalloc < s->num) nalloc = s->num;
+    if (NULL == (ndat = realloc(s->dat,sizeof(exmo) * nalloc))) 
+        return FAILMEM;
+    s->dat = ndat; s->nalloc = nalloc;
+    return SUCCESS;
+}
+
+int stdAppendExmo(void *self, exmo *ex) {
+    stp *s = (stp *) self;
+    if (s->num == s->nalloc) {
+        int aux = s->nalloc + 10;
+        if (SUCCESS != stdRealloc(self, s->nalloc + ((aux > 200) ? 200: aux)))
+            return FAILMEM;
+    }
+    copyExmo(&(s->dat[s->num++]),ex);
+    return SUCCESS;
+}
+
+int stdScaleMod(void *self, int scale, int modulo) {
+    stp *s = (stp *) self;
+    int i;
+    if (modulo) scale %= modulo;
+    for (i=0;i<s->num;i++) {
+        exmo *e = &(s->dat[i]);
+        e->coeff *= scale; if (modulo) e->coeff %= modulo;
+    }
+    return SUCCESS;
+}
+
+/* GCC extension alert! (Designated Initializers) 
+ *
+ * see http://gcc.gnu.org/onlinedocs/gcc-3.2.3/gcc/Designated-Inits.html */
+
+static struct polyType stdPolyType = {
+    .createCopy = &stdCreateCopy,
+    .free       = &stdFree,
+    .getExmoPtr = &stdGetExmoPtr,
+    .getLength  = &stdGetLength,
+    .appendExmo = &stdAppendExmo,
+    .scaleMod   = &stdScaleMod
+};
+
+/* old stuff below */
 
 void clearPoly(poly *p) {
     p->num = 0;
