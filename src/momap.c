@@ -98,17 +98,18 @@ int momapSetValPtr(momap *mo, const exmo *key, Tcl_Obj *val) {
 #define RETERR(errmsg) \
 { if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
 
-typedef enum { SET, GET, LIST, UNSET } momacmdcode;
+typedef enum { SET, GET, LIST, UNSET, ADD } momacmdcode;
 
-static CONST char *cmdNames[] = { "set", "get", "list", "unset",
+static CONST char *cmdNames[] = { "set", "get", "list", "unset", "add",
                                   (char *) NULL };
 
-static momacmdcode cmdmap[] = { SET, GET, LIST, UNSET };
+static momacmdcode cmdmap[] = { SET, GET, LIST, UNSET, ADD };
 
 int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
     momap *mo = (momap *) cd;
     int result, index;
+    int scale, modulo;
     exmo *ex;
     Tcl_Obj **auxptr;
 
@@ -131,6 +132,50 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
            ex = exmoFromTclObj(objv[2]);
            result = momapSetValPtr(mo, ex, objv[3]);
            if (TCL_OK != result) RETERR("out of memory");
+           return TCL_OK;
+       case ADD:
+           scale = 1; modulo = 0;
+           if ((objc<4) || (objc>6)) {
+               Tcl_WrongNumArgs(ip, 2, objv, 
+                                "<monomial> <polynomial> ?scale? ?modulo?");
+               return TCL_ERROR;
+           }
+           if (objc>4) 
+               if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &scale))
+                   return TCL_ERROR;
+           if (objc>5) 
+               if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &modulo))
+                   return TCL_ERROR;
+           if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+               return TCL_ERROR;
+           ex = exmoFromTclObj(objv[2]);
+           auxptr = momapGetValPtr(mo, ex);
+           if (NULL == auxptr) {
+               result = momapSetValPtr(mo, ex, objv[3]);
+               if (TCL_OK != result) RETERR("out of memory");
+           } else {
+               if (TCL_OK != Tcl_ConvertToPoly(ip, *auxptr))
+                   RETERR("current value not of polynomial type");
+               if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                   return TCL_ERROR;
+               if (Tcl_IsShared(*auxptr)) {
+                   Tcl_DecrRefCount(*auxptr);
+                   *auxptr = Tcl_DuplicateObj(*auxptr);
+               }
+               Tcl_InvalidateStringRep(*auxptr);
+               if (SUCCESS != PLappendPoly(polyTypeFromTclObj(*auxptr),
+                                           polyFromTclObj(*auxptr),
+                                           polyTypeFromTclObj(objv[3]),
+                                           polyFromTclObj(objv[3]),
+                                           NULL, 0,
+                                           scale,modulo))
+                   return TCL_ERROR;
+               if (SUCCESS != PLcancel(polyTypeFromTclObj(*auxptr),
+                                       polyFromTclObj(*auxptr),
+                                       modulo))
+                   return TCL_ERROR;
+               return TCL_OK;
+           }
            return TCL_OK;
        case GET:
            if (objc != 3) {
