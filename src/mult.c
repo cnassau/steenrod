@@ -74,7 +74,7 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
         /* first check exterior part */
         if (ma->esum[1] != (sfx->ext & ma->esum[1])) continue;
         aux = (sfx->ext ^ ma->esum[1]);
-        if (0 != (aux & proext)) continue;
+        if (0 != (aux & proext)) continue; 
         if (0 != (aux & ma->emsk[1])) continue;
         res.ext = aux | ma->emsk[1];
         if (0 != (1 & (SIGNFUNC(ma->emsk[1], sfx->ext ^ ma->esum[1])
@@ -175,7 +175,11 @@ void initxfPA(multArgs *MA) {
                 xf->quant = 1;
                 xf->estat = 1;
             } else {
+#if 0
                 xf->quant = pi->primpows[MA->profile->dat[i+j-1]];
+#else
+                xf->quant = MA->profile->dat[i+j-1];
+#endif
                 xf->estat = 
                     (0 == (MA->profile->ext & (1 << (i+j-1)))) ? 1 : 0;  
             }
