@@ -646,17 +646,17 @@ Tcl_Obj *TakePolyFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
 /**** Implementation of the poly combi-command ********************************/
 
-typedef enum { TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT, 
+typedef enum { CREATE, TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT, 
                STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT, 
                COMPARE, SPLIT, VARSPLIT, COEFF } pcmdcode;
 
-static CONST char *pCmdNames[] = { "test", "info", "append", "cancel", "add", 
-                                   "posmult", "negmult", "steenmult",
+static CONST char *pCmdNames[] = { "create", "test", "info", "append", "cancel", 
+                                   "add", "posmult", "negmult", "steenmult",
                                    "varappend", "varcancel", "shift", "reflect",
                                    "compare", "split", "varsplit", "coeff",
                                    (char *) NULL };
 
-static pcmdcode pCmdmap[] = { TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT, 
+static pcmdcode pCmdmap[] = { CREATE, TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT, 
                               STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT, 
                               COMPARE, SPLIT, VARSPLIT, COEFF };
 
@@ -675,6 +675,12 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
     if (result != TCL_OK) return result;
 
     switch (pCmdmap[index]) {
+        case CREATE:
+            EXPECTARGS(2, 0, 0, "");
+            
+            Tcl_SetObjResult(ip, Tcl_NewPolyObj(stdpoly, PLcreate(stdpoly)));
+            return TCL_OK;
+
         case TEST:
             EXPECTARGS(2, 1, 1, "<polynomial candidate>");
 
