@@ -172,7 +172,7 @@ if (NULL != (obj))                                       \
     }
    
     if (te->cgenlist) {
-        if (SUCCESS != enmSetGenlist(te->enm, te->gl, te->gllength))
+        if (SUCCESS != enmSetGenlist(te->enm, te->gl, (te->gllength) / 4))
             RETERR("duplicate generator id");
         te->gl = NULL; te->gllength = 0;
         te->cgenlist = 0;
@@ -655,6 +655,10 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
     
     switch (cmdmap[index]) {
         case TEST:
+            if (objc != 2) {
+                Tcl_WrongNumArgs(ip, 2, objv, NULL);
+                return TCL_ERROR;
+            }
             Tcl_EnumSetValues(cd, ip);
             return TCL_OK;
 
