@@ -19,6 +19,8 @@
 #include "tpoly.h"
 #include "momap.h"
 
+#define LOGDATA 0
+
 momap *momapCreate(void) {
     momap *res = mallox(sizeof(momap));
     if (NULL == res) return NULL;
@@ -52,8 +54,12 @@ void momapDestroy(momap *mo) {
 
 Tcl_Obj **momapGetValPtr(momap *mo, const exmo *key) {
     int idx = stdpoly->lookup(mo->keys, key, NULL);
-    if (idx < 0) return NULL;
-    return &(mo->values[idx]);
+    Tcl_Obj **res;
+    if (idx < 0) res = NULL;
+    else res = &(mo->values[idx]);
+    if (LOGDATA) printf("momapGetValPtr[%d] => %p (points to %p)\n", 
+                        idx, res, (NULL != res) ? *res : NULL);
+    return res;
 }
 
 int momapRemoveValue(momap *mo, const exmo *key) {
@@ -69,6 +75,7 @@ int momapRemoveValue(momap *mo, const exmo *key) {
 
 int momapSetValPtr(momap *mo, const exmo *key, Tcl_Obj *val) {
     Tcl_Obj **aux = momapGetValPtr(mo, key);
+    if (LOGDATA) printf("momapGetValPtr set val %p\n",val);
     Tcl_IncrRefCount(val);
     if (NULL != aux) {
         Tcl_DecrRefCount(*aux);
@@ -76,7 +83,8 @@ int momapSetValPtr(momap *mo, const exmo *key, Tcl_Obj *val) {
     } else {
         int len = stdpoly->getNumsum(mo->keys);
         if (mo->valloc < len+1) {
-            void *newptr = reallox(mo->values, len + MOMAPSTEPSIZE);
+            void *newptr = reallox(mo->values, 
+                                   (len + MOMAPSTEPSIZE) * sizeof(Tcl_Obj *));
             if (NULL == newptr) { 
                 Tcl_DecrRefCount(val);
                 return FAILMEM; 
@@ -134,6 +142,7 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
            result = momapSetValPtr(mo, ex, objv[3]);
            if (TCL_OK != result) RETERR("out of memory");
            return TCL_OK;
+
        case ADD:
            scale = 1; modulo = 0;
            if ((objc<4) || (objc>6)) {
@@ -193,6 +202,7 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
            }
            Tcl_SetObjResult(ip, *auxptr);
            return TCL_OK;
+
        case LIST:
            if (objc != 2) {
                Tcl_WrongNumArgs(ip, 2, objv, "");
@@ -212,6 +222,7 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
                freex(aux);
                return TCL_OK;
            }
+
        case UNSET:
            if (objc != 3) {
                Tcl_WrongNumArgs(ip, 2, objv, "<monomial>");
