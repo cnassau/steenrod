@@ -236,3 +236,23 @@ int mapGetMaxIdeg(map *mp) {
             res = mp->dat[i].ideg;
     return res;
 }
+
+/*==============================================================================*/
+
+mapsqndata *mapCreateSqnData(map *mp, enumEnv *env, int edeg, int ideg) {
+    mapsqndata *res;
+
+    if (NULL == (res = calloc(1, sizeof(mapsqndata))))
+        return NULL;
+
+    res->env = env;
+    
+    return res;
+}
+
+void mapDestroySqnData(mapsqndata *mps) {
+    if (NULL != mps->dat) free(mps->dat);
+    if (NULL != mps->sqn) destroySeqno(mps->sqn);
+    free(mps);
+}
+

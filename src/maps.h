@@ -17,6 +17,7 @@
 #include <tcl.h>
 #include <common.h>
 #include <prime.h>
+#include <profile.h>
 
 /* a sum of reduced powers with a common exterior component and generator */
 typedef struct {
@@ -24,7 +25,6 @@ typedef struct {
     int   alloc;  /* number of allocated summands */
     int   edat;   /* exterior data */
     int   gen;    /* generator */
-    int   seqoff; /* seqno offset */
     int   len;    /* number of xint's per summand */
     xint  pad;    /* padding value: 0 for ordinary ops, -1 for negative ops */  
     cint *cdat;   /* the coefficients */
@@ -50,7 +50,7 @@ typedef struct {
     int num; 
     int alloc;
     mapgen *dat;
-    int maxgen;   /* suggested number of next generator */
+    int maxgen;   /* suggested number for next generator */
 } map;
 
 void mapsumInit(mapsum *mps);
@@ -76,5 +76,28 @@ int mapAddGen(map *mp, int id);
 
 int mapGetMinIdeg(map *mp);
 int mapGetMaxIdeg(map *mp);
+
+/* an array of these items is used by sequence number computations */
+typedef struct {
+    int gen;    /* generator id */
+    int edat;   /* exterior data */
+    int gideg;  /* internal degree of the generator */
+    int gedeg;  /* external degree of the generator */
+    int seqoff; /* sequence number offset */
+} mapsqnitem;
+
+typedef struct {
+    /* an array of mapsqnitems */
+    int num;
+    mapsqnitem *dat;
+    /* other enumeration relevant data */
+    enumEnv   *env;
+    seqnoInfo *sqn;
+} mapsqndata;
+
+/* creation and destruction */
+mapsqndata *mapCreateSqnData(map *mp, enumEnv *env, int edeg, int ideg);
+void mapDestroySqnData(mapsqndata *mps);
+
 
 #endif
