@@ -77,7 +77,7 @@ void shiftExmo2(exmo *e, const exmo *s, int scale, int flags) {
             e->coeff = 0; return;  /* square of exterior part is zero */
         }
         for (i=NALG;i--;) 
-            e->dat[i] += s->dat[i];
+            e->dat[i] += s->dat[i] * scale;
         if (0 != (flags & ADJUSTSIGNS)) {
             if (0 != (e->ext & s->ext)) e->coeff = 0;
             if (0 != (1 & SIGNFUNC(e->ext,s->ext))) e->coeff = - e->coeff;
