@@ -18,7 +18,8 @@ NOWEAVE  = noweave
 
 NOWEBFILES = mult.nw
 SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c \
-       tpoly.c profile.c tprofile.c maps.c tmap.c mult.c linwrp.c enum.c tenum.c
+       tpoly.c profile.c tprofile.c maps.c tmap.c mult.c linwrp.c enum.c \
+       tenum.c momap.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -69,8 +70,8 @@ libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o linwrp.o
 libtpoly.so: prime.o tptr.o tprime.o tpoly.o poly.o mult.o 
 	$(LINKSTUB) -o libtpoly.so prime.o tptr.o tprime.o tpoly.o poly.o mult.o 
 
-libtenum.so: prime.o tptr.o tprime.o tpoly.o poly.o mult.o enum.o tenum.o
-	$(LINKSTUB) -o libtenum.so prime.o tptr.o tprime.o tpoly.o poly.o mult.o enum.o tenum.o
+libtenum.so: prime.o tptr.o tprime.o tpoly.o poly.o mult.o enum.o tenum.o momap.o
+	$(LINKSTUB) -o libtenum.so prime.o tptr.o tprime.o tpoly.o poly.o mult.o enum.o tenum.o momap.o
 
 libtprofile.so: tprime.o tptr.o prime.o profile.o tprofile.o
 	$(LINKSTUB) -o libtprofile.so tprime.o tptr.o prime.o profile.o tprofile.o 
@@ -107,3 +108,4 @@ mult.o: mult.h common.h prime.h poly.h
 linwrp.o: linwrp.h prime.h common.h linalg.h adlin.h
 enum.o: enum.h poly.h common.h prime.h
 tenum.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tenum.h enum.h
+momap.o: momap.h poly.h common.h prime.h

@@ -78,11 +78,10 @@ while 1 {
         }
         incr cnt
     }
-    puts [format "basis with %8d elements checked (prime %2d, degree %d)" $cnt $p $dim]
+    puts [format "basis with %8d elements checked (prime %2d, deg %d)" $cnt $p $dim]
     set bidi [x dim]
     if {$bidi!=$cnt} { error "count mismatch ($bidi!=$cnt)!!" }
 }
-
 
 if 1 {
     # test signature enumeration 
