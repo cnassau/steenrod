@@ -50,7 +50,7 @@ typedef struct {
 #define PI_NOMEM      3
 #define PI_STRANGE    4
 
-int makePrimeInfo(primeInfo *pi, int prime, int maxdeg);
+int makePrimeInfo(primeInfo *pi, int prime);
 int disposePrimeInfo(primeInfo *pi);
 
 cint random_cint(cint max);

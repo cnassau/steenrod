@@ -137,12 +137,12 @@ piProcEntry piList[] = {
     { piiBinom, pidBinom } 
 };
 
-int makePrimeInfo(primeInfo *pi, int prime, int maxdeg) {
+int makePrimeInfo(primeInfo *pi, int prime) {
     int i, rval; 
     if (prime<2) return PI_NOPRIME;  
     if (prime>61) return PI_TOOLARGE;  
     pi->prime  = prime; 
-    pi->maxdeg = maxdeg;
+    pi->maxdeg = 0; /* TODO: compute right vaue */
     for (i=0; i<sizeof(piList)/sizeof(piProcEntry); i++) 
         if (PI_OK != (rval = piList[i].ini(pi))) {
             for (;i--;) piList[i].done(pi);
