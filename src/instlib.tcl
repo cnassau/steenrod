@@ -29,5 +29,5 @@ if {![file isdirectory $targdir]} {
     file mkdir $targdir
 }
 
-file copy $fname $targdir
+file copy -force $fname $targdir
 file delete $fname 
