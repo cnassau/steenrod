@@ -18,6 +18,7 @@
 #define cmalloc  malloc
 #define cfree    free
 #define crealloc realloc
+#define ccalloc  calloc
 
 /* cint ist the integer type that we use for elements of F_p */
 typedef char cint; 
