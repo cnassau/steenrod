@@ -181,6 +181,8 @@ int Tptr_Init(Tcl_Interp *ip) {
     TPtr_RegType(TP_LIST,    "list");
     TPtr_RegType(TP_INTLIST, "list of integers");
     TPtr_RegType(TP_STRING,  "string");
+    TPtr_RegType(TP_VARNAME, "varname");
+    TPtr_RegType(TP_SCRIPT,  "script");
     TPtr_RegType(TP_PTR,     "typed pointer");
     TPtr_RegType(TP_VARARGS, "...");
 
@@ -319,10 +321,14 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
             if (optional) { va_end(ap); return TCL_OK; }
             CHCKARGSERR("too few arguments"); 
         }
+
+        /* printf("argchk: obj (%p), refcnt %d\n",*objv,(*objv)->refCount); */
   
         /* check for type mismatch */
 
         switch (type) {
+            case TP_VARNAME:
+            case TP_SCRIPT:
             case TP_ANY: 
             case TP_STRING:
                 continue;
