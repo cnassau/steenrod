@@ -28,6 +28,8 @@ typedef struct {
     exmo       algebra, profile, signature;
     primeInfo *pi;
 
+    int ispos;  /* whether this enumerates positive or negative Steenrod ops */
+
     /* genList is a list of 4-tuples (gen-id, ideg, edeg, hdeg) */
     int       *genList, numgens;
     int       maxideg, minideg, maxedeg, minedeg, maxgenid;
@@ -77,7 +79,8 @@ void        enmDestroy(enumerator *en);
  *  - genlist:      genlist
  */
 
-int enmSetBasics(enumerator *en, primeInfo *pi, exmo *algebra, exmo *profile);
+int enmSetBasics(enumerator *en, primeInfo *pi, 
+                 exmo *algebra, exmo *profile, int ispos);
 int enmSetSignature(enumerator *en, exmo *sig);
 int enmSetTridegree(enumerator *en, int ideg, int edeg, int hdeg);
 int enmSetGenlist(enumerator *en, int *gl, int num);

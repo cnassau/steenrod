@@ -39,11 +39,7 @@ enumerator *enmCopy(enumerator *src) {
     if (NULL == (en = enmCreate())) return NULL;
  
     /* copy all values... */
-    memcpy(en, src, sizeof(en));
-
-    en->pi = src->pi;
-    copyExmo(&(en->algebra), &(src->algebra));
-    copyExmo(&(en->profile), &(src->profile));
+    memcpy(en, src, sizeof(enumerator));
 
     /* ... but clear pointers */
     en->genList = NULL;
@@ -138,9 +134,9 @@ void clipExmo(exmo *ex, exmo *prof) {
     int i;
     ex->ext &= prof->ext;
     for (i=NALG;i--;) {
-        int aux = ex->dat[i];
-        aux /= prof->dat[i]; aux *= prof->dat[i];
-        ex->dat[i] -= aux;
+        div_t dr = div(ex->dat[i], prof->dat[i]);
+        if (dr.rem < 0) dr.rem += prof->dat[i];
+        ex->dat[i] = dr.rem;
     }
 }
 
@@ -212,10 +208,12 @@ int enmRecreateEfflist(enumerator *en) {
 
 /**** PUBLIC CONFIGURATION FUNCTIONS ****************************************/
 
-int enmSetBasics(enumerator *en, primeInfo *pi, exmo *algebra, exmo *profile) {
+int enmSetBasics(enumerator *en, primeInfo *pi, 
+                 exmo *algebra, exmo *profile, int ispos) {
     enmDestroyEffList(en);
     enmDestroySeqtab(en);
     en->pi = pi;
+    en->ispos = ispos;
 
     if (NULL == algebra) 
         exmoSetMaxAlg(pi, &(en->algebra));
