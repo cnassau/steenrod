@@ -18,6 +18,8 @@
 #include "common.h"
 #include "hmap.h"
 
+#define XVAL 0xffff
+
 #define RETERR(errmsg) \
 { if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
 
@@ -147,6 +149,18 @@ typedef struct {
     int  *idat;
 } hmap_tensor;
 
+void hmapTclTensor(hmap_tensor *h, 
+                   Tcl_Obj **a, Tcl_Obj **b, 
+                   int numMono, int numInt);
+
+void printTensor(hmap_tensor *h, int nm, int ni) {
+    Tcl_Obj *a,*b;
+    hmapTclTensor(h,&a,&b,nm,ni);
+    printf("<%d * %s : %s>",h->coeff, Tcl_GetString(a), Tcl_GetString(b));
+    DECREFCNT(a);
+    DECREFCNT(b);
+}
+
 void freeTensor(hmap_tensor *h) {
     if (NULL != h->edat)
         freex(h->edat);
@@ -183,10 +197,16 @@ void copyTensor(hmap_tensor *dst, hmap_tensor *src, int numMono, int numInt) {
         dst->idat[i] = src->idat[i];
 }
 
+#define LOG(x) if (0) { x };
+
 void multTensor(hmap_tensor *dst, hmap_tensor *src, int scale, int numMono, int numInt, int modval) {
     int i,j,sign=0;
-    dst->coeff = 1;
+    int ddeg=0, sdeg=0;
+    LOG( printTensor(dst,numMono,numInt); printf(" *= "); printTensor(src,numMono,numInt); );
+    //dst->coeff = 1;
     for (i=0;i<numMono;i++) {
+        ddeg += BITCOUNT(dst->edat[i].ext);
+        sdeg += BITCOUNT(src->edat[i].ext);
         if (1 & sign) 
             if (1 & BITCOUNT(dst->edat[i].ext))
                 dst->coeff = - dst->coeff;
@@ -199,9 +219,11 @@ void multTensor(hmap_tensor *dst, hmap_tensor *src, int scale, int numMono, int 
         }
         sign += BITCOUNT(src->edat[i].ext);
     }
+    // if (0 != (1 & sdeg & ddeg)) dst->coeff = - dst->coeff;
     for (i=0;i<numInt;i++) {
         dst->idat[i] += src->idat[i] * scale;
     }    
+    LOG( printf(" = "); printTensor(dst,numMono,numInt); printf("\n"); );
 }
 
 int compareTensor(hmap_tensor *a, hmap_tensor *b, hmap_tensor *res, int numMono, int numInt) {
@@ -223,7 +245,7 @@ typedef struct {
     int     idx; 
 
     int value;  /* the value that we've chosen */ 
-    int maxval; /* limit on value */
+    int goodbits; /* limit on value */
     int quant;  /* quantization of value */
 
     hmap_tensor sumdat; /* the actual summand */
@@ -243,7 +265,7 @@ hmap_summand *allocSummand(int numMono, int numInt) {
 
     if (NULL == h) return NULL;
 
-    h->maxval = 111111;
+    h->goodbits = XVAL;
     h->quant  = 1;
     
     if ((SUCCESS != allocTensor(&(h->sumdat),numMono,numInt)) ||
@@ -420,12 +442,12 @@ Tcl_Obj *hmapTclSummand(hmap_summand *h, int numMono, int numInt) {
     sums[2] = Tcl_NewExmoCopyObj(&(h->source));
     sums[3] = Tcl_NewIntObj(h->sumdat.coeff);
     hmapTclTensor(&(h->sumdat),&(sums[4]),&(sums[5]), numMono, numInt);
-    if ((h->maxval < 111111) || (h->quant != 1)) {
+    if ((h->goodbits != XVAL) || (h->quant != 1)) {
         sums[6] = Tcl_NewIntObj(h->quant);
         cnt++;
     }
-    if (h->maxval < 111111) {
-        sums[7] = Tcl_NewIntObj(h->maxval);
+    if (h->goodbits != XVAL) {
+        sums[7] = Tcl_NewIntObj(h->goodbits);
         cnt++;
     }
     return Tcl_NewListObj(cnt,sums);
@@ -451,7 +473,7 @@ int hmapParseSummand(hmap *hm, hmap_summand *nsum,  Tcl_Interp *ip, Tcl_Obj *obj
     Tcl_Obj **lst;
 
     char *usage = "wrong format, expected "
-        "'E/R <idx> <source> <coeff> <monomial slots> <integer slots> ?<quant>? ?<maxval>?'";
+        "'E/R <idx> <source> <coeff> <monomial slots> <integer slots> ?<quant>? ?<goodbits>?'";
 
 #define RETERR2(x) { freeSummand(nsum); RETERR(x); }
 #define RETERR3 { freeSummand(nsum); return TCL_ERROR; }
@@ -502,7 +524,7 @@ int hmapParseSummand(hmap *hm, hmap_summand *nsum,  Tcl_Interp *ip, Tcl_Obj *obj
     if (cnt >= 8) {
         if (TCL_OK != Tcl_GetIntFromObj(ip, lst[7], &aux)) 
             RETERR3;
-        nsum->maxval = aux;
+        nsum->goodbits = aux;
     }
 
     if (cnt >= 9)
@@ -706,7 +728,7 @@ void handleSummand(hmap *hm, int numsum) {
     }
 
     for (current->value = 0; 
-         current->value <= current->maxval; 
+         current->value == (current->value & current->goodbits); 
          current->value += current->quant) {
         
         makeNextPartial(hm, current, next);
@@ -732,6 +754,12 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
         int sum, newcoeff;
 
         sum = current->source.dat[current->idx] + current->value;
+
+        if (sum != (sum & current->goodbits)) {
+            next->pardat.coeff = 0;
+            return ;
+        }
+
         newcoeff = current->pardat.coeff * binom(sum, current->value);
         //printf("newcoeff = %d, sum=%d, value=%d\n",newcoeff,sum,current->value);
 
@@ -765,7 +793,7 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
         if (0 == current->value) 
             return;
 
-        if (0 != (current->source.ext & val)) {
+        if ((current->value>1) || (0 != (next->source.ext & val))) {
             next->pardat.coeff = 0;
             return;
         }
@@ -779,8 +807,8 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
 
         if (1 & sign) 
             next->pardat.coeff = -next->pardat.coeff;
-        next->source.ext |= val; 
- 
+
+        next->source.ext |= val;  
     }
 
 }
