@@ -207,7 +207,6 @@ mapgen *mapFindGen(map *mp, int id) {
     res = bsearch(&aux, mp->dat, mp->num, sizeof(mapgen), mpgSortFunc);
     return res;
 }
-
 int mapAddGen(map *mp, int id) {
     mapgen *res;
     if (mp->num == mp->alloc) 
@@ -218,4 +217,22 @@ int mapAddGen(map *mp, int id) {
     if (id >= mp->maxgen) mp->maxgen = id + 1;
     qsort(mp->dat, mp->num, sizeof(mapgen), mpgSortFunc);
     return SUCCESS;
+}
+
+int mapGetMinIdeg(map *mp) {
+    int res = 0;
+    int i;
+    for (i=0;i<mp->num;i++)
+        if (mp->dat[i].ideg < res) 
+            res = mp->dat[i].ideg;
+    return res;
+}
+
+int mapGetMaxIdeg(map *mp) {
+    int res = 0;
+    int i;
+    for (i=0;i<mp->num;i++)
+        if (mp->dat[i].ideg > res) 
+            res = mp->dat[i].ideg;
+    return res;
 }

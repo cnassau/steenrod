@@ -132,11 +132,11 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
         case MP_GETMINIDEG:
             ENSUREARGS1(TP_MAP);
             mp = (map *) TPtr_GetPtr(objv[1]);
-            RETINT(mp->minideg);
+            RETINT(mapGetMinIdeg(mp));
         case MP_GETMAXIDEG:
             ENSUREARGS1(TP_MAP);
             mp = (map *) TPtr_GetPtr(objv[1]);
-            RETINT(mp->maxideg);
+            RETINT(mapGetMaxIdeg(mp));
         case MP_INFO:
             ENSUREARGS1(TP_MAP);
             mp = (map *) TPtr_GetPtr(objv[1]);
