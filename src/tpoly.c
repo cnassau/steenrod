@@ -15,6 +15,7 @@
 #include "tpoly.h"
 #include "tprime.h"
 #include "poly.h"
+#include "mult.h"
 
 #include <string.h>
 
@@ -402,12 +403,13 @@ Tcl_Obj *Tcl_PolyObjGetInfo(Tcl_Obj *obj) {
     if (SUCCESS != PLgetInfo(PTR1(obj),PTR2(obj),&poli))
         return Tcl_NewObj();
 
-    wrk += sprintf(wrk,"{implementation {%s}} "
-                   "{{allocated bytes} %d} {{bytes used} %d}"
-                   "{{max length} %d}",
+    wrk += sprintf(wrk,"{implementation {%s}}"
+                   " {{allocated bytes} %d}"
+                   " {{bytes used} %d}"
+                   " {{max reduced length} %d}",
                    poli.name ? poli.name : "unknown",
                    (unsigned) poli.bytesAllocated, (unsigned) poli.bytesUsed,
-                   poli.maxLength);
+                   poli.maxRedLength);
 
     return NEWSTRINGOBJ(aux);
 }        
@@ -528,8 +530,9 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
     RETERR("tPolyCombiCmd: internal error");
 }
 
+#define NSP "epol::"
 #define CREATECMD(name, id) \
-  Tcl_CreateObjCommand(ip, "epol::" name, tPolyCombiCmd, \
+  Tcl_CreateObjCommand(ip, name, tPolyCombiCmd, \
                        (ClientData) id, NULL)
 
 int Tpoly_Init(Tcl_Interp *ip) {
@@ -557,21 +560,23 @@ int Tpoly_Init(Tcl_Interp *ip) {
     Tcl_RegisterObjType(&tclPoly);
     TPtr_RegObjType(TP_POLY, &tclPoly);
 
-    CREATECMD("exmocheck",   TPEXMO);
-    CREATECMD("polycheck",   TPPOLY);
+    CREATECMD(NSP "exmocheck",   TPEXMO);
+    CREATECMD(NSP "polycheck",   TPPOLY);
 
-    CREATECMD("shift",   TPSHIFT);
-    CREATECMD("reflect", TPREFLECT);
-    CREATECMD("scale",   TPSCALE);
-    CREATECMD("append",  TPAPPEND);
-    CREATECMD("compare", TPCOMPARE);
-    CREATECMD("cancel",  TPCANCEL);
-    CREATECMD("negmult", TPNEGMULT);
-    CREATECMD("posmult", TPPOSMULT);
-    CREATECMD("stmult",  TPSTMULT);
+    CREATECMD(NSP "shift",   TPSHIFT);
+    CREATECMD(NSP "reflect", TPREFLECT);
+    CREATECMD(NSP "scale",   TPSCALE);
+    CREATECMD(NSP "append",  TPAPPEND);
+    CREATECMD(NSP "compare", TPCOMPARE);
+    CREATECMD(NSP "cancel",  TPCANCEL);
+    CREATECMD(NSP "negmult", TPNEGMULT);
+    CREATECMD(NSP "posmult", TPPOSMULT);
+    CREATECMD(NSP "stmult",  TPSTMULT);
 
-    CREATECMD("coeff",  TPGETCOEFF);
-    CREATECMD("info",  TPINFO);
+    CREATECMD(NSP "coeff",  TPGETCOEFF);
+    CREATECMD(NSP "info",  TPINFO);
+
+    Tcl_LinkVar(ip, NSP "multCount", (char *) &multCount, TCL_LINK_INT);
 
     return TCL_OK;
 }

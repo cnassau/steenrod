@@ -148,4 +148,11 @@ int stdAddProductToPoly(polyType *rtp, void *res,
                         primeInfo *pi, const exmo *pro,
                         int fIsPos, int sIsPos);
 
+/* the following counter tries to estimate the number
+ * of multiplications that have been carried out */
+#ifndef MULTC_INCLUDES
+extern
+#endif
+int multCount;
+
 #endif
