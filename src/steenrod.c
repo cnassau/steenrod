@@ -267,6 +267,28 @@ int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
+
+
+/* Removing the string representation can sometimes help to save memory: */
+
+#define STEALCOMMAND "StealStringRep"
+int StealStringRep(ClientData cd, Tcl_Interp *ip,
+                   int objc, Tcl_Obj * CONST objv[]) {
+    Tcl_Obj *obj;
+
+    if (objc != 2) 
+        RETERR("usage: " STEALCOMMAND " <argument>");
+    
+    obj = objv[1];
+
+    if (NULL != obj->typePtr) 
+        if (NULL != obj->typePtr->updateStringProc)
+            Tcl_InvalidateStringRep(obj);
+
+    return TCL_OK;
+}
+
+
 int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_InitStubs(ip, "8.0", 0);
 
@@ -279,6 +301,9 @@ int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_CreateObjCommand(ip, POLYNSP "ComputeMatrix",
                          TMakeMatrixSameSig, (ClientData) 0, NULL);
+
+    Tcl_CreateObjCommand(ip, STEALCOMMAND,
+                         StealStringRep, (ClientData) 0, NULL);
 
     Tcl_Eval(ip, "namespace eval " POLYNSP " { namespace export * }");
 
