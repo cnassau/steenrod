@@ -65,6 +65,9 @@ libtpoly.so: tlin.o adlin.o prime.o linalg.o tptr.o tprime.o tpoly.o poly.o
 clean:
 	$(RM) $(OBJS) $(LIBS) *~  2> /dev/null
 
+reformat:
+	refmt.sh *.c *.h *.tcl
+
 # DO NOT DELETE -- make depend will overwrite the entries below
 
 adlin.o: adlin.h linalg.h prime.h

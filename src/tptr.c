@@ -41,12 +41,12 @@ int TPtr_SetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
     char *aux = Tcl_GetStringFromObj(objPtr, NULL);
     void *d1, *d2;
     if (2 != sscanf(aux, TP_FORMAT, &d1, &d2)) 
-	TCLRETERR(interp, 
-		   "not recognized as TPtr, "
-		   "proper format = \"" TP_FORMAT "\""); 
+    TCLRETERR(interp, 
+           "not recognized as TPtr, "
+           "proper format = \"" TP_FORMAT "\""); 
     if (NULL != objPtr->typePtr)
-	if (NULL != objPtr->typePtr->freeIntRepProc) 
-	    objPtr->typePtr->freeIntRepProc(objPtr);
+    if (NULL != objPtr->typePtr->freeIntRepProc) 
+        objPtr->typePtr->freeIntRepProc(objPtr);
     make_TPtr(objPtr, (int) d1, d2); 
     return TCL_OK;
 }
@@ -55,16 +55,16 @@ int TPtr_SetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 void TPtr_UpdateStringProc(Tcl_Obj *objPtr) {
     objPtr->bytes = ckalloc(50);
     sprintf(objPtr->bytes, TP_FORMAT, 
-	     objPtr->internalRep.twoPtrValue.ptr1, 
-	     objPtr->internalRep.twoPtrValue.ptr2);
+         objPtr->internalRep.twoPtrValue.ptr1, 
+         objPtr->internalRep.twoPtrValue.ptr2);
     objPtr->length = strlen(objPtr->bytes);
 }
 
 /* create copy */
 void TPtr_DupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     make_TPtr(dupPtr, 
-	       (int) srcPtr->internalRep.twoPtrValue.ptr1, 
-	       srcPtr->internalRep.twoPtrValue.ptr2);
+           (int) srcPtr->internalRep.twoPtrValue.ptr1, 
+           srcPtr->internalRep.twoPtrValue.ptr2);
 }
 
 int TPtr_IsInitialized; 
@@ -112,8 +112,8 @@ TPtrTypeInfo *TPtr_TypeList = NULL;
 TPtrTypeInfo *findType(int id) {
     TPtrTypeInfo *aux = TPtr_TypeList;
     while (NULL != aux) {
-	if (aux->id == id) return aux;
-	aux = aux->next;
+    if (aux->id == id) return aux;
+    aux = aux->next;
     }
     return NULL;
 }
@@ -121,17 +121,17 @@ TPtrTypeInfo *findType(int id) {
 void TPtr_RegType(int type, const char *name) {
     TPtrTypeInfo *aux, **auxp = &(TPtr_TypeList);
     if (NULL != (aux = findType(type))) {
-	printf("Cannot register type %s with id %d: already assigned to %s\n", 
-	       name, type, aux->name);
-	while (NULL != findType(++type)) ;
-	printf("Suggest type id %d for type %s\n", type, name);
-	exit(1);
+    printf("Cannot register type %s with id %d: already assigned to %s\n", 
+           name, type, aux->name);
+    while (NULL != findType(++type)) ;
+    printf("Suggest type id %d for type %s\n", type, name);
+    exit(1);
     }
     while (NULL != *auxp) 
-	auxp = &((*auxp)->next);
+    auxp = &((*auxp)->next);
     if (NULL==(*auxp=(TPtrTypeInfo *) ckalloc(sizeof(TPtrTypeInfo)))) {
-	printf("Out of memory\n");
-	exit(1);
+    printf("Out of memory\n");
+    exit(1);
     }
     (*auxp)->id = type;
     (*auxp)->name = strdup(name);
@@ -141,9 +141,9 @@ void TPtr_RegType(int type, const char *name) {
 void printTypename(char *buf, int type) {
     TPtrTypeInfo *aux = findType(type);
     if (NULL == aux) {
-	sprintf(buf, "<pointer of type %d>", type);
+    sprintf(buf, "<pointer of type %d>", type);
     } else {
-	sprintf(buf, "<%s>", aux->name);
+    sprintf(buf, "<%s>", aux->name);
     }
 }
 
@@ -157,12 +157,12 @@ void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, char *msg) {
     else wrk += sprintf(wrk, "problem with argument #%d", pos);
     if (NULL != name) wrk += sprintf(wrk, "\nusage: %s", name);
     while (TP_END != (type = va_arg(*ap, int))) {
-	if (TP_OPTIONAL == type) { 
-	    optional = 1; 
-	    wrk += sprintf(wrk, " [ ");
-	}
-	printTypename(typename, type);
-	wrk += sprintf(wrk, " %s", typename);
+    if (TP_OPTIONAL == type) { 
+        optional = 1; 
+        wrk += sprintf(wrk, " [ ");
+    }
+    printTypename(typename, type);
+    wrk += sprintf(wrk, " %s", typename);
     }
     if (optional) wrk += sprintf(wrk, " ]");
     Tcl_SetResult(ip, err, TCL_VOLATILE);
@@ -190,45 +190,45 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
     va_start(ap, objv);
 
     for (pos=1; TP_END != (type = va_arg(ap, int)); objc--, objv++, pos++) {
-	/* process control args */
-	if (TP_VARARGS   == type) { va_end(ap); return TCL_OK; }
-	if (TP_OPTIONAL  == type) { optional = 1; continue; }
-	if (TP_MANDATORY == type) { optional = 0; continue; }
+    /* process control args */
+    if (TP_VARARGS   == type) { va_end(ap); return TCL_OK; }
+    if (TP_OPTIONAL  == type) { optional = 1; continue; }
+    if (TP_MANDATORY == type) { optional = 0; continue; }
 
-	if (!objc) { /* no more args available */
-	    if (optional) { va_end(ap); return TCL_OK; }
-	    CHCKARGSERR("too few arguments"); 
-	}
+    if (!objc) { /* no more args available */
+        if (optional) { va_end(ap); return TCL_OK; }
+        CHCKARGSERR("too few arguments"); 
+    }
   
-	/* check for type mismatch */
+    /* check for type mismatch */
 
-	switch (type) {
-	    case TP_ANY: 
-	    case TP_STRING:
-		continue;
-	    case TP_INT:
-		if (TCL_OK != Tcl_GetIntFromObj(ip, *objv, &aux))
-		    CHCKARGSERR(NULL); 
-		continue;
-	    case TP_PTR:
-		if (TCL_OK != Tcl_ConvertToType(ip, *objv, &TPtr)) 
-		    CHCKARGSERR(NULL); 
-		continue;
-	}    
+    switch (type) {
+        case TP_ANY: 
+        case TP_STRING:
+        continue;
+        case TP_INT:
+        if (TCL_OK != Tcl_GetIntFromObj(ip, *objv, &aux))
+            CHCKARGSERR(NULL); 
+        continue;
+        case TP_PTR:
+        if (TCL_OK != Tcl_ConvertToType(ip, *objv, &TPtr)) 
+            CHCKARGSERR(NULL); 
+        continue;
+    }    
     
-	/* default : expect TPtr of given type */
+    /* default : expect TPtr of given type */
     
-	if (TCL_OK != Tcl_ConvertToType(ip, *objv, &TPtr)) 
-	    CHCKARGSERR(NULL); 
+    if (TCL_OK != Tcl_ConvertToType(ip, *objv, &TPtr)) 
+        CHCKARGSERR(NULL); 
 
-	if (TPtr_GetType(*objv) != type) 
-	    CHCKARGSERR(NULL); 
+    if (TPtr_GetType(*objv) != type) 
+        CHCKARGSERR(NULL); 
 
-	/* Ok. Goto next arg */
+    /* Ok. Goto next arg */
     }
 
     if (objc) /* have some args left...? */
-	CHCKARGSERR("too many arguments"); 
+    CHCKARGSERR("too many arguments"); 
 
     va_end(ap);
 

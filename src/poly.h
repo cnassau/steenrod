@@ -33,7 +33,7 @@ typedef struct {
 typedef struct {
     xint maxcoeff;  /* coefficients are reduced modulo maxcoeff */
     int num,        /* number of summands */
-	numAlloc;   /* number of allocated mono's */
+    numAlloc;   /* number of allocated mono's */
     mono *dat;
 } poly;
 
@@ -74,6 +74,6 @@ typedef void (*multCBfunc)(void *, mono *m);
 void multCBaddToPoly(void *poly, mono *m);
 
 void multPoly(primeInfo *pi, poly *f, poly *s, 
-	      void *clientData, multCBfunc multCB) ;
+          void *clientData, multCBfunc multCB) ;
 
 #endif

@@ -21,7 +21,7 @@ int create(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int a,b;
 
     if (TCL_OK != TPtr_CheckArgs(ip, objc, objv, TP_INT, TP_INT, TP_END)) 
-	return TCL_ERROR;
+    return TCL_ERROR;
 
     Tcl_GetIntFromObj(ip, objv[1], &a);
     Tcl_GetIntFromObj(ip, objv[2], &b);

@@ -46,7 +46,7 @@ void vector_copy(vector *v, vector *w) {
 void vector_add(vector *dst, vector *src, cint coeff, cint prime) {
     int k; cint *ddat, *sdat;
     for (k=dst->num, ddat=dst->data, sdat=src->data; k--; ddat++, sdat++) {
-	*ddat += CINTMULT(coeff, *sdat, prime);
+    *ddat += CINTMULT(coeff, *sdat, prime);
         *ddat %= prime;
     }
 }
@@ -140,8 +140,8 @@ void matrix_randomize(matrix *m, cint prime) {
     vector vec;
     int k;
     for (k=0;k<m->rows;k++) {
-	vec.data = m->data + k * m->nomcols * sizeof(cint);
-	vec.num = m->cols;
-	vector_randomize(&vec, prime);
+    vec.data = m->data + k * m->nomcols * sizeof(cint);
+    vec.num = m->cols;
+    vector_randomize(&vec, prime);
     }
 }

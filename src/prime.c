@@ -27,9 +27,9 @@ int piiBasic(primeInfo *pi) {
     pi->extdegs[0] = 1;
     pi->reddegs[0] = 1;
     for (i=1; i<pi->N; i++) {
-	pi->primpows[i] = pi->prime * pi->primpows[i-1];
-	pi->extdegs[i]  = pi->prime * (pi->extdegs[i-1] + 1) - 1;
-	pi->reddegs[i]  = pi->prime * (pi->reddegs[i-1] + 2) - 2;
+    pi->primpows[i] = pi->prime * pi->primpows[i-1];
+    pi->extdegs[i]  = pi->prime * (pi->extdegs[i-1] + 1) - 1;
+    pi->reddegs[i]  = pi->prime * (pi->reddegs[i-1] + 2) - 2;
     }
     return PI_OK;
 }
@@ -47,8 +47,8 @@ cint naiveInverse(int i, cint prime) {
     int j;
     cint aux;
     for (j=1, aux=i; j<prime; j++, aux += i) {
-	aux = aux % prime; 
-	if (1 == aux) return j;
+    aux = aux % prime; 
+    if (1 == aux) return j;
     } 
     return PI_OK;
 }
@@ -56,10 +56,10 @@ cint naiveInverse(int i, cint prime) {
 int piiInv(primeInfo *pi) {
     int i;
     if (NULL == (pi->inverse = cmalloc(sizeof(cint) * pi->prime))) 
-	return PI_NOMEM;
+    return PI_NOMEM;
     for (i=1; i<pi->prime; i++) 
-	if (0 == (pi->inverse[i] = naiveInverse(i, pi->prime)))
-	    return PI_NOPRIME; /* not prime */
+    if (0 == (pi->inverse[i] = naiveInverse(i, pi->prime)))
+        return PI_NOPRIME; /* not prime */
     return PI_OK;
 }
 
@@ -74,7 +74,7 @@ int piiBinom(primeInfo *pi) {
     int a,b, prime = pi->prime;
     cint *dat;
     if (NULL==(dat=pi->binom=cmalloc(sizeof(cint) * pi->prime * pi->prime))) 
-	return PI_NOMEM;
+    return PI_NOMEM;
 
     for (a=prime;a--;) dat[a] = 0;
     dat[0]=1;
@@ -145,18 +145,18 @@ int makePrimeInfo(primeInfo *pi, int prime, int maxdeg) {
     pi->prime  = prime; 
     pi->maxdeg = maxdeg;
     for (i=0; i<sizeof(piList)/sizeof(piProcEntry); i++) 
-	if (PI_OK != (rval = piList[i].ini(pi))) {
-	    for (;i--;) piList[i].done(pi);
-	    return rval;
-	}
+    if (PI_OK != (rval = piList[i].ini(pi))) {
+        for (;i--;) piList[i].done(pi);
+        return rval;
+    }
     return PI_OK;
 }
 
 int disposePrimeInfo(primeInfo *pi) {
     int i;
     for (i=sizeof(piList)/sizeof(piProcEntry); i--;) 
-	if (piList[i].done(pi)) 
-	    return PI_STRANGE;
+    if (piList[i].done(pi)) 
+        return PI_STRANGE;
     return PI_OK;
 }
 

@@ -30,12 +30,12 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, Tcl_Interp *ip, int pmsk);
 /* orthonormalize inp and reduce rows of lft against it; 
  * returns preimages for these rows if they reduce to zero. */
 matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft, 
-		     Tcl_Interp *ip, int pmsk);
+             Tcl_Interp *ip, int pmsk);
 
 /* reduce ker modulo im; im is assumed to be the result of matrix_ortho,
  * so we can take the obvious pivots for it; the result is returned in ker,
  * which is shrunken automatically. */
 int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im, 
-		     Tcl_Interp *ip, int pmsk);
+             Tcl_Interp *ip, int pmsk);
 
 #endif

@@ -31,7 +31,7 @@ typedef enum {
 if (((a)<(bot))||((a)>=(top))) RETERR("index out of range"); 
 
 int tLinCombiCmd(ClientData cd, Tcl_Interp *ip, 
-		  int objc, Tcl_Obj *CONST objv[]) {
+          int objc, Tcl_Obj *CONST objv[]) {
     LinalgCmdCode cdi = (LinalgCmdCode) cd;
     int a, b, c;
     primeInfo *pi;
@@ -42,123 +42,123 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
     if (NULL==ip) return TCL_ERROR; 
 
     switch (cdi) {
-	case LIN_CREATE_VECTOR: 
-	    ENSUREARGS1(TP_INT);
-	    Tcl_GetIntFromObj(ip, objv[1], &a);
-	    if (NULL== (vec = vector_create(a))) 
-		RETERR("Out of memory");
-	    Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_VECTOR, vec));
-	    return TCL_OK;
- 	case LIN_CREATE_MATRIX: 
-	    ENSUREARGS2(TP_INT,TP_INT);
-	    Tcl_GetIntFromObj(ip, objv[1], &a);
-	    Tcl_GetIntFromObj(ip, objv[2], &b);
-	    if (NULL== (mat = matrix_create(a,b))) 
-		RETERR("Out of memory");
-	    Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_MATRIX, mat));
-	    return TCL_OK;
-	case LIN_DISPOSE_VECTOR:
-	    ENSUREARGS1(TP_VECTOR);
-	    vec = (vector *) TPtr_GetPtr(objv[1]);
-	    vector_dispose(vec);
-	    return TCL_OK;
-	case LIN_RANDOMIZE_VECTOR:
-	    ENSUREARGS2(TP_VECTOR,TP_INT);
-	    vec = (vector *) TPtr_GetPtr(objv[1]);
-	    Tcl_GetIntFromObj(ip, objv[2], &a);
-	    vector_randomize(vec, a);
-	    return TCL_OK;
-	case LIN_DISPOSE_MATRIX:
-	    ENSUREARGS1(TP_MATRIX);
-	    mat = (matrix *) TPtr_GetPtr(objv[1]);
-	    matrix_destroy(mat);
-	    return TCL_OK;
-	case LIN_RANDOMIZE_MATRIX:
-	    ENSUREARGS2(TP_MATRIX,TP_INT);
-	    mat = (matrix *) TPtr_GetPtr(objv[1]);
-	    Tcl_GetIntFromObj(ip, objv[2], &a);
-	    matrix_randomize(mat, a);
-	    return TCL_OK;
-	case LIN_VECDIM:
-	    ENSUREARGS1(TP_VECTOR);  
-	    vec = (vector *) TPtr_GetPtr(objv[1]);
-	    Tcl_SetObjResult(ip, Tcl_NewIntObj(vec->num));
-	    return TCL_OK;
-	case LIN_MATDIM: 
-	    ENSUREARGS1(TP_MATRIX);  
-	    mat = (matrix *) TPtr_GetPtr(objv[1]);
-	    obp[0] = Tcl_NewIntObj(mat->rows);
-	    obp[1] = Tcl_NewIntObj(mat->cols);
-	    Tcl_SetObjResult(ip, Tcl_NewListObj(2, obp));
-	    return TCL_OK;
-	case LIN_MATVECT: 
-	    ENSUREARGS2(TP_MATRIX,TP_INT);
-	    mat = (matrix *) TPtr_GetPtr(objv[1]);
-	    Tcl_GetIntFromObj(ip, objv[2], &a);
-	    ENSURERANGE(0,a,mat->rows);
-	    RETERR("this command is not implemented yet");
-	case LIN_GETVECENT:
-	    ENSUREARGS2(TP_VECTOR,TP_INT);
-	    vec = (vector *) TPtr_GetPtr(objv[1]);
-	    Tcl_GetIntFromObj(ip, objv[2], &a);
-	    ENSURERANGE(0,a,vec->num);
-	    Tcl_SetObjResult(ip,Tcl_NewIntObj(vec->data[a]));
-	    return TCL_OK;
-	case LIN_GETMATENT:
-	    ENSUREARGS3(TP_MATRIX,TP_INT,TP_INT);
-	    mat = (matrix *) TPtr_GetPtr(objv[1]);
-	    Tcl_GetIntFromObj(ip, objv[2], &a);
-	    Tcl_GetIntFromObj(ip, objv[3], &b);
-	    ENSURERANGE(0,a,mat->rows);
-	    ENSURERANGE(0,b,mat->cols);
-	    c = *(mat->data + a*(mat->nomcols)*sizeof(cint) + b);
-	    Tcl_SetObjResult(ip,Tcl_NewIntObj(c));
-	    return TCL_OK;
-	case LIN_SETVECENT:
-	    ENSUREARGS3(TP_VECTOR,TP_INT,TP_INT);
-	    vec = (vector *) TPtr_GetPtr(objv[1]);
-	    Tcl_GetIntFromObj(ip, objv[2], &a);
-	    ENSURERANGE(0,a,vec->num);
-	    vec->data[a] = b;
-	    return TCL_OK;
-	case LIN_SETMATENT: 
-	    ENSUREARGS4(TP_MATRIX,TP_INT,TP_INT,TP_INT);
-	    mat = (matrix *) TPtr_GetPtr(objv[1]);
-	    Tcl_GetIntFromObj(ip, objv[2], &a);
-	    Tcl_GetIntFromObj(ip, objv[3], &b);
-	    Tcl_GetIntFromObj(ip, objv[4], &c);
-	    ENSURERANGE(0,a,mat->rows);
-	    ENSURERANGE(0,b,mat->cols);
-	    *(mat->data + a*(mat->nomcols)*sizeof(cint) + b) = c;
-	    return TCL_OK;
-	case LIN_MATORTH: 
-	    ENSUREARGS3(TP_MATRIX,TP_PRINFO,TP_INT);
-	    Tcl_GetIntFromObj(ip, objv[3], &a);
-	    mat = (matrix *) TPtr_GetPtr(objv[1]); 
-	    pi = (primeInfo *) TPtr_GetPtr(objv[2]); 
-	    mat2 = matrix_ortho(pi,mat,ip,a);
-	    if (NULL==mat2) return TCL_ERROR;
-	    Tcl_SetObjResult(ip,Tcl_NewTPtr(TP_MATRIX,mat2));
-	    return TCL_OK;
-	case LIN_MATLIFT: 
-	    ENSUREARGS4(TP_MATRIX,TP_MATRIX,TP_PRINFO,TP_INT);
-	    Tcl_GetIntFromObj(ip, objv[4], &a);
-	    mat = (matrix *) TPtr_GetPtr(objv[1]);
-	    mat2 = (matrix *) TPtr_GetPtr(objv[2]);
-	    pi = (primeInfo *) TPtr_GetPtr(objv[3]); 
-	    mat3 = matrix_lift(pi,mat,mat2,ip,a);
-	    if (NULL==mat3) return TCL_ERROR;
-	    Tcl_SetObjResult(ip,Tcl_NewTPtr(TP_MATRIX,mat3));
-	    return TCL_OK;
-	case LIN_MATQUOT:  
-	    ENSUREARGS4(TP_MATRIX,TP_MATRIX,TP_PRINFO,TP_INT);
-	    Tcl_GetIntFromObj(ip, objv[4], &a);
-	    mat = (matrix *) TPtr_GetPtr(objv[1]);
-	    mat2 = (matrix *) TPtr_GetPtr(objv[2]);
-	    pi = (primeInfo *) TPtr_GetPtr(objv[3]); 
-	    if (TCL_OK!=matrix_quotient(pi,mat,mat2,ip,a))
-		return TCL_ERROR;
-	    return TCL_OK;
+    case LIN_CREATE_VECTOR: 
+        ENSUREARGS1(TP_INT);
+        Tcl_GetIntFromObj(ip, objv[1], &a);
+        if (NULL== (vec = vector_create(a))) 
+        RETERR("Out of memory");
+        Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_VECTOR, vec));
+        return TCL_OK;
+     case LIN_CREATE_MATRIX: 
+        ENSUREARGS2(TP_INT,TP_INT);
+        Tcl_GetIntFromObj(ip, objv[1], &a);
+        Tcl_GetIntFromObj(ip, objv[2], &b);
+        if (NULL== (mat = matrix_create(a,b))) 
+        RETERR("Out of memory");
+        Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_MATRIX, mat));
+        return TCL_OK;
+    case LIN_DISPOSE_VECTOR:
+        ENSUREARGS1(TP_VECTOR);
+        vec = (vector *) TPtr_GetPtr(objv[1]);
+        vector_dispose(vec);
+        return TCL_OK;
+    case LIN_RANDOMIZE_VECTOR:
+        ENSUREARGS2(TP_VECTOR,TP_INT);
+        vec = (vector *) TPtr_GetPtr(objv[1]);
+        Tcl_GetIntFromObj(ip, objv[2], &a);
+        vector_randomize(vec, a);
+        return TCL_OK;
+    case LIN_DISPOSE_MATRIX:
+        ENSUREARGS1(TP_MATRIX);
+        mat = (matrix *) TPtr_GetPtr(objv[1]);
+        matrix_destroy(mat);
+        return TCL_OK;
+    case LIN_RANDOMIZE_MATRIX:
+        ENSUREARGS2(TP_MATRIX,TP_INT);
+        mat = (matrix *) TPtr_GetPtr(objv[1]);
+        Tcl_GetIntFromObj(ip, objv[2], &a);
+        matrix_randomize(mat, a);
+        return TCL_OK;
+    case LIN_VECDIM:
+        ENSUREARGS1(TP_VECTOR);  
+        vec = (vector *) TPtr_GetPtr(objv[1]);
+        Tcl_SetObjResult(ip, Tcl_NewIntObj(vec->num));
+        return TCL_OK;
+    case LIN_MATDIM: 
+        ENSUREARGS1(TP_MATRIX);  
+        mat = (matrix *) TPtr_GetPtr(objv[1]);
+        obp[0] = Tcl_NewIntObj(mat->rows);
+        obp[1] = Tcl_NewIntObj(mat->cols);
+        Tcl_SetObjResult(ip, Tcl_NewListObj(2, obp));
+        return TCL_OK;
+    case LIN_MATVECT: 
+        ENSUREARGS2(TP_MATRIX,TP_INT);
+        mat = (matrix *) TPtr_GetPtr(objv[1]);
+        Tcl_GetIntFromObj(ip, objv[2], &a);
+        ENSURERANGE(0,a,mat->rows);
+        RETERR("this command is not implemented yet");
+    case LIN_GETVECENT:
+        ENSUREARGS2(TP_VECTOR,TP_INT);
+        vec = (vector *) TPtr_GetPtr(objv[1]);
+        Tcl_GetIntFromObj(ip, objv[2], &a);
+        ENSURERANGE(0,a,vec->num);
+        Tcl_SetObjResult(ip,Tcl_NewIntObj(vec->data[a]));
+        return TCL_OK;
+    case LIN_GETMATENT:
+        ENSUREARGS3(TP_MATRIX,TP_INT,TP_INT);
+        mat = (matrix *) TPtr_GetPtr(objv[1]);
+        Tcl_GetIntFromObj(ip, objv[2], &a);
+        Tcl_GetIntFromObj(ip, objv[3], &b);
+        ENSURERANGE(0,a,mat->rows);
+        ENSURERANGE(0,b,mat->cols);
+        c = *(mat->data + a*(mat->nomcols)*sizeof(cint) + b);
+        Tcl_SetObjResult(ip,Tcl_NewIntObj(c));
+        return TCL_OK;
+    case LIN_SETVECENT:
+        ENSUREARGS3(TP_VECTOR,TP_INT,TP_INT);
+        vec = (vector *) TPtr_GetPtr(objv[1]);
+        Tcl_GetIntFromObj(ip, objv[2], &a);
+        ENSURERANGE(0,a,vec->num);
+        vec->data[a] = b;
+        return TCL_OK;
+    case LIN_SETMATENT: 
+        ENSUREARGS4(TP_MATRIX,TP_INT,TP_INT,TP_INT);
+        mat = (matrix *) TPtr_GetPtr(objv[1]);
+        Tcl_GetIntFromObj(ip, objv[2], &a);
+        Tcl_GetIntFromObj(ip, objv[3], &b);
+        Tcl_GetIntFromObj(ip, objv[4], &c);
+        ENSURERANGE(0,a,mat->rows);
+        ENSURERANGE(0,b,mat->cols);
+        *(mat->data + a*(mat->nomcols)*sizeof(cint) + b) = c;
+        return TCL_OK;
+    case LIN_MATORTH: 
+        ENSUREARGS3(TP_MATRIX,TP_PRINFO,TP_INT);
+        Tcl_GetIntFromObj(ip, objv[3], &a);
+        mat = (matrix *) TPtr_GetPtr(objv[1]); 
+        pi = (primeInfo *) TPtr_GetPtr(objv[2]); 
+        mat2 = matrix_ortho(pi,mat,ip,a);
+        if (NULL==mat2) return TCL_ERROR;
+        Tcl_SetObjResult(ip,Tcl_NewTPtr(TP_MATRIX,mat2));
+        return TCL_OK;
+    case LIN_MATLIFT: 
+        ENSUREARGS4(TP_MATRIX,TP_MATRIX,TP_PRINFO,TP_INT);
+        Tcl_GetIntFromObj(ip, objv[4], &a);
+        mat = (matrix *) TPtr_GetPtr(objv[1]);
+        mat2 = (matrix *) TPtr_GetPtr(objv[2]);
+        pi = (primeInfo *) TPtr_GetPtr(objv[3]); 
+        mat3 = matrix_lift(pi,mat,mat2,ip,a);
+        if (NULL==mat3) return TCL_ERROR;
+        Tcl_SetObjResult(ip,Tcl_NewTPtr(TP_MATRIX,mat3));
+        return TCL_OK;
+    case LIN_MATQUOT:  
+        ENSUREARGS4(TP_MATRIX,TP_MATRIX,TP_PRINFO,TP_INT);
+        Tcl_GetIntFromObj(ip, objv[4], &a);
+        mat = (matrix *) TPtr_GetPtr(objv[1]);
+        mat2 = (matrix *) TPtr_GetPtr(objv[2]);
+        pi = (primeInfo *) TPtr_GetPtr(objv[3]); 
+        if (TCL_OK!=matrix_quotient(pi,mat,mat2,ip,a))
+        return TCL_ERROR;
+        return TCL_OK;
     }
 
     return TCL_OK;
