@@ -33,7 +33,7 @@ int piiBasic(primeInfo *pi) {
             (pi->prime * (pi->reddegs[i-1] * pi->tpmo + 2) - 2) / pi->tpmo;
         mpx = pi->primpows[i];
         if (pi->primpows[i] != mpx) havempx = 1;
-        if (!havempx) pi->maxpowerXint = mpx;
+        if (!havempx) { pi->maxpowerXint = mpx; pi->maxpowerXintI = i; } 
     }
     return PI_OK;
 }

@@ -39,6 +39,7 @@ typedef struct {
     int *reddegs;      /* degrees of the reduced part, divided by 2(p-1) */
     int tpmo;          /* 2(p-1) */
     int maxpowerXint;  /* largest prime power that fits in a xint */
+    int maxpowerXintI; /* the I such that primpows[I] == maxpowerXint */
     /* inverse */
     cint *inverse;     /* table of inverses */
     /* binom */
