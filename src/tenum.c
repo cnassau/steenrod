@@ -99,7 +99,7 @@ int *getGenList(Tcl_Interp *ip, Tcl_Obj *obj, int *length) {
     return res;
 }
 
-static CONST char *typeNames[] = { "positive", "negative" };
+static CONST char *typeNames[] = { "positive", "negative", NULL };
 
 int checkForType(Tcl_Interp *ip, Tcl_Obj *obj, int *ispos) {
     int index;

@@ -448,6 +448,80 @@ int MAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale, int modval)
     return TCL_OK;
 }
 
+int ExtractColsCmd(Tcl_Interp *ip, Tcl_Obj *mat, int *ind, int num) {
+    matrixType *mt1, *mt2;
+    void *mdat1, *mdat2;
+    int i, j, ir, ic, or, oc; /* input/output number of ros/columns */
+
+    mt1   = matrixTypeFromTclObj(mat);
+    mdat1 = matrixFromTclObj(mat);
+
+    mt1->getDimensions(mdat1, &ir, &ic);
+
+    or = ir; oc = num;
+
+    mt2   = mt1;
+    mdat2 = mt2->createMatrix(or, oc);
+
+    if (NULL == mdat2) RETERR("out of memory");
+
+    for (i=0;i<num;i++) {
+        int idx = ind[i];
+        for (j=0;j<ir;j++) {
+            int val; 
+            mt1->getEntry(mdat1, j, idx, &val);
+            mt2->setEntry(mdat2, j, i, val);
+        }
+    }
+
+    Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt2, mdat2));
+    return TCL_OK;
+}
+
+int ExtractRowsCmd(Tcl_Interp *ip, Tcl_Obj *mat, int *ind, int num) {
+    matrixType *mt1, *mt2;
+    void *mdat1, *mdat2;
+    int i, j, ir, ic, or, oc; /* input/output number of ros/columns */
+
+    mt1   = matrixTypeFromTclObj(mat);
+    mdat1 = matrixFromTclObj(mat);
+
+    mt1->getDimensions(mdat1, &ir, &ic);
+
+    or = num; oc = ic;
+
+    if (NULL != mt1->shrinkRows) {
+        mt2   = mt1;
+        mdat2 = mt1->createCopy(mdat1); 
+        
+        if (NULL == mdat2) RETERR("out of memory");
+
+        mt1->shrinkRows(mdat2, ind, num);
+
+        Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt2, mdat2));
+        return TCL_OK;     
+    }
+
+    mt2   = mt1;
+    mdat2 = mt2->createMatrix(or, oc);
+
+    if (NULL == mdat2) RETERR("out of memory");
+    
+    for (i=0;i<num;i++) {
+        int idx = ind[i];
+        for (j=0;j<ic;j++) {
+            int val; 
+            mt1->getEntry(mdat1, idx, j, &val);
+            mt2->setEntry(mdat2, i, j, val);
+        }
+    }
+
+    Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt2, mdat2));
+    return TCL_OK;     
+}
+
+/* ---------- */
+
 typedef enum {
     LIN_INVSRP, LIN_INVMAT, 
     LIN_ISMAT, LIN_ISVEC, 
@@ -458,11 +532,13 @@ typedef enum {
 #define ENSURERANGE(bot,a,top) \
 if (((a)<(bot))||((a)>=(top))) RETERR("index out of range"); 
 
+static CONST char *rcnames[] = { "rows", "cols", NULL };
+
 int tLinCombiCmd(ClientData cd, Tcl_Interp *ip, 
           int objc, Tcl_Obj *CONST objv[]) {
     LinalgCmdCode cdi = (LinalgCmdCode) cd;
     primeInfo *pi;
-    int r, c;
+    int r, c, index;
     Tcl_Obj *varp[4], *res;
     const char *progvar;
     int pmsk, modval;
@@ -499,6 +575,29 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
             Tcl_InvalidateStringRep(objv[1]);
             Tcl_SetObjResult(ip, objv[1]);
             return TCL_OK;
+
+        case LIN_EXTRACT:
+            if (objc != 4) {
+                Tcl_WrongNumArgs(ip, 1, objv, 
+                                 "rows/cols <matrix> <list of indices>");
+                return TCL_ERROR;
+            }
+
+            if (TCL_OK != Tcl_GetIndexFromObj(ip, objv[1], rcnames, 
+                                              "option", 0, &index))
+                return TCL_ERROR;
+            
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToIntList(ip, objv[3])) 
+                return TCL_ERROR;
+
+            return index 
+                ? ExtractColsCmd(ip, objv[2], ILgetIntPtr(objv[3]), 
+                                 ILgetLength(objv[3])) 
+                : ExtractRowsCmd(ip, objv[2], ILgetIntPtr(objv[3]), 
+                                 ILgetLength(objv[3]));
 
         case LIN_DIMS:
             ENSUREARGS1(TP_MATRIX);

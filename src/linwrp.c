@@ -142,6 +142,7 @@ matrixType stdMatrixType = {
     .destroyMatrix = stdDestroyMatrix,
     .clearMatrix   = stdClearMatrix,
     .unitMatrix    = stdUnitMatrix,
+    .shrinkRows    = NULL,
     .reduce        = stdReduceMatrix,
     .add           = stdMAdd,
     .orthoFunc     = stdOrthoFunc,
