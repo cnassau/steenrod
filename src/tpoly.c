@@ -161,6 +161,18 @@ void ExmoDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
  * The implementation lets PTR1 point to the polyType and PTR2 to the data. 
  */
 
+static int polCount;
+
+#if 0
+#  define INCPOLCNT \
+  { fprintf(stderr, "polCount = %d (%s, %d)\n", ++polCount, __FILE__, __LINE__); }
+#  define DECPOLCNT \
+  { fprintf(stderr, "polCount = %d (%s, %d)\n", --polCount, __FILE__, __LINE__); }
+#else
+#  define INCPOLCNT { ++polCount; }
+#  define DECPOLCNT { --polCount; }
+#endif
+
 Tcl_ObjType tclPoly;
 
 int Tcl_ConvertToPoly(Tcl_Interp *ip, Tcl_Obj *obj) {
@@ -182,6 +194,7 @@ Tcl_Obj *Tcl_NewPolyObj(polyType *tp, void *data) {
     PTR1(res) = (void *) tp;
     PTR2(res) = data;
     res->typePtr = &tclPoly;
+    INCPOLCNT;
     Tcl_InvalidateStringRep(res);
     DBGPOLY printf("Tcl_NewPolyObj: created poly obj at %p, data at %p\n",res,data);
     return res;
@@ -205,6 +218,7 @@ void PolyFreeInternalRepProc(Tcl_Obj *obj) {
     DBGPOLY printf("PolyFreeInternalRepProc obj = %p\n",obj);
     LOGPOLY(obj);
     PLfree((polyType *) PTR1(obj),PTR2(obj));
+    DECPOLCNT;
     DBGPOLY printf("Leaving PolyFreeInternalRepProc\n");
 }
 
@@ -233,6 +247,7 @@ int PolySetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     PTR1(objPtr) = stdpoly;
     PTR2(objPtr) = pol;
     objPtr->typePtr = &tclPoly;
+    INCPOLCNT;
 
     LOGPOLY(objPtr);
 
@@ -258,6 +273,7 @@ void PolyDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     PTR2(dupPtr) = PLcreateCopy(stp,stp,PTR2(srcPtr));
     DBGPOLY printf("dupPtr poly now at %p\n", PTR2(dupPtr));
     dupPtr->typePtr = &tclPoly;
+    INCPOLCNT;
 }
 
 /**** Tcl wrappers for some of the PL functions */
@@ -1075,7 +1091,7 @@ int Tpoly_Init(Tcl_Interp *ip) {
         tclPoly.setFromAnyProc     = PolySetFromAnyProc;
         Tcl_RegisterObjType(&tclPoly);
         TPtr_RegObjType(TP_POLY, &tclPoly);
-        
+       
         Tpoly_HaveTypes = 1;
     }
 
@@ -1083,6 +1099,10 @@ int Tpoly_Init(Tcl_Interp *ip) {
     Tcl_CreateObjCommand(ip, POLYNSP "mono", MonoCombiCmd, (ClientData) 0, NULL);
 
     Tcl_LinkVar(ip, POLYNSP "multCount", (char *) &multCount, TCL_LINK_INT);
+
+    Tcl_UnlinkVar(ip, POLYNSP "_polCount"); 
+    Tcl_LinkVar(ip, POLYNSP "_polCount", (char *) &polCount, 
+                TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
     return TCL_OK;
 }

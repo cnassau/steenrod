@@ -207,7 +207,5 @@ int Tprime_Init(Tcl_Interp *ip) {
 
     Tcl_CreateObjCommand(ip, NSP "prime", PrimeCombiCmd, (ClientData) 0, NULL);
 
-    Tcl_Eval(ip, "namespace eval " NSP " { namespace export * }");
-
     return TCL_OK;
 }
