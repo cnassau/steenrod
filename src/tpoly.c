@@ -191,7 +191,7 @@ Tcl_Obj *Tcl_NewPolyObj(polyType *tp, void *data) {
 }
 
 Tcl_Obj *Tcl_NewListFromPoly(Tcl_Obj *obj) {
-    int i, len = PLgetLength((polyType *) PTR1(obj),PTR2(obj));
+    int i, len = PLgetNumsum((polyType *) PTR1(obj),PTR2(obj));
     Tcl_Obj *res, **arr = (Tcl_Obj **) ckalloc(len * sizeof(Tcl_Obj *));
     exmo aux;
     for (i=0;i<len;i++) {

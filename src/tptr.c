@@ -322,7 +322,7 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
             CHCKARGSERR("too few arguments"); 
         }
 
-        /* printf("argchk: obj (%p), refcnt %d\n",*objv,(*objv)->refCount); */
+        if (0) printf("argchk: obj (%p), refcnt %d\n",*objv,(*objv)->refCount); 
   
         /* check for type mismatch */
 

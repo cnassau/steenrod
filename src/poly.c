@@ -99,8 +99,8 @@ int PLgetInfo(polyType *type, void *poly, polyInfo *res) {
     return FAILIMPOSSIBLE;
 }
 
-int PLgetLength(polyType *type, void *poly) {
-    return (type->getLength)(poly);
+int PLgetNumsum(polyType *type, void *poly) {
+    return (type->getNumsum)(poly);
 }
 
 void PLfree(polyType *type, void *poly) { 
@@ -154,7 +154,7 @@ int PLappendPoly(polyType *dtp, void *dst,
     exmo e; int i, len;
     if ((dtp == src) && (NULL != dtp->appendPoly))
         return (dtp->appendPoly)(dst,src,shift,flags,scale,modulo);
-    len = (stp->getLength)(src);
+    len = (stp->getNumsum)(src);
     if (modulo) scale %= modulo;
     for (i=0;i<len;i++) {
         if (SUCCESS != PLgetExmo(stp,src,&e,i)) 
@@ -391,7 +391,7 @@ struct polyType stdPolyType = {
     .compare    = &stdCompare,
     .reflect    = &stdReflect,
     .getExmoPtr = &stdGetExmoPtr,
-    .getLength  = &stdGetLength,
+    .getNumsum  = &stdGetLength,
     .appendExmo = &stdAppendExmo,
     .scaleMod   = &stdScaleMod,
     .shift      = &stdShift,
@@ -434,7 +434,7 @@ int PLtest(polyType *tp, void *pol1, pprop prop) {
     int i, len; exmo e;
     if (NULL != tp->test) 
         return (tp->test)(pol1, prop);
-    len = PLgetLength(tp,pol1);
+    len = PLgetNumsum(tp,pol1);
     switch (prop) {
         case ISPOSITIVE:
             for (i=0;i<len;i++) 
@@ -467,7 +467,7 @@ int PLposMultiply(polyType **rtp, void **res,
     exmo aux; int i, len, rc;
     *rtp = stdpoly; 
     *res = stdCreateCopy(NULL);
-    len = PLgetLength(sftp,sf);
+    len = PLgetNumsum(sftp,sf);
     for (i=0;i<len;i++) {
         if (SUCCESS != (rc = PLgetExmo(sftp,sf,&aux,i))) {
             PLfree(*rtp,*res); return rc;
@@ -508,8 +508,8 @@ int PLsteenrodMultiply(polyType **rtp, void **res,
         return FAILIMPOSSIBLE;
 
     /* check if both factors are non-zero */
-    if ((0 == (flen = PLgetLength(fftp,ff)))
-        || (0 == (slen = PLgetLength(sftp,sf)))) {
+    if ((0 == (flen = PLgetNumsum(fftp,ff)))
+        || (0 == (slen = PLgetNumsum(sftp,sf)))) {
         *rtp = stdpoly; 
         *res = PLcreate(*rtp);
         return SUCCESS;

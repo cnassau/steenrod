@@ -82,7 +82,7 @@ typedef struct polyType {
 
     void (*free)(void *self);        /* free all allocated storage */
 
-    int (*getLength)(void *self);    /* return number of summands */
+    int (*getNumsum)(void *self);    /* return number of summands */
 
     int (*getExmo)(void *self, 
                    exmo *exmo, 
@@ -141,7 +141,7 @@ typedef struct polyType {
  * a method is not implemented */
 
 int   PLgetInfo(polyType *type, void *poly, polyInfo *poli);
-int   PLgetLength(polyType *type, void *poly);
+int   PLgetNumsum(polyType *type, void *poly);
 void  PLfree(polyType *type, void *poly);
 int   PLcancel(polyType *type, void *poly, int modulo);
 int   PLclear(polyType *type, void *poly);
