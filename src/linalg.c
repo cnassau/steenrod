@@ -135,10 +135,10 @@ void matrix_set_entry(matrix *m, int r, int c, cint val) {
 void matrix_add(matrix *dst, matrix *src, cint coeff, cint prime) {
     int i;
     if ((dst->rows != src->rows) || (dst->cols != src->cols)) return;
-    for (i=dst->rows; i--; ) {
+    for (i=dst->rows; i--;) {
         vector *v1 = matrix_get_row(dst, i);
         vector *v2 = matrix_get_row(src, i);
-        vector_add( v1, v2, coeff, prime );
+        vector_add(v1, v2, coeff, prime);
         freex(v1); freex(v2);
     } 
 }

@@ -271,7 +271,7 @@ int enmSetBasics(enumerator *en, primeInfo *pi,
         copyExpExmo(pi, &(en->profile), profile); 
 
     en->profile.ext &= en->algebra.ext;
-    for (i=NALG; i--; )
+    for (i=NALG; i--;)
         en->profile.dat[i] = MIN(en->profile.dat[i], en->algebra.dat[i]);
 
     return SUCCESS;
