@@ -13,7 +13,7 @@
 
 % our custom header; using it requires that we use noweave's -delay option
 
-\documentclass{article}
+\documentclass[leqno]{article}
 \usepackage{a4}
 \usepackage{noweb}
 \usepackage{amsfonts}
@@ -22,7 +22,10 @@
 \begin{document} 
 
 \newcommand{\FF}{\mathbb{F}}
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\ZZ}{\mathbb{Z}}
 \newcommand{\eps}{\varepsilon}
+\newcommand{\vspan}{\mathrm{span}\,}
 
 \title{The multiplication routine}
 \author{Christian Nassau}
@@ -73,19 +76,19 @@ is outlined here:
 
 @ \end{section}
 
-@ \begin{section}{Background}
+@ \begin{section}{Background \& agenda}
 We work at an arbitrary prime $p$ which is only restricted by the 
 size of the data type [[cint]] that we use for elements of $\FF_p$. 
 [[cint]] stands for ``\underline{c}oefficient \underline{int}eger''
 and is declared in [[prime.h]].
 
-Naturally, we assume sufficient familiarity with the Steenrod algebra $A$. 
+We assume sufficient familiarity with the Steenrod algebra $A$. 
 We use Milnor's basis to represent algebra elements; recall that
 such a basis element is given by an expression 
 $Q(\eps_0, \eps_1,\ldots) P(r_1, r_2, \ldots)$ where $\eps_i\in\{0,1\}$
 and $r_i\ge 0$, with almost all $r_i=0$ and almost all $\eps_i=0$.
-The $Q(\cdots)$ constitute the {\em exterior} part of the algebra 
-while the $P(\cdots)$ span the {\em reduced} part. 
+The $Q(\cdots)$ constitute the {\em exterior\/} part of the algebra 
+while the $P(\cdots)$ span the {\em reduced\/} part. 
 
 We should make clear at this point that there are two extensions 
 to the usual notions that we want to cover: the first is the 
@@ -98,7 +101,7 @@ attention to the reduced part.
 The second extension is that we also plan to support Milnor basis
 elements $Q(\eps)P(R)$ with $r_i<0$ for all $i$ while  
 for almost all $i$ one has $r_i=-1$ and $\eps_i=1$. These 
-{\em negative basis elements} span an interesting $A$-bimodule $A^\infty$
+{\em negative basis elements\/} span an interesting $A$-bimodule $A^\infty$
 and we want to organize our multiplication program for
 $A\otimes A\rightarrow A$ in such a way that it also allows to compute 
 the $A$-bimodule action maps
@@ -106,18 +109,92 @@ $$A\otimes A^\infty\rightarrow A^\infty \quad\text{and}\quad
 A^\infty\otimes A\rightarrow A^\infty.$$
 Actually, $A^\infty$ is just the dual Steenrod algebra $A_\ast$ in disguise
 but we don't need to know this here -- the isomorphism is given 
-by $P(-1-R) \leftrightarrow \zeta^R$ and $Q(1-\eps)\leftrightarrow \tau^\eps$.
+by $P(-1-R) \leftrightarrow \zeta^R$ and $Q(1-\eps)\leftrightarrow \bar\tau^\eps$.
  
 And, finally, we also want to support restrictions coming from an additional 
 sub Hopf-algebra $B\subset A$ in order to make efficient use  
-of the algorithm of \cite{self}. 
+of the algorithm of \cite{self}. Before we explain this we have to review 
+the multiplication algorithm. 
+
+According to Milnor \cite{margolis} two reduced powers $P(S)$ and $P(R)$ 
+are muliplied as follows: one looks at all matrices 
+$X=(x_{i,j})$
+\begin{equation}\label{multmat}
+\text{\begin{tabular}{ccccc}
+* & $x_{0,1}$ & $x_{0,2}$ & $x_{0,3}$ & $\cdots$ \\
+$x_{1,0}$ & $x_{1,1}$ & $x_{1,2}$ & $x_{1,3}$ & $\cdots$ \\
+$x_{2,0}$ & $x_{2,1}$ & $x_{2,2}$ & $x_{2,3}$ & $\cdots$ \\
+$\vdots$ & $\vdots$ & $\vdots$ & $\vdots$ & 
+\end{tabular}}
+\end{equation}
+that decompose the given exponent sequences 
+$R$ and $S$ like this:
+\begin{alignat}{5}
+ s_k &= 
+ x_{k,0} &\,&+\,  &p\cdot x_{k,1} \,&+\,  &p^2 \cdot  x_{k,2} \,&+\, \cdots
+\label{rowdecomp} \\
+ r_l &= 
+ x_{0,l}   &&+         &x_{1,l} &+             &x_{2,l} &+ \cdots
+\label{coldecomp}
+\end{alignat}
+To such an $X$ one associates the coefficient 
+$$\beta(X) = \prod_k ( x_{k,0} \vert x_{k-1,1} \vert \cdots 
+\vert x_{1,k-1} \vert x_{0,k})$$
+where $(a_1\vert a_2\vert\cdots \vert a_k)$ denotes the multinomial coefficient
+$(a_1+\cdots + a_k)!/(a_1!\cdots a_k!)$. 
+As is well known, this coefficient is nonzero modulo $p$ if and only if 
+no carries occur when the addition $a_1+\cdots + a_k$ is done in base $p$.
+The product is then given by the formula 
+$$P(R) \cdot P(S) = \sum_X \beta(X)\cdot P(T),$$
+where the $t_k$ are the diagonal sums $t_k = \sum_{i+j=k} x_{i,j}$.
+
+Assume that an additional sub Hopfalgebra $B\subset A$ is present.
+$B$ is given by 
+$$B=\vspan_{\FF_p}\big\{\, Q(\eps) P(R)  \,\big\vert\, r_i < p^{\pi(i)}
+\,\,\text{and}\,\, \eps_j<\sigma(j) \,\big\}$$
+for a profile $(\pi,\sigma)$. Here $\pi:\NN\rightarrow\NN_0$
+and $\sigma:\NN_0\rightarrow\{1,2\}$ are certain functions.
+They are assumed to satisfy the following relations 
+(which are (2.11), (2.12) in \cite{self}).
+These are a bit more restrictive than just saying that $B$ is a sub Hopfalgebra.
+\begin{itemize}
+\item
+  $\pi(i)\le \pi(i+j) + j$ for all $i,j\ge 1$.
+\item
+  If $\sigma(i+j)=1$ for $j\ge 0$, $i\ge 1$ then $\pi(i)\le j$. 
+\end{itemize}
+For a Milnor basis element $Q(\eps)P(R)$ we call 
+$$(\eps_j \,\,\text{mod}\,\, \sigma(j))_j \times 
+(r_i \,\,\text{mod}\,\, p^{\pi(i)})_i \in
+\prod _i \left( {}^{\mbox{$\ZZ$}}\Big/{}_{\mbox{$\sigma(i)\ZZ$}} \right)
+\,\,\times\,\, \prod_{j} \,\,
+\left({}^{\mbox{$\ZZ$}}\Big/{}_{\mbox{$p^{\pi(j)} \ZZ$}}\right)
+$$
+the {\em $B$-signature} of $Q(\eps)P(R)$. 
+In the multiplication algorithm we then want to restrict 
+attention to those $X$ that respect the $B$-signature.
+For the $x_{i,j}$ this simply means that we 
+require $x_{i,j}\equiv 0\mod p^{\pi(i+j)}$.
+There is a similar restriction for the exterior components 
+but we'll spell that out later.
+
 @ \end{section}
+
+@ \begin{section}{Writing it into a program}
+
+xxx
+
+@ \end{section}
+
 
 
 \begin{thebibliography}{9}
 \bibitem{self}
 C.\ Nassau, {\em Ein neuer Algorithmus zur Untersuchung der Kohomologie der
 Steenrod-Algebra}, $\lambda{}o\gamma{}o\varsigma$ - Verlag Berlin, 2002
+\bibitem{margolis}
+H.\ R.\ Margolis, {\em Spectra and the Steenrod Algebra},
+North Holland Mathematical Library, Volume 29, 1983
 \end{thebibliography}
 
 @ \end{document}
