@@ -116,10 +116,8 @@ void VectorUpdateStringProc(Tcl_Obj *objPtr) {
 void VectorDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     vectorType *vt = PTR1(srcPtr);
     PTR1(dupPtr) = vt;
-    PTR2(dupPtr) = (vt->createCopy)(PTR1(srcPtr));
+    PTR2(dupPtr) = (vt->createCopy)(PTR2(srcPtr));
 }
-
-
 
 /**************************************************************************
  *
@@ -250,7 +248,7 @@ void MatrixUpdateStringProc(Tcl_Obj *objPtr) {
 void MatrixDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     matrixType *vt = PTR1(srcPtr);
     PTR1(dupPtr) = vt;
-    PTR2(dupPtr) = (vt->createCopy)(PTR1(srcPtr));
+    PTR2(dupPtr) = (vt->createCopy)(PTR2(srcPtr));
 }
 
 /**** utilities */
@@ -389,6 +387,7 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
             /* get matrix from var1 */
             varp[1] = Tcl_ObjGetVar2(ip, objv[2], NULL, TCL_LEAVE_ERR_MSG);
             if (NULL == varp[1]) return TCL_ERROR;
+
             if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[1])) 
                 RETERR("var1 does not contain a valid matrix");
             /* reset var2 */
@@ -407,10 +406,13 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
                 Tcl_DecrRefCount(varp[1]);
                 return TCL_ERROR;
             }
+
             if (Tcl_IsShared(varp[1]))
                 varp[1] = Tcl_DuplicateObj(varp[1]);
+
             varp[2] = Tcl_OrthoCmd(pi, varp[1], ip, progvar, pmsk);
             if (NULL == varp[2]) RETERR("orthonormalization failed");
+
             /* set variables and return */
             if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, 
                                       varp[1], TCL_LEAVE_ERR_MSG)) {
