@@ -382,20 +382,23 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
             varp[1] = Tcl_NewIntObj(c);
             Tcl_SetObjResult(ip, Tcl_NewListObj(2, varp));
             return TCL_OK;
+
         case LIN_ORTHO:
             ENSUREARGS6(TP_PRIME,TP_VARNAME,TP_VARNAME,TP_OPTIONAL,TP_VARNAME,TP_INT);
             if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[1],&pi))
                 return TCL_ERROR;
+
             /* get matrix from var1 */
             varp[1] = Tcl_ObjGetVar2(ip, objv[2], NULL, TCL_LEAVE_ERR_MSG);
             if (NULL == varp[1]) return TCL_ERROR;
-
             if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[1])) 
                 RETERR("var1 does not contain a valid matrix");
+
             /* reset var2 */
             if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
                                        Tcl_NewObj(), TCL_LEAVE_ERR_MSG))
                 return TCL_ERROR;
+
             progvar = NULL; pmsk = 0;
             if (objc >= 5) progvar = Tcl_GetString(objv[4]); 
             if (objc >= 6) 
@@ -435,25 +438,30 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
             // printObj("varp[2]", varp[2]);
             
             return TCL_OK;
+
         case LIN_QUOT:
             ENSUREARGS6(TP_PRIME,TP_VARNAME,TP_VARNAME,TP_OPTIONAL,TP_VARNAME,TP_INT);
             if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[1],&pi))
                 return TCL_ERROR;
+
             /* get matrix from var1 */
             varp[1] = Tcl_ObjGetVar2(ip, objv[2], NULL, TCL_LEAVE_ERR_MSG);
             if (NULL == varp[1]) return TCL_ERROR;
             if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[1])) 
                 RETERR("var1 does not contain a valid matrix");
+
             /* get matrix from var2 */
             varp[2] = Tcl_ObjGetVar2(ip, objv[3], NULL, TCL_LEAVE_ERR_MSG);
             if (NULL == varp[2]) return TCL_ERROR;
             if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[2])) 
                 RETERR("var2 does not contain a valid matrix");
+
             progvar = NULL; pmsk = 0;
             if (objc >= 5) progvar = Tcl_GetString(objv[4]); 
             if (objc >= 6) 
                 if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &pmsk))
                     RETERR("internal error in LIN_QUOT");
+
             /* detach matrix from var1 */
             Tcl_IncrRefCount(varp[1]);
             if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, 
@@ -461,12 +469,18 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
                 Tcl_DecrRefCount(varp[1]);
                 return TCL_ERROR;
             }
-            if (Tcl_IsShared(varp[1]))
+
+            if (Tcl_IsShared(varp[1])) {
+                Tcl_DecrRefCount(varp[1]);
                 varp[1] = Tcl_DuplicateObj(varp[1]);
+                Tcl_IncrRefCount(varp[1]);
+            }
+
             if (TCL_OK != Tcl_QuotCmd(pi, varp[1], varp[2], ip, progvar, pmsk)) {
                 Tcl_DecrRefCount(varp[1]);
                 return TCL_ERROR;
             }
+
             /* put result into var1 */
             if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, 
                                       varp[1], TCL_LEAVE_ERR_MSG)) {
@@ -475,25 +489,30 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
             }
             Tcl_DecrRefCount(varp[1]);
             return TCL_OK;
+
         case LIN_LIFT:
             ENSUREARGS6(TP_PRIME,TP_VARNAME,TP_VARNAME,TP_OPTIONAL,TP_VARNAME,TP_INT);
             if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[1], &pi))
                 return TCL_ERROR;
+
             /* get matrix from var1 */
             varp[1] = Tcl_ObjGetVar2(ip, objv[2], NULL, TCL_LEAVE_ERR_MSG);
             if (NULL == varp[1]) return TCL_ERROR;
             if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[1])) 
                 RETERR("var1 does not contain a valid matrix");
+
             /* get matrix from var2 */
             varp[1] = Tcl_ObjGetVar2(ip, objv[3], NULL, TCL_LEAVE_ERR_MSG);
             if (NULL == varp[2]) return TCL_ERROR;
             if (TCL_OK != Tcl_ConvertToMatrix(ip, varp[2])) 
                 RETERR("var2 does not contain a valid matrix");
+
             progvar = NULL; pmsk = 0;
             if (objc >= 5) progvar = Tcl_GetString(objv[4]); 
             if (objc >= 6) 
                 if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &pmsk))
                     RETERR("internal error in LIN_ORTHO");
+
             /* detach matrix from var2 */
             Tcl_IncrRefCount(varp[2]);
             if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
@@ -501,19 +520,26 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
                 Tcl_DecrRefCount(varp[2]);
                 return TCL_ERROR;
             }
-            if (Tcl_IsShared(varp[2]))
+
+            if (Tcl_IsShared(varp[2])) {
+                Tcl_DecrRefCount(varp[2]);
                 varp[2] = Tcl_DuplicateObj(varp[2]);
+                Tcl_IncrRefCount(varp[2]);
+            }
+
             varp[3] = Tcl_LiftCmd(pi, varp[1], varp[2], ip, progvar, pmsk);
             if (NULL == varp[3]) {
                 Tcl_DecrRefCount(varp[2]);
                 return TCL_ERROR;
             }
+
             /* put result into var2 */
             if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
                                       varp[2], TCL_LEAVE_ERR_MSG)) {
                 Tcl_DecrRefCount(varp[2]);
                 return TCL_ERROR;
             }
+
             Tcl_DecrRefCount(varp[2]);
             Tcl_SetObjResult(ip, varp[3]);
             return TCL_OK;
