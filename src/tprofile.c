@@ -25,7 +25,8 @@
 typedef enum {
     CORE_SET, CORE_GETEXT, CORE_GETRED,
     PR_CREATE, PR_DESTROY, PR_GETCORE, 
-    ENV_CREATE, ENV_DISPOSE,  
+    ENV_CREATE, ENV_DISPOSE, 
+    SQN_CREATE, SQN_DESTROY, SQN_GETDIM, SQN_GETSEQNO, 
     EXM_CREATE, EXM_DISPOSE, EXM_GETCORE, EXM_FIRST, EXM_NEXT
 } ProfileCmdCode;
 
@@ -38,6 +39,7 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
     exmon *exmo; 
     primeInfo *pi;
     procore *core;
+    seqnoInfo *sqn;
     int i1,i2;
 
     switch (cdi) {
@@ -86,13 +88,39 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
             core = &(prof->core);
             Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_PROCORE, core));
             return TCL_OK;
+        case SQN_CREATE:
+            ENSUREARGS2(TP_ENENV,TP_INT);
+            env = (enumEnv *) TPtr_GetPtr(objv[1]);
+            Tcl_GetIntFromObj(ip, objv[2], &i1);
+            sqn = createSeqno(env, i1);
+            if (NULL == sqn) RETERR("Out of memory");
+            Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_SQINF, sqn));
+            return TCL_OK;
+        case SQN_DESTROY:
+            ENSUREARGS1(TP_SQINF);
+            sqn = (seqnoInfo *) TPtr_GetPtr(objv[1]);
+            destroySeqno(sqn);
+            return TCL_OK;
+        case SQN_GETDIM:
+            ENSUREARGS2(TP_SQINF,TP_INT);
+            sqn = (seqnoInfo *) TPtr_GetPtr(objv[1]);
+            Tcl_GetIntFromObj(ip, objv[2], &i1);
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(SqnInfGetDim(sqn, i1)));
+            return TCL_OK;
+        case SQN_GETSEQNO:
+            ENSUREARGS3(TP_SQINF,TP_EXMON,TP_INT);
+            sqn = (seqnoInfo *) TPtr_GetPtr(objv[1]);
+            exmo = (exmon *) TPtr_GetPtr(objv[2]);
+            Tcl_GetIntFromObj(ip, objv[3], &i1);
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 SqnInfGetSeqnoWithDegree(sqn, exmo, i1)));
+            return TCL_OK;
         case ENV_CREATE:
-            ENSUREARGS4(TP_PRINFO,TP_PROFILE,TP_PROFILE,TP_INT);
+            ENSUREARGS3(TP_PRINFO,TP_PROFILE,TP_PROFILE);
             pi = (primeInfo *) TPtr_GetPtr(objv[1]); 
             prof = (profile *) TPtr_GetPtr(objv[2]); 
             alg  = (profile *) TPtr_GetPtr(objv[3]);
-            Tcl_GetIntFromObj(ip, objv[4], &i1);
-            env = createEnumEnv(pi, prof, alg, i1); 
+            env = createEnumEnv(pi, prof, alg); 
             Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_ENENV, env));
             return TCL_OK;
         case ENV_DISPOSE:
@@ -169,6 +197,7 @@ Tcl_CreateObjCommand(ip,name,tProfileCombiCmd,(ClientData) code, NULL);
 #define NSC "procore::"
 #define NSP "profile::"
 #define NSV "enumenv::"
+#define NSQ "sqninfo::"
 #define NSX "extmono::"
 
     CREATECOMMAND(NSC "set", CORE_SET); 
@@ -179,6 +208,10 @@ Tcl_CreateObjCommand(ip,name,tProfileCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND(NSP "getCore", PR_GETCORE); 
     CREATECOMMAND(NSV "create", ENV_CREATE); 
     CREATECOMMAND(NSV "dispose", ENV_DISPOSE); 
+    CREATECOMMAND(NSQ "create", SQN_CREATE); 
+    CREATECOMMAND(NSQ "destroy", SQN_DESTROY); 
+    CREATECOMMAND(NSQ "getDim", SQN_GETDIM); 
+    CREATECOMMAND(NSQ "getSeqno", SQN_GETSEQNO); 
     CREATECOMMAND(NSX "create", EXM_CREATE); 
     CREATECOMMAND(NSX "dispose", EXM_DISPOSE); 
     CREATECOMMAND(NSX "getCore", EXM_GETCORE); 

@@ -17,7 +17,7 @@
 #include "prime.h"
 
 /* here NPRO is the maximum length of exponent sequences: */
-#define NPRO 9
+#define NPRO (NALG-1)
 
 /* the following data type is the core of several other types:
  * profiles, subalgebras, extmonos. It consists of an exponent 
@@ -29,6 +29,7 @@ typedef struct {
 } procore;
 
 void clearProcore(procore *core, int rval);
+int reddegProcore(procore *core, primeInfo *pi);
 
 /* extended monomials [= monomials with a few helper fields] */
 typedef struct {
@@ -47,13 +48,6 @@ typedef struct {
 void makeZeroProfile(profile *pro);
 void makeFullProfile(profile *pro, primeInfo *pi, int maxdim);
 
-/* information that's needed by the seqno routine */
-typedef struct {
-    int maxdim;    /* maximal dimension for the tables below */
-    int *(dimtab[NPRO+1]); 
-    int *(seqtab[NPRO+1]);
-} seqnoInfo;
-
 /* The environment for enumeration purposes: we have two nested sub 
  * Hopf-algebras *pro <= *alg and the assumption is that enumeration 
  * is restricted to elements of *alg that have a fixed *pro signature. */
@@ -61,15 +55,11 @@ typedef struct {
     primeInfo *pi;  
     profile *alg;
     profile *pro;
-    profile *seqnoInfo;
 } enumEnv;
 
 /* constructor & destructor */
-enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro, int maxdim);
+enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro);
 void disposeEnumEnv(enumEnv *env);
-
-seqnoInfo *createSeqno(primeInfo *pi, profile *alg, profile *pro, int maxdim);
-void disposeSeqno(seqnoInfo *s);
 
 /* enumeration of exmons of a given degree */
 int firstExmon(exmon *ex, enumEnv *env, int deg);
@@ -78,5 +68,23 @@ int nextExmon(exmon *ex, enumEnv *env);
 /* enumeration again, this time restricted to the reduced part */
 int firstRedmon(exmon *ex, enumEnv *env, int deg);
 int nextRedmon(exmon *ex, enumEnv *env);
+
+/* information that's needed by the seqno routine */
+typedef struct {
+    int maxdim;    /* maximal dimension for the tables below */
+    primeInfo *pi;
+    enumEnv *env;
+    int *(dimtab[NPRO+1]); 
+    int *(seqtab[NPRO+1]);
+    int effdeg[NPRO+1];     /* effective degree := red. deg. / sub.alg.-profile */
+} seqnoInfo;
+
+/* sequence number computations */
+seqnoInfo *createSeqno(enumEnv *env, int maxdim);
+void destroySeqno(seqnoInfo *s);
+
+int SqnInfGetDim(seqnoInfo *sqn, int dim);
+int SqnInfGetSeqno(seqnoInfo *sqn, exmon *ex);
+int SqnInfGetSeqnoWithDegree(seqnoInfo *sqn, exmon *ex, int deg);
 
 #endif

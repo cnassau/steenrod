@@ -18,10 +18,11 @@
 #include "profile.h"
 
 /* ids for our TPtr types */
-#define TP_PROCORE 19
-#define TP_PROFILE 20
-#define TP_EXMON   21
-#define TP_ENENV   22
+#define TP_PROCORE 29
+#define TP_PROFILE 30
+#define TP_EXMON   31
+#define TP_ENENV   32
+#define TP_SQINF   33
 
 int Tprofile_Init(Tcl_Interp *ip);
 

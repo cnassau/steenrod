@@ -21,6 +21,12 @@ void clearProcore(procore *core, int rval) {
     for (i=NPRO;i--;) core->rdat[i]=rval;
 }
 
+int reddegProcore(procore *core, primeInfo *pi) {
+    int res=0, i;
+    for (i=NPRO;i--;) res += pi->reddegs[i] * core->rdat[i];
+    return res;
+}
+
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 void makeZeroProfile(profile *pro) {
@@ -44,23 +50,18 @@ void makeFullProfile(profile *pro, primeInfo *pi, int maxdim) {
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
-enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro, int maxdim) {
+enumEnv *createEnumEnv(primeInfo *pi, profile *alg, profile *pro) {
     enumEnv *res = cmalloc(sizeof(enumEnv)); 
     if (NULL==res) return NULL;
     /* we keep references to our parameters (not copies) */
     res->pi = pi;
     res->pro=pro;
     res->alg=alg;
-    /* private initialization follows */
-
-
     return res;
 }
 
 void disposeEnumEnv(enumEnv *env) {
     /* don't destroy given parameters, just the derived private data */
-
-
 }
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
@@ -122,16 +123,21 @@ int firstRedmon(exmon *ex, enumEnv *env, int deg) {
 int nextRedmon(exmon *ex, enumEnv *env) {
     int rem, i;
     do {
+        int nval;
         rem = ex->errdeg + ex->core.rdat[0];
         for (i=1;0==ex->core.rdat[i];)
             if (++i >= NPRO) return 0;
-        rem += env->pi->reddegs[i]; ex->core.rdat[i]--;
+        nval = ex->core.rdat[i] - 1;
+        nval /= env->pro->core.rdat[i]; nval *= env->pro->core.rdat[i];       
+        rem += (ex->core.rdat[i]-nval) * env->pi->reddegs[i]; 
+        ex->core.rdat[i] = nval;
         for (;i--;) {
-            int nval = rem / env->pi->reddegs[i];
+            nval = rem / env->pi->reddegs[i];
             /* restrict redpows to env->alg */
             if (nval>env->alg->core.rdat[i]-1) nval=env->alg->core.rdat[i]-1;
             /* remove part forbidden by env->pro */
-            nval /= env->pro->core.rdat[i]; nval *= env->pro->core.rdat[i];
+            nval /= env->pro->core.rdat[i]; nval *= env->pro->core.rdat[i];       
+
             ex->core.rdat[i] = nval;
             rem -= nval * env->pi->reddegs[i];
         }
@@ -140,3 +146,111 @@ int nextRedmon(exmon *ex, enumEnv *env) {
     return 1;
 }
 
+
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+
+seqnoInfo *createSeqno(enumEnv *env, int maxdim) {
+    int reddim, i, j, k, n;
+    primeInfo  *pi = env->pi;
+    procore   *alg = &(env->alg->core);
+    procore   *pro = &(env->pro->core);
+    seqnoInfo *res = calloc(1,sizeof(seqnoInfo));
+
+    if (NULL == res) return NULL;
+
+    res->env = env;
+    res->pi  = pi;
+    reddim   = 1 + maxdim / pi->tpmo;
+
+    for (i=NPRO+1;i--;)
+        if (NULL == (res->dimtab[i] = malloc(sizeof(int) * (reddim+1)))) {
+            destroySeqno(res);
+            return NULL;
+        }
+
+    for (i=NPRO+1;i--;)
+        if (NULL == (res->seqtab[i] = malloc(sizeof(int) * (reddim+1)))) {
+            destroySeqno(res);
+            return NULL;
+        }
+    
+    for (i=NPRO;i--;) {
+        double aux = pi->reddegs[i]; aux *= pro->rdat[i];
+        if (aux > (65536.0 * 32000.0)) {
+            res->effdeg[i] = 0xefffffff;
+        } else { res->effdeg[i] = pi->reddegs[i] * pro->rdat[i]; }
+    }
+
+    /* create dimension table: */
+ 
+    /* dimtab[0] is the dimension of k[xi_1] (restricted to A//B) */ 
+    for (j=0;j<reddim;j++) 
+        if ((j>=alg->rdat[0]) || (pro->rdat[0] * (j/pro->rdat[0]) != j))  
+            res->dimtab[0][j] = 0;
+        else 
+            res->dimtab[0][j] = 1;
+    
+    /* now dimtab[i] for k[xi_1,...,xi_{i+1}] */
+    for (i=1;i<NPRO;i++) 
+        for (j=0;j<reddim;j++) {
+            int sum=0, d = pi->reddegs[i];
+            for (k=j/d;k>=0;k--)
+                if ((k<alg->rdat[i]) && (pro->rdat[i] * (k/pro->rdat[i]) == k))
+                    sum += res->dimtab[i-1][j-k*d];
+            res->dimtab[i][j] = sum;
+        }
+
+    /* next is seqtab */
+    
+    res->seqtab[0][0] = 0; /* this is all we need from seqtab[0][...] */
+
+    /* seqtab[k+1][n] = dimtab[k][n-d] + dimtab[k][n-2d] + ... + dimtab[k][n%d] 
+     * where d = effective degree */
+    for (k=1;k<NPRO;k++) 
+        for (n=0;n<reddim;n++) {
+            int sum=0, d = res->effdeg[k];
+            for (i=n-d;i>=0;i-=d)
+                sum += res->dimtab[k-1][i];
+            res->seqtab[k][n] = sum;
+        }
+    return res;
+}
+
+void destroySeqno(seqnoInfo *s) {
+    int i;
+    for (i=NPRO;i>=0;i--) {
+        if (NULL != (s->dimtab[i])) free(s->dimtab[i]);
+        if (NULL != (s->seqtab[i])) free(s->seqtab[i]);
+    }
+}
+
+int SqnInfGetDim(seqnoInfo *sqn, int dim) {
+    int i,j;
+    if (0 != (dim % sqn->pi->tpmo)) return 0;
+#if 0
+    for (i=0;i<6;i++) {
+        for (j=0;j<25;j++)
+            printf(" %2d",sqn->dimtab[i][j]);
+        printf("\n");
+    }
+#endif
+    return sqn->dimtab[NPRO-1][dim / sqn->pi->tpmo];
+}
+
+int SqnInfGetSeqno(seqnoInfo *sqn, exmon *ex) {
+    return 0;
+}
+
+int SqnInfGetSeqnoWithDegree(seqnoInfo *sqn, exmon *ex, int deg) {
+    int res=0, k;
+    deg /= sqn->pi->tpmo;
+    for (k=NPRO-1;k--;) {
+        int maxdeg = (sqn->env->alg->core.rdat[k]-1) * sqn->pi->reddegs[k];
+        int actdeg =                ex->core.rdat[k] * sqn->pi->reddegs[k];
+        if (maxdeg>deg) maxdeg = deg; 
+        res += sqn->seqtab[k][deg - actdeg] - sqn->seqtab[k][deg - maxdeg];
+        printf("+ %d - %d\n",sqn->seqtab[k][deg - actdeg],sqn->seqtab[k][deg - maxdeg]);  
+        deg -= actdeg;
+    }
+    return res;
+}
