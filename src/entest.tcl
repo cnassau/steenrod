@@ -13,7 +13,7 @@
 
 load libsteenrod.so
 
-epol::enumerator x
+poly::enumerator x
 
 x conf -genlist {8 }
 catch {x basis}
