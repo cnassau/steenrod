@@ -65,7 +65,9 @@ while 1 {
     #x configure -genlist {{0 0} {1 50} {2 -50}}
     #x configure -profile {0 0 {1 0 5} 0} -edeg 0
 
-    x conf -edeg [rint 4]
+    x conf -type n -ideg -[x cget -ideg]
+
+    x conf -edeg -[rint 4]
     while {![x dim]} { x conf -ideg [expr 1 + [x cget -ideg]] }
 
     set basis [x basis]

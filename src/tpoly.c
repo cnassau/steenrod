@@ -103,6 +103,7 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         return TCL_ERROR;
     if (objc2 > NALG) 
         RETERR("exponent sequence too long");
+    if (e->ext < 0) pad = -1;
     for (i=0;i<objc2;i++) {
         if (TCL_OK != Tcl_GetIntFromObj(ip,objv2[i],&aux)) 
             FREEEANDRETERR;

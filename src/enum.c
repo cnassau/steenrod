@@ -196,10 +196,13 @@ int enmRecreateEfflist(enumerator *en) {
     enmDestroyEffList(en);
     en->maxrrideg = 0; en->maxredeg = -1;
     /* find real tridegree coords */
-    enmUpdateSigInfo(en, &(en->signature), &(en->sigedeg), &(en->sigideg));
+    enmUpdateSigInfo(en, &(en->signature), &(en->sigideg), &(en->sigedeg));
     thdeg = en->hdeg;
-    tedeg = en->edeg - en->sigedeg;
-    tideg = en->ideg - en->sigideg;
+    tedeg = en->edeg + (en->ispos ? (-en->sigedeg) : en->sigedeg);
+    tideg = en->ideg + (en->ispos ? (-en->sigideg) : en->sigideg);
+    if (ENLOG) printf("after signature correction: (sig: %d,%d) "
+                      "trideg = (%d, %d, %d)\n", 
+                      en->sigideg, en->sigedeg, tideg, tedeg, thdeg);
     /* go through all gens in the genlist and look for appropriate exteriors */
     for (i=0,glp=en->genList; i<en->numgens; i++,glp+=4) {
         int id = glp[0], ideg = glp[1], edeg = glp[2], hdeg = glp[3];
