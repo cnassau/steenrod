@@ -56,7 +56,9 @@ void stdGetDimensions(void *m, int *row, int *col) {
 }
 
 void *stdCreateMatrix(int row, int col) {
-    return matrix_create(row, col);
+    matrix *mat = matrix_create(row, col);
+    matrix_clear(mat);
+    return mat;
 }
 
 void *stdCreateMCopy(void *mat) {
@@ -92,7 +94,9 @@ void *stdOrthoFunc(primeInfo *pi, void *inp, progressInfo *prg) {
     Tcl_Interp *ip = NULL; 
     const char *progvar = NULL;
     int pmsk = 0;
-    if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; }
+    if (NULL != prg) { 
+        ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; 
+    }
     ker = matrix_ortho(pi, (matrix *) inp, ip, progvar, pmsk);
     return ker;
 }
