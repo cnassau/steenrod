@@ -172,7 +172,8 @@ if (NULL != (obj))                                       \
     }
    
     if (te->cgenlist) {
-        enmSetGenlist(te->enm, te->gl, te->gllength);
+        if (SUCCESS != enmSetGenlist(te->enm, te->gl, te->gllength))
+            RETERR("duplicate generator id");
         te->gl = NULL; te->gllength = 0;
         te->cgenlist = 0;
     }
@@ -621,25 +622,28 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
     return TCL_OK;
 }
 
-typedef enum { CGET, CONFIGURE, BASIS, SEQNO, DIMENSION,
-               SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE } enumcmdcode;
+typedef enum { CGET, CONFIGURE, BASIS, SEQNO, DIMENSION, TEST,
+               SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE, ENM_MAX, ENM_MIN } enumcmdcode;
 
-static CONST char *cmdNames[] = { "cget", "configure", 
+static CONST char *cmdNames[] = { "test", "cget", "configure", "min", "max",
                                   "basis", "seqno", "dimension", 
                                   "sigreset", "signext", "siglist",
                                   "decode", "encode",
                                   (char *) NULL };
 
-static enumcmdcode cmdmap[] = { CGET, CONFIGURE, BASIS, SEQNO, DIMENSION,
+static enumcmdcode cmdmap[] = { TEST, CGET, CONFIGURE, ENM_MIN, ENM_MAX, 
+                                BASIS, SEQNO, DIMENSION,
                                 SIGRESET, SIGNEXT, SIGLIST, 
                                 DECODE, ENCODE };
+
+static CONST char *degNames[] = { "idegree", "edegree", "hdegree", "generator", (char *) NULL };
 
 int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip, 
                       int objc, Tcl_Obj * const objv[]) {
 
     tclEnum *te = (tclEnum *) cd;
     exmo ex;
-    int result, index, scale;
+    int result, index, index2, scale;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
@@ -650,6 +654,10 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
     if (result != TCL_OK) return result;
     
     switch (cmdmap[index]) {
+        case TEST:
+            Tcl_EnumSetValues(cd, ip);
+            return TCL_OK;
+
         case CGET: 
             return Tcl_EnumCgetCmd(cd, ip, objc, objv);
 
@@ -664,6 +672,36 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
 
         case DIMENSION:
             return Tcl_EnumDimensionCmd(cd, ip, objc, objv);            
+
+        case ENM_MIN:
+        case ENM_MAX: 
+            if (objc != 3) {
+                Tcl_WrongNumArgs(ip, 2, objv, "parameterName");
+                return TCL_ERROR;
+            }
+
+            result = Tcl_GetIndexFromObj(ip, objv[2], degNames, "parameter", 0, &index2);
+            if (result != TCL_OK) return result;
+    
+            if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
+            
+            if (ENM_MIN == cmdmap[index])
+                switch (index2) {
+                    case 0: result = te->enm->minideg; break;
+                    case 1: result = te->enm->minedeg; break;
+                    case 2: result = te->enm->minhdeg; break;
+                    case 3: result = te->enm->mingen; break;
+                }
+            else 
+                switch (index2) {
+                    case 0: result = te->enm->maxideg; break;
+                    case 1: result = te->enm->maxedeg; break;
+                    case 2: result = te->enm->maxhdeg; break;
+                    case 3: result = te->enm->maxgen; break;
+                }
+    
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(result)); 
+            return TCL_OK;
 
         case SIGRESET:
             if (objc != 2) RETERR("wrong number of arguments");

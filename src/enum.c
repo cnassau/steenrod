@@ -299,19 +299,29 @@ int enmSetGenlist(enumerator *en, int *gl, int num) {
     enmDestroyGenList(en);
     en->genList = gl; 
     en->numgens = num;
-    /* find max/min ideg/edeg */
+    /* find max/min ideg/edeg/hdeg/generator */
     if (0 == num) {
-        en->maxideg = en->minideg = en->maxedeg = en->minedeg = 0;
+        en->maxideg = en->minideg = en->maxedeg = en->minedeg 
+            = en->maxhdeg = en->minhdeg = en->mingen = en->maxgen = 0;
     } else {
-        en->maxideg = en->maxedeg = -9999; en->minideg = en->minedeg = 9999;
+        en->maxideg = en->maxedeg = en->maxhdeg = en->maxgen = -999999; 
+        en->minideg = en->minedeg = en->minhdeg = en->mingen =  999999;
     }
-    en->maxgenid = 0;
     for (i=num;i--;gl+=4) {
+        /* don't allow duplicate generator id's */
+        if ((en->maxgen == gl[0]) || (en->mingen == gl[0])) {
+            en->genList = NULL; en->numgens = 0;
+            return FAILIMPOSSIBLE;
+        }
+        /* find max/min */
         en->maxideg = MAX(en->maxideg, gl[1]);
         en->minideg = MIN(en->minideg, gl[1]);
         en->maxedeg = MAX(en->maxedeg, gl[2]);
         en->minedeg = MIN(en->minedeg, gl[2]);
-        en->maxgenid = MAX(en->maxgenid, gl[0]);
+        en->maxhdeg = MAX(en->maxhdeg, gl[3]);
+        en->minhdeg = MIN(en->minhdeg, gl[3]);
+        en->maxgen  = MAX(en->maxgen, gl[0]);
+        en->mingen  = MIN(en->mingen, gl[0]);
     }
     if (ENLOG) printf("set genlist (%d gens)\n", num);
     return SUCCESS;

@@ -32,7 +32,7 @@ typedef struct {
 
     /* genList is a list of 4-tuples (gen-id, ideg, edeg, hdeg) */
     int       *genList, numgens;
-    int       maxideg, minideg, maxedeg, minedeg, maxgenid;
+    int       maxideg, minideg, maxedeg, minedeg, minhdeg, maxhdeg, mingen, maxgen;
 
     /* the tri-degree that we're enumerating */
     int       ideg, edeg, hdeg;
