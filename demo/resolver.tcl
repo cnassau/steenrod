@@ -10,31 +10,63 @@
 # it under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
 #
-
+ 
 lappend auto_path ../lib
 
-package require Steenrod
+if {[catch {package require Steenrod}]} {
+    puts "Could not find Steenrod algebra library."
+    puts "Check your installation and/or adjust the auto_path settings in [info script]"
+    exit 1
+}
 
 namespace import linalg::*
 
-array set options {
-    -prime   2
-    -algebra {}
-    -usegui  0
-    -maxdim  40
-    -maxs    50
-    -dbg     0
+array set defoptions {
+    -prime   { {} "the prime" }
+    -algebra { {} "the algebra" }
+    -usegui  { 1  "use graphical user interface?" }
+    -maxdim  { 40 "maximal topological dimension" }
+    -maxs    { 50 "maximal homological degree" }
+    -dbg     { 0  "log computation, used for debugging" }
+    -decomp  { auto "smartness: either auto, upper, lower, none" }
+}
+
+foreach {opt val} [array get defoptions] {
+    set options($opt) [lindex $val 0]
+}
+
+proc usage {} {
+    global defoptions
+    puts "usage: [info script] ?option value? ?option value? ..."
+    puts ""
+    puts "available options:"
+    puts ""
+    foreach {opt val} [array get defoptions] { lappend aux [list $opt $val] }
+    foreach itm [lsort -index 0 $aux] {
+        foreach {opt val} $itm break
+        set msg [format "%10s : %s" $opt [lindex $val 1]]
+        if {[lindex $val 0]!=""} { append msg " (default: [lindex $val 0])" }
+        puts $msg
+    }
+    puts ""
+    puts "-> TODO: explain algebra format <-"
+    puts ""
+    puts "Example: for A(2) use '-algebra \"0 0 {3 2 1} 0\"'"
+    exit 1
+}
+
+
+
+foreach opt [array names options] { 
+    set options($opt) [lindex $options($opt) 0]
 }
 
 foreach {opt val} $argv {
-    if {![info exist options($opt)]} {
-        puts [join [list "unknown option $opt" \
-                        "available options: [array names options]"] ", "]
-        puts "Example: for A(2) use -algebra \"0 0 {3 2 1} 0\""
-        exit 1
-    }
+    if {![info exist options($opt)]} { usage }
     set options($opt) $val
 }
+
+if {$options(-prime)==""} { usage }
 
 # see if options make sense
 poly::enumerator x 
@@ -134,8 +166,25 @@ if {$usegui} {
 
 # Routines that determine the profile of the maximal allowable subalgebra
 
+set useupper 1
+set uselower 1
+
+switch -- $options(-decomp) {
+    auto  { foreach {useupper uselower} {1 1} break }
+    lower { foreach {useupper uselower} {0 1} break }
+    upper { foreach {useupper uselower} {1 0} break }
+    none  { foreach {useupper uselower} {0 0} break }
+    default {
+        puts "unknown -decomp value '$options(-decomp)'. Should be auto, upper, lower, none"
+        exit 1
+    }
+}
+
 proc maxUpperProfile {prime algebra s ideg edeg} {
+    global useupper
     incr s 0
+
+    if {!$useupper} { return {0 0 0 0} }
 
     set edegs [prime::extdegs $prime]
     set rdegs [prime::reddegs $prime]
@@ -168,8 +217,12 @@ proc maxUpperProfile {prime algebra s ideg edeg} {
 }
 
 proc maxLowerProfile {prime algebra s ideg edeg} { 
+    global uselower
+    
     incr s 1
-    return {0 0 0 0}
+
+    if {!$uselower} { return {0 0 0 0} }
+
     if {$algebra=={}} { 
         set aux {}
         foreach dg [prime::reddegs $prime] { lappend aux 666 }
