@@ -13,6 +13,7 @@
 
 #define MOMAC
 
+#include <tclInt.h>   /* for Tcl_GetCommand */
 #include <string.h>
 #include "tprime.h"
 #include "tpoly.h"
@@ -230,6 +231,25 @@ void Tcl_DestroyMoma(ClientData cd) {
     momap *mo = (momap *) cd;
     momapDestroy(mo);
 }
+
+momap *Tcl_MomapFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
+    Tcl_Command cmd;
+    Tcl_CmdInfo info;
+
+    cmd = Tcl_GetCommandFromObj(ip, obj);
+
+    if (NULL == cmd) 
+        return NULL;
+
+    if (TCL_OK != Tcl_GetCommandInfoFromToken(cmd, &info))
+        return NULL;
+
+    if (info.objProc != Tcl_MomaWidgetCmd)
+        return NULL;
+
+    return (momap *) info.objClientData;
+}
+
 
 int Tcl_CreateMomaCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * CONST objv[]) {

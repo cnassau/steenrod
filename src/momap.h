@@ -32,5 +32,7 @@ int momapSetValPtr(momap *mo, const exmo *key, Tcl_Obj *val);
 
 int Momap_Init(Tcl_Interp *ip) ;
 
+momap *Tcl_MomapFromObj(Tcl_Interp *ip, Tcl_Obj *obj); 
+
 #endif
 
