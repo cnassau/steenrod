@@ -115,6 +115,7 @@ void VectorUpdateStringProc(Tcl_Obj *objPtr) {
 
 void VectorDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     vectorType *vt = PTR1(srcPtr);
+    dupPtr->typePtr = srcPtr->typePtr;
     PTR1(dupPtr) = vt;
     PTR2(dupPtr) = (vt->createCopy)(PTR2(srcPtr));
 }
@@ -247,6 +248,7 @@ void MatrixUpdateStringProc(Tcl_Obj *objPtr) {
 
 void MatrixDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     matrixType *vt = PTR1(srcPtr);
+    dupPtr->typePtr = srcPtr->typePtr;
     PTR1(dupPtr) = vt;
     PTR2(dupPtr) = (vt->createCopy)(PTR2(srcPtr));
 }
@@ -399,6 +401,7 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
             if (objc >= 6) 
                 if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &pmsk))
                     RETERR("internal error in LIN_ORTHO");
+
             /* detach matrix from var1 */
             Tcl_IncrRefCount(varp[1]);
             if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, 
@@ -407,8 +410,11 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
                 return TCL_ERROR;
             }
 
-            if (Tcl_IsShared(varp[1]))
+            if (Tcl_IsShared(varp[1])) {
+                Tcl_DecrRefCount(varp[1]);
                 varp[1] = Tcl_DuplicateObj(varp[1]);
+                Tcl_IncrRefCount(varp[1]);
+            }
 
             varp[2] = Tcl_OrthoCmd(pi, varp[1], ip, progvar, pmsk);
             if (NULL == varp[2]) RETERR("orthonormalization failed");
@@ -423,6 +429,11 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
             if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, 
                                       varp[2], TCL_LEAVE_ERR_MSG)) 
                 return TCL_ERROR;
+            
+            /* should we assert here that both refcounts are 1 ... ? */
+            // printObj("varp[1]", varp[1]);
+            // printObj("varp[2]", varp[2]);
+            
             return TCL_OK;
         case LIN_QUOT:
             ENSUREARGS6(TP_PRIME,TP_VARNAME,TP_VARNAME,TP_OPTIONAL,TP_VARNAME,TP_INT);
