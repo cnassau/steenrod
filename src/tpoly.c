@@ -119,13 +119,14 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         return TCL_ERROR;
     if (objc2 > NALG) 
         RETERR("exponent sequence too long");
-    if (e->ext < 0) pad = -1;
+    
+    aux = e->ext;
     for (i=0;i<objc2;i++) {
         if (TCL_OK != Tcl_GetIntFromObj(ip,objv2[i],&aux)) 
             FREEEANDRETERR;
-        if (aux<0) pad = -1;
         e->dat[i] = aux;
     }
+    pad = (aux < 0) ? -1 : 0;
     for (;i<NALG;) e->dat[i++] = pad;
 
     TRYFREEOLDREP(objPtr);
@@ -620,7 +621,7 @@ Tcl_Obj *TakePolyFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
     if (TCL_OK != Tcl_ConvertToPoly(ip, res)) {
         Tcl_SetObjResult(ip, varname);
-        Tcl_AppendResult(ip, " does not contain a valid polynomial");
+        Tcl_AppendResult(ip, " does not contain a valid polynomial", NULL);
         return NULL;
     }
 
@@ -996,13 +997,14 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
 /**** Implementation of the mono combi-command ********************************/
 
-typedef enum { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING } mcmdcode;
+typedef enum { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING, GEN, MCOEFF, MEXT, MEXP } mcmdcode;
 
 static CONST char *mCmdNames[] = { "test", "isabove", "isbelow", 
                                    "length", "rlength", "padding",
+				   "gen", "coeff", "exterior", "exponent",
                                    (char *) NULL };
 
-static mcmdcode mCmdmap[] = { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING };
+static mcmdcode mCmdmap[] = { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING, GEN, MCOEFF, MEXT, MEXP };
 
 int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index;
@@ -1020,6 +1022,56 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             EXPECTARGS(2, 1, 1, "<monomial candidate>");
 
             Tcl_ConvertToExmo(ip, objv[2]);
+            return TCL_OK;
+
+        case GEN:
+            EXPECTARGS(2, 1, 1, "<monomial>");
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+		return TCL_ERROR;
+	    
+	    Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->gen));
+            return TCL_OK;
+
+        case MCOEFF:
+            EXPECTARGS(2, 1, 1, "<monomial>");
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+		return TCL_ERROR;
+	    
+	    Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->coeff));
+            return TCL_OK;
+
+        case MEXT:
+            EXPECTARGS(2, 1, 1, "<monomial>");
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+		return TCL_ERROR;
+	    
+	    Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->ext));
+            return TCL_OK;
+
+        case MEXP:
+            EXPECTARGS(2, 2, 2, "<monomial> <index>");
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+		return TCL_ERROR;
+	    
+	    if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &index))
+		return TCL_ERROR;
+	    
+	    if (index < 0) {
+		Tcl_SetResult(ip, "index must be nonnegative", TCL_STATIC);
+		return TCL_ERROR;
+	    }
+
+	    if (index >= NALG) {
+		result = exmoGetPad(exmoFromTclObj(objv[2]));
+	    } else {
+		result = exmoFromTclObj(objv[2])->dat[index];
+	    }
+	    
+	    Tcl_SetObjResult(ip, Tcl_NewIntObj(result));
             return TCL_OK;
 
         case ISABOVE:
