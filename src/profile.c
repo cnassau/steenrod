@@ -212,7 +212,7 @@ seqnoInfo *createSeqno(enumEnv *env, int maxdim) {
     primeInfo  *pi = env->pi;
     procore   *alg = &(env->alg->core);
     procore   *pro = &(env->pro->core);
-    seqnoInfo *res = calloc(1,sizeof(seqnoInfo));
+    seqnoInfo *res = callox(1,sizeof(seqnoInfo));
 
     if (NULL == res) return NULL;
 

@@ -17,6 +17,8 @@
 #include <tcl.h>
 #include <stdarg.h>
 
+#include "common.h"
+
 /* An IntList represents an array of integers */
 
 int  ILisXXL(Tcl_Obj *obj);     

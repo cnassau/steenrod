@@ -274,7 +274,7 @@ mapsqndata *mapCreateSqnData(map *mp, enumEnv *env, int edeg, int ideg) {
     mapsqndata *res;
     int i;
 
-    if (NULL == (res = calloc(1, sizeof(mapsqndata))))
+    if (NULL == (res = callox(1, sizeof(mapsqndata))))
         return NULL;
 
     res->dat = NULL;

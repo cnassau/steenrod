@@ -166,7 +166,9 @@ int Tcl_ConvertToPoly(Tcl_Interp *ip, Tcl_Obj *obj) {
 }
 
 #define DBGPOLY if (1)
-#define LOGPOLY(obj) DBGPOLY printf("  typePtr = %p, polyPtr = %p\n", PTR1(obj), PTR2(obj)); 
+#define LOGPOLY(obj) \
+DBGPOLY printf("  typePtr = %p, polyPtr = %p, isShared = %d\n", \
+   PTR1(obj), PTR2(obj), Tcl_IsShared(obj)); 
 
 
 int Tcl_ObjIsPoly(Tcl_Obj *obj) { return &tclPoly == obj->typePtr; }
