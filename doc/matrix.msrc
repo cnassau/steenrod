@@ -88,7 +88,7 @@ correctly otherwise!
 
 This example shows how to keep up user interaction 
 while running [cmd "matrix orthonormalize"],
-[cmd "matrix quotient"] or [cmd "lift"].
+[cmd "matrix quotient"] or [cmd "matrix lift"].
 
 [para]
 [example {
