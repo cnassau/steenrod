@@ -123,7 +123,10 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
     matrix_unit(un);
 
     res = matrix_create(lft->rows, inp->rows);
-    if (NULL == res) return NULL;
+    if (NULL == res) {
+        return NULL;
+        matrix_destroy(un);
+    }
     matrix_clear(res);
 
     cols = inp->cols;

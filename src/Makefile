@@ -18,7 +18,7 @@ NOWEAVE  = noweave
 
 NOWEBFILES = mult.nw
 SRCS = adlin.c linalg.c linwrp.c tlin.c prime.c tprime.c tptr.c \
-       poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c
+       poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c common.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -95,3 +95,4 @@ tenum.o: tenum.h enum.h
 momap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h momap.h
 steenrod.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h linwrp.h
 steenrod.o: steenrod.h momap.h tenum.h enum.h mult.h
+common.o: common.h
