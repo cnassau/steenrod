@@ -98,5 +98,5 @@ tptrtest.o: tptr.h
 tpoly.o: tptr.h tpoly.h tprime.h poly.h prime.h
 profile.o: profile.h prime.h
 tprofile.o: tptr.h tprime.h tprofile.h profile.h prime.h
-maps.o: maps.h ./common.h prime.h
-tmap.o: tptr.h tmap.h maps.h ./common.h prime.h
+maps.o: maps.h ./common.h prime.h profile.h
+tmap.o: tptr.h tmap.h maps.h ./common.h prime.h profile.h
