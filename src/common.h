@@ -63,10 +63,11 @@ if (_res) memset(_res, 0,_sz); (void *) _res; })
 #else 
 #  define INCREFCNT(x) \
 { fprintf(stderr, "increfcnt %p %d " __FILE__ " %d {%s}\n", (x), ((x)->refCount), \
-      __LINE__, (NULL == (x)->typePtr) ? "untyped" : (x)->typePtr->name ); \
+      __LINE__, (NULL == (x)->typePtr) ? "untyped" : (x)->typePtr->name); \
   Tcl_IncrRefCount(x); } 
 #  define DECREFCNT(x) \
-{ fprintf(stderr, "decrefcnt %p %d " __FILE__ " %d\n", (x), ((x)->refCount), __LINE__); \
+{ fprintf(stderr, "decrefcnt %p %d " __FILE__ " %d {%s}\n", (x), ((x)->refCount), \
+      __LINE__, (NULL == (x)->typePtr) ? "untyped" : (x)->typePtr->name); \
   Tcl_DecrRefCount(x); } 
 #endif
 

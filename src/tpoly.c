@@ -44,6 +44,18 @@
  *  { coefficient exterior {list of exponents} generator }        
  */
 
+static int monCount;
+
+#if 0
+#  define INCMONCNT \
+  { fprintf(stderr, "monCount = %d (%s, %d)\n", ++monCount, __FILE__, __LINE__); }
+#  define DECMONCNT \
+  { fprintf(stderr, "monCount = %d (%s, %d)\n", --monCount, __FILE__, __LINE__); }
+#else
+#  define INCMONCNT { ++monCount; }
+#  define DECMONCNT { --monCount; }
+#endif
+
 static Tcl_ObjType tclExmo;
 
 int Tcl_ConvertToExmo(Tcl_Interp *ip, Tcl_Obj *obj) {
@@ -62,6 +74,7 @@ Tcl_Obj *Tcl_NewExmoObj(exmo *ex) {
     PTR1(res) = ex; 
     res->typePtr = &tclExmo;
     Tcl_InvalidateStringRep(res);
+    INCMONCNT;
     return res;
 }
 
@@ -75,6 +88,7 @@ Tcl_Obj *Tcl_NewExmoCopyObj(exmo *ex) {
 /* free internal representation */
 void ExmoFreeInternalRepProc(Tcl_Obj *obj) {
     freex(PTR1(obj));
+    DECMONCNT;
 }
 
 #define FREEEANDRETERR { freex((char *) e); return TCL_ERROR; }
@@ -117,6 +131,7 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     TRYFREEOLDREP(objPtr);
     PTR1(objPtr) = e;
     objPtr->typePtr = &tclExmo;
+    INCMONCNT;
 
     return TCL_OK;
 }
@@ -151,6 +166,7 @@ void ExmoDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     memcpy(new, PTR1(srcPtr), sizeof(exmo));
     PTR1(dupPtr) = new;
     dupPtr->typePtr = srcPtr->typePtr;
+    INCMONCNT;
 }
 
 /**************************************************************************
@@ -1098,10 +1114,14 @@ int Tpoly_Init(Tcl_Interp *ip) {
     Tcl_CreateObjCommand(ip, POLYNSP "poly", PolyCombiCmd, (ClientData) 0, NULL);
     Tcl_CreateObjCommand(ip, POLYNSP "mono", MonoCombiCmd, (ClientData) 0, NULL);
 
-    Tcl_LinkVar(ip, POLYNSP "multCount", (char *) &multCount, TCL_LINK_INT);
+    Tcl_LinkVar(ip, POLYNSP "_multCount", (char *) &multCount, TCL_LINK_INT);
 
     Tcl_UnlinkVar(ip, POLYNSP "_polCount"); 
     Tcl_LinkVar(ip, POLYNSP "_polCount", (char *) &polCount, 
+                TCL_LINK_INT | TCL_LINK_READ_ONLY);
+
+    Tcl_UnlinkVar(ip, POLYNSP "_monCount"); 
+    Tcl_LinkVar(ip, POLYNSP "_monCount", (char *) &monCount, 
                 TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
     return TCL_OK;

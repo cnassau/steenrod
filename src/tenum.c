@@ -708,6 +708,7 @@ void Tcl_DestroyEnum(ClientData cd) {
     TRYFREEOBJ(te->prime);
     TRYFREEOBJ(te->alg);
     TRYFREEOBJ(te->pro);
+    TRYFREEOBJ(te->sig);
     TRYFREEOBJ(te->ideg);
     TRYFREEOBJ(te->edeg);
     TRYFREEOBJ(te->hdeg);

@@ -36,6 +36,19 @@
  *
  */
 
+static int vecCount;
+
+#if 0
+#  define INCVECCNT \
+  { fprintf(stderr, "vecCount = %d (%s, %d)\n", ++vecCount, __FILE__, __LINE__); }
+#  define DECVECCNT \
+  { fprintf(stderr, "vecCount = %d (%s, %d)\n", --vecCount, __FILE__, __LINE__); }
+#else
+#  define INCVECCNT { ++vecCount; }
+#  define DECVECCNT { --vecCount; }
+#endif
+
+
 static Tcl_ObjType tclVector;
 
 int Tcl_ConvertToVector(Tcl_Interp *ip, Tcl_Obj *obj) {
@@ -53,12 +66,14 @@ Tcl_Obj *Tcl_NewVectorObj(vectorType *vt, void *dat) {
     PTR1(res) = vt;
     PTR2(res) = dat;
     Tcl_InvalidateStringRep(res);
+    INCVECCNT;
     return res;
 }
 
 void VectorFreeInternalRepProc(Tcl_Obj *obj) {
     vectorType *vt = vectorTypeFromTclObj(obj);
     (vt->destroyVector)(vectorFromTclObj(obj));
+    DECVECCNT;
 }
 
 int VectorSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
@@ -89,6 +104,7 @@ int VectorSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     PTR1(objPtr) = stdvector;
     PTR2(objPtr) = vct;
     objPtr->typePtr = &tclVector;
+    INCVECCNT;
 
     return TCL_OK;
 }
@@ -128,6 +144,7 @@ void VectorDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     dupPtr->typePtr = srcPtr->typePtr;
     PTR1(dupPtr) = vt;
     PTR2(dupPtr) = (vt->createCopy)(PTR2(srcPtr));
+    INCVECCNT;
 }
 
 /**************************************************************************
@@ -723,13 +740,16 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL,
                                        varp[1], TCL_LEAVE_ERR_MSG)) {
                 DECREFCNT(varp[1]);
+                DECREFCNT(varp[2]);
                 return TCL_ERROR;
             }
             DECREFCNT(varp[1]);
 
             if (NULL == Tcl_ObjSetVar2(ip, objv[4], NULL,
-                                       varp[2], TCL_LEAVE_ERR_MSG))
+                                       varp[2], TCL_LEAVE_ERR_MSG)) {
+                DECREFCNT(varp[2]);
                 return TCL_ERROR;
+            }
 
             return TCL_OK;
 
@@ -875,7 +895,9 @@ int Tlin_Init(Tcl_Interp *ip) {
     }
 
     Tcl_CreateObjCommand(ip, NSP "matrix", MatrixCombiCmd, (ClientData) 0, NULL);
+
     Tcl_LinkVar(ip, NSP "_matCount", (char *) &matCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
+    Tcl_LinkVar(ip, NSP "_vecCount", (char *) &vecCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
     
     Tcl_Eval(ip, "namespace eval " NSP " { namespace export * }");
 

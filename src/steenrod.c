@@ -605,7 +605,7 @@ int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_LinkVar(ip, POLYNSP "_progvarname", (char *) &theprogvar, TCL_LINK_STRING);
     Tcl_LinkVar(ip, POLYNSP "_progsteps", (char *) &theprogmsk, TCL_LINK_INT);
 
-    theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 100;
+    theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 0xf;
 
     Tcl_Eval(ip, "namespace eval " POLYNSP " { namespace export -clear \\[a-zA-Z\\]* }");
 
