@@ -47,8 +47,8 @@ void copyMono(mono *a, mono *b) {
 
 int appendMono(poly *p, mono *m) {
     if (p->num >= p->numAlloc) 
-    if (!reallocPoly(p, p->numAlloc + 10)) 
-        return 0;
+        if (!reallocPoly(p, p->numAlloc + 10)) 
+            return 0;
     copyMono(p->dat + p->num, m); p->num++;
     return 1;
 }
@@ -66,14 +66,14 @@ int appendScaledPoly(poly *p, poly *m, xint scaleFactor) {
     int k;
     if (0 == scaleFactor) return 1;
     if (p->num + m->num >= p->numAlloc) 
-    if (!reallocPoly(p, p->num + m->num + 5)) 
-        return 0;
+        if (!reallocPoly(p, p->num + m->num + 5)) 
+            return 0;
     memcpy(p->dat + p->num, m->dat, m->num * sizeof(mono));
     if (1 != scaleFactor) 
-    for (k=m->num;k--;) {
-        p->dat[p->num+k].coeff *= scaleFactor;
-        if (p->maxcoeff) p->dat[p->num+k].coeff %= p->maxcoeff;
-    }
+        for (k=m->num;k--;) {
+            p->dat[p->num+k].coeff *= scaleFactor;
+            if (p->maxcoeff) p->dat[p->num+k].coeff %= p->maxcoeff;
+        }
     p->num += m->num;
     return 1;
 }
@@ -118,19 +118,19 @@ void compactPoly(poly *p) {
     tar = p->dat;
     cfmask = p->maxcoeff;
     while (src < top) {
-    cf = src->coeff;
-    if (cfmask) { 
-        cf %= cfmask;
-        if (cf<0) cf += cfmask;
-    }
-    /* collect all coefficients for this monomial */
-    for (nxt = src+1; nxt<top; nxt++) {
-        if (0 != compareMono(src, nxt)) break; 
-        cf += nxt->coeff; 
-        if (cfmask) cf %= cfmask;
-    }
-    if (0 != cf) { copyMono(tar, src); tar->coeff = cf; tar++; }
-    src = nxt; 
+        cf = src->coeff;
+        if (cfmask) { 
+            cf %= cfmask;
+            if (cf<0) cf += cfmask;
+        }
+        /* collect all coefficients for this monomial */
+        for (nxt = src+1; nxt<top; nxt++) {
+            if (0 != compareMono(src, nxt)) break; 
+            cf += nxt->coeff; 
+            if (cfmask) cf %= cfmask;
+        }
+        if (0 != cf) { copyMono(tar, src); tar->coeff = cf; tar++; }
+        src = nxt; 
     }
     p->num = tar - p->dat ;
 }
@@ -161,21 +161,21 @@ int polyAppendMult(poly *r, poly *a, poly *b, monoCompTwoFunc fnc) {
     int i,j;
     mono aux;
     for (i=0; i<a->num; i++)
-    for (j=0; j<b->num; j++) {
-        fnc(&aux, a->dat + i, b->dat + j);
-        if (r->num >= r->numAlloc) compactPoly(r);
-        if (!appendMono(r, &aux)) return 0;
-    }
+        for (j=0; j<b->num; j++) {
+            fnc(&aux, a->dat + i, b->dat + j);
+            if (r->num >= r->numAlloc) compactPoly(r);
+            if (!appendMono(r, &aux)) return 0;
+        }
     return 1;
 }
 
 int polyCompCopy(poly *tar, poly *src, monoCompOneFunc fnc) {
     int i;
     if (tar->numAlloc < src->num)
-    if (! reallocPoly(tar, src->num)) 
-        return 0;
+        if (! reallocPoly(tar, src->num)) 
+            return 0;
     for (i=0; i<src->num; i++) 
-    fnc(tar->dat + i, src->dat + i);
+        fnc(tar->dat + i, src->dat + i);
     tar->num = src->num;
     return 1;
 }
@@ -223,7 +223,7 @@ void multAnyPos(multArgs *MA, mono *s) ;
 void multPosAny(multArgs *MA, mono *f) ;
 
 void multPoly(primeInfo *pi, poly *f, poly *s, 
-          void *clientData, multCBfunc multCB) {
+              void *clientData, multCBfunc multCB) {
     int k; multArgs MA; xint msk[NALG+1], sum[NALG+1];
     MA.clientData = clientData;
     MA.multCB = multCB;
@@ -235,11 +235,11 @@ void multPoly(primeInfo *pi, poly *f, poly *s,
     MA.sIsPos = (s->dat[0].dat[0] >= 0);
     for (k=NALG+1;k--;) msk[k] = sum[k] = 0;
     if (!MA.fIsPos) {
-    for (k=0;k<s->num;k++) 
-        multAnyPos(&MA, &(s->dat[k]));
+        for (k=0;k<s->num;k++) 
+            multAnyPos(&MA, &(s->dat[k]));
     } else {
-    for (k=0;k<f->num;k++) 
-        multPosAny(&MA, &(f->dat[k]));
+        for (k=0;k<f->num;k++) 
+            multPosAny(&MA, &(f->dat[k]));
     }
 }
 
@@ -258,9 +258,9 @@ inline xint XINTMULT(xint a, xint b, xint prime) {
 typedef struct {
     primeInfo *pi;
     xint val, 
-    *oldmsk, *newmsk, 
-    *sum, sum_weight, 
-    *res, res_weight;
+        *oldmsk, *newmsk, 
+        *sum, sum_weight, 
+        *res, res_weight;
 } Xfield;
 
 xint firstXdat(Xfield *X) {
@@ -292,14 +292,14 @@ void handlePArow(multArgs *ma, int row, xint coeff);
 void handlePABox(multArgs *ma, int row, int col, xint coeff) {
     xint c;
     if (0 != (c = firstXdat(&(xfPA[row][col]))))
-    do {
-        xint prime = ma->pi->prime ;
-        if (0) printf("xfPA[%d][%d].val=%d\n",row,col,(int) xfPA[row][col].val);
-        if (col>1) 
-        handlePABox(ma, row, col-1, XINTMULT(coeff, c, prime));
-        else 
-        handlePArow(ma, row-1, XINTMULT(coeff, c, prime));
-    } while (0 != (c = nextXdat(&(xfPA[row][col]))));
+        do {
+            xint prime = ma->pi->prime ;
+            if (0) printf("xfPA[%d][%d].val=%d\n",row,col,(int) xfPA[row][col].val);
+            if (col>1) 
+                handlePABox(ma, row, col-1, XINTMULT(coeff, c, prime));
+            else 
+                handlePArow(ma, row-1, XINTMULT(coeff, c, prime));
+        } while (0 != (c = nextXdat(&(xfPA[row][col]))));
 }
 
 void handlePArow(multArgs *ma, int row, xint coeff) {
@@ -309,24 +309,24 @@ void handlePArow(multArgs *ma, int row, xint coeff) {
     if (0) printf("F\n"); 
     /* fetch summand */
     for (k=0;k<ma->s->num;k++) {
-    mono res; /* summand of the result */
-    mono *s = &(ma->s->dat[k]); /* second factor */
-    c = coeff;
-    for (i=NALG;c && i--;) {
-        xint aux, aux2;
-        aux  = s->dat[i] + sum[0][i+1];
-        aux2 = msk[1][i]; 
-        if ((0 > (res.dat[i] = aux + aux2)) && ma->sIsPos)
-        c = 0;
-        else 
-        c = CINTMULT(c, binomp(pi, res.dat[i], aux), prime);
-    }
-    if (0 == c) continue;
-    if (0) printf("*\n");
-    res.coeff = CINTMULT(c, s->coeff, prime);
-    res.ext   = 0;
-    res.id    = s->id; /* should this be done in the callback function ? */
-    ma->multCB(ma->clientData, &res);
+        mono res; /* summand of the result */
+        mono *s = &(ma->s->dat[k]); /* second factor */
+        c = coeff;
+        for (i=NALG;c && i--;) {
+            xint aux, aux2;
+            aux  = s->dat[i] + sum[0][i+1];
+            aux2 = msk[1][i]; 
+            if ((0 > (res.dat[i] = aux + aux2)) && ma->sIsPos)
+                c = 0;
+            else 
+                c = CINTMULT(c, binomp(pi, res.dat[i], aux), prime);
+        }
+        if (0 == c) continue;
+        if (0) printf("*\n");
+        res.coeff = CINTMULT(c, s->coeff, prime);
+        res.ext   = 0;
+        res.id    = s->id; /* should this be done in the callback function ? */
+        ma->multCB(ma->clientData, &res);
     }
 }
 
@@ -343,28 +343,28 @@ void workPAchain(multArgs *ma, mono *m) {
 void initxfPA(primeInfo *pi) {
     int i,j;
     for (i=1;i<NALG;i++) {
-    for (j=1;j<NALG;j++) {
-        Xfield *xf = &(xfPA[i][j]);
-        xf->pi = pi; 
-        xf->oldmsk = &(msk[i+1][j-1]); 
-        xf->newmsk = &(msk[i][j]);
-        xf->res    = &(msk[i][0]); xf->res_weight = pi->primpows[j];
-        xf->sum    = &(sum[0][j]); xf->sum_weight = 1;
-    }
+        for (j=1;j<NALG;j++) {
+            Xfield *xf = &(xfPA[i][j]);
+            xf->pi = pi; 
+            xf->oldmsk = &(msk[i+1][j-1]); 
+            xf->newmsk = &(msk[i][j]);
+            xf->res    = &(msk[i][0]); xf->res_weight = pi->primpows[j];
+            xf->sum    = &(sum[0][j]); xf->sum_weight = 1;
+        }
     }
 }
 
 void initxfAP(primeInfo *pi) {
     int i,j;
     for (i=1;i<NALG;i++) {
-    for (j=1;j<NALG;j++) {
-        Xfield *xf = &(xfAP[i][j]);
-        xf->pi = pi; 
-        xf->oldmsk = &(msk[i-1][j+1]); 
-        xf->newmsk = &(msk[i][j]);
-        xf->res    = &(msk[0][j]); xf->res_weight = 1; 
-        xf->sum    = &(sum[i][0]); xf->sum_weight = pi->primpows[j];
-    }
+        for (j=1;j<NALG;j++) {
+            Xfield *xf = &(xfAP[i][j]);
+            xf->pi = pi; 
+            xf->oldmsk = &(msk[i-1][j+1]); 
+            xf->newmsk = &(msk[i][j]);
+            xf->res    = &(msk[0][j]); xf->res_weight = 1; 
+            xf->sum    = &(sum[i][0]); xf->sum_weight = pi->primpows[j];
+        }
     }
 }
 
@@ -381,14 +381,14 @@ void handleAPcol(multArgs *ma, int col, xint coeff);
 void handleAPBox(multArgs *ma, int row, int col, xint coeff) {
     xint c;
     if (0 != (c = firstXdat(&(xfAP[row][col]))))
-    do {
-        xint prime = ma->pi->prime ;
-        if (0) printf("xfAP[%d][%d].val=%d\n",row,col,(int) xfAP[row][col].val);
-        if (row>1) 
-        handleAPBox(ma, row-1, col, CINTMULT(coeff, c, prime));
-        else 
-        handleAPcol(ma, col-1, CINTMULT(coeff, c, prime));
-    } while (0 != (c = nextXdat(&(xfAP[row][col]))));
+        do {
+            xint prime = ma->pi->prime ;
+            if (0) printf("xfAP[%d][%d].val=%d\n",row,col,(int) xfAP[row][col].val);
+            if (row>1) 
+                handleAPBox(ma, row-1, col, CINTMULT(coeff, c, prime));
+            else 
+                handleAPcol(ma, col-1, CINTMULT(coeff, c, prime));
+        } while (0 != (c = nextXdat(&(xfAP[row][col]))));
 }
 
 void handleAPcol(multArgs *ma, int col, xint coeff) {
@@ -398,22 +398,22 @@ void handleAPcol(multArgs *ma, int col, xint coeff) {
     if (0) printf("F\n"); 
     /* fetch summand */
     for (k=0;k<ma->f->num;k++) {
-    mono res; /* summand of the result */
-    mono *f = &(ma->f->dat[k]); /* first factor */
-    c = coeff;
-    for (i=NALG;c && i--;) {
-        xint aux, aux2;
-        aux  = f->dat[i] + sum[i+1][0];
-        aux2 = msk[i][1]; 
-        res.dat[i] = aux + aux2;
-        c = XINTMULT(c, binomp(pi, res.dat[i], aux), prime);
-    }
-    if (0 == c) continue;
-    if (0) printf("*\n");
-    res.coeff = XINTMULT(c, f->coeff, prime);
-    res.ext   = 0;
-    res.id    = f->id; /* should this be done in the callback function ? */
-    ma->multCB(ma->clientData, &res);
+        mono res; /* summand of the result */
+        mono *f = &(ma->f->dat[k]); /* first factor */
+        c = coeff;
+        for (i=NALG;c && i--;) {
+            xint aux, aux2;
+            aux  = f->dat[i] + sum[i+1][0];
+            aux2 = msk[i][1]; 
+            res.dat[i] = aux + aux2;
+            c = XINTMULT(c, binomp(pi, res.dat[i], aux), prime);
+        }
+        if (0 == c) continue;
+        if (0) printf("*\n");
+        res.coeff = XINTMULT(c, f->coeff, prime);
+        res.ext   = 0;
+        res.id    = f->id; /* should this be done in the callback function ? */
+        ma->multCB(ma->clientData, &res);
     }
 }
 
