@@ -17,8 +17,6 @@
 #include "prime.h"
 #include <stdio.h>
 
-typedef short xint;
-
 /* monomial = coefficient + exterior part + exponent sequence + generator id */
 typedef struct {
     xint coeff;

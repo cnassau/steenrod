@@ -22,8 +22,8 @@
 #define crealloc realloc
 #define ccalloc  calloc
 
-/* cint ist the integer type that we use for elements of F_p */
-typedef char cint; 
+typedef char cint;   /* data type for elements of F_p  */
+typedef short xint;  /* data type for exponents        */
 
 #define CINTMULT(a,b,prime) \
    ((cint) ((((short) (a)) * ((short) (b))) % ((short) prime)))
