@@ -91,11 +91,11 @@ Otherwise the result is an empty string
 
 [lst_item "[cmd mono] [cmd padding] [arg monomial]"]
           Returns the common value of the exponents [const e_i]
-          for large [const i]: 0 for ordinary monomials
+          for large [const i]: this is 0 for ordinary monomials
           and -1 for negative ones. 
           
-
 [list_end]
+
 
 [see_also %crossrefs%]
 
