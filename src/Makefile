@@ -16,12 +16,19 @@ TCLDIR = /home/cn/selfmade-tcl/include/
 NOTANGLE = notangle
 NOWEAVE  = noweave
 
-# SRCS = adlin.c  linalg.c  prime.c  tlin.c  tprime.c  tptr.c  tptrtest.c
+SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c
 OBJS = adlin.o linalg.o poly.o prime.o tlin.o tprime.o tptr.o tptrtest.o
+LIBS = libtlin.so libtprime.so libtptrtest.so
 
-.PHONY: depend all clean objects
+LINKSTUB = cc -shared -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
+
+.PHONY: depend all clean objects libraries
+
+all: objects libraries
 
 objects: $(OBJS)
+
+libraries: $(LIBS)
 
 %.c : %.nw
 	$(NOTANGLE) -L -R$*.c $(NOWEBFILES) > $*.c
@@ -38,27 +45,27 @@ objects: $(OBJS)
 %.tex : %.nw
 	$(NOWEAVE) -n  $*.nw  > $*.tex
 
-all: libtptrtest.so libtprime.so libtlin.so
 
 depend: 
 	makedepend -Y -- $(CFLAGS) -- $(SRCS) 2> /dev/null
 
 libtptrtest.so : tptr.o tptrtest.o
-	cc -shared -o libtptrtest.so tptr.o tptrtest.o
+	$(LINKSTUB) -o libtptrtest.so tptr.o tptrtest.o
 
 libtprime.so: tprime.o tptr.o prime.o
-	cc -shared -o libtprime.so tptr.o prime.o tprime.o
+	$(LINKSTUB) -o libtprime.so tptr.o prime.o tprime.o
 
 libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o
-	cc -shared -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
+	$(LINKSTUB) -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o 
 
 clean:
-	rm $(OBJS)
+	$(RM) $(OBJS) $(LIBS) *~  2> /dev/null
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 
 adlin.o: adlin.h linalg.h prime.h
 linalg.o: linalg.h prime.h
+poly.o: poly.h prime.h
 prime.o: prime.h
 tlin.o: tlin.h tptr.h tprime.h adlin.h linalg.h prime.h
 tprime.o: tprime.h tptr.h prime.h
