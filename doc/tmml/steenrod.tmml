@@ -1,0 +1,86 @@
+<!-- Generated from file '' by tcllib/doctools with format 'tmml' -->
+<manpage id='' cat='cmd' title='Steenrod' version='1.0' package=''>
+<head>
+<info key='copyright' value='Copyright (c) 2003 Christian Nassau'/>
+</head>
+<namesection>
+<name>Steenrod</name>
+<desc>Tcl package for Steenrod algebra computations</desc>
+
+</namesection>
+
+
+
+
+
+
+
+
+
+
+<synopsis>
+<syntax>
+package require <package>Steenrod</package> 1.0
+<cmd>matrix</cmd> <method>subcommand</method> ?args?
+poly subcommand ?args?
+</syntax>
+</synopsis>
+<section>
+<title>DESCRIPTION</title>
+
+The Steenrod package provides a dynamically loadable extension
+to the Tcl language, which enables Tcl to deal efficiently with 
+Steenrod algebra computations.
+
+</section>
+<section id='overview'>
+<title>OVERVIEW</title>
+
+The package consists...
+
+
+<dl>
+
+
+<dle>
+<dt><cmd>matrix</cmd> <method>subcommand</method> ?args?</dt>
+<dd>
+
+</dd>
+</dle>
+<dle>
+<dt>poly subcommand ?args?</dt>
+<dd>
+
+</dd>
+</dle>
+
+</dl>
+
+
+<p> The most recent version of the package should be available from 
+the <emph>cnext</emph> homepage at <url>http://www.nullhomotopie.de/cnext</url>.
+
+
+
+
+
+</p>
+</section>
+<seealso>
+<ref>enumerator</ref>
+<ref>linalg</ref>
+<ref>matrix</ref>
+<ref>mono</ref>
+<ref>monomap</ref>
+<ref>poly</ref>
+<ref>prime</ref>
+</seealso>
+<keywords>
+<keyword>Steenrod algebra</keyword>
+<keyword>Tcl package</keyword>
+<keyword>Mathematics</keyword>
+</keywords>
+
+</manpage>
+

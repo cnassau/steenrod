@@ -1,0 +1,36 @@
+[manpage_begin Steenrod n 1.0]
+
+[moddesc Tcl]
+
+[titledesc {Tcl package for Steenrod algebra computations}]
+
+[copyright "2003 Christian Nassau"]
+
+[require Steenrod 1.0]
+
+[description]
+
+The Steenrod package provides a dynamically loadable extension
+to the Tcl language, which enables Tcl to deal efficiently with 
+Steenrod algebra computations.
+
+[section Overview]
+
+The package consists...
+
+[list_begin definitions]
+
+[call [cmd matrix] [method subcommand] ?args?]
+
+[call poly subcommand ?args?]
+
+[list_end]
+
+[para] The most recent version of the package should be available from 
+the [strong cnext] homepage at [uri http://www.nullhomotopie.de/cnext].
+
+[see_also enumerator linalg matrix mono monomap poly prime ]
+
+[keywords {Steenrod algebra} {Tcl package} Mathematics]
+
+[manpage_end]
