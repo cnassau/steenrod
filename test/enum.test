@@ -22,7 +22,7 @@ namespace import steenrod::*
 
 # --------------------------------------------------------------------------
 
-# the regression tests all use the same enumerator and the same result variable
+# most regression tests use the same enumerator and the same result variable
 enumerator ENU
 set RES {}
 
@@ -143,13 +143,47 @@ if {$XXX} {
 
 
 
-test enum-1.0 {} {
+test enum-1.1 {enum, min & max} {
+    set res {}
+    enumerator x -prime 2 -genlist {{1 2 3 4} {-2 -3 -4 -5}}
+    lappend res [x min ideg]
+    lappend res [x min edeg]
+    lappend res [x min hdeg]
+    lappend res [x min gen]
+    lappend res [x max ideg]
+    lappend res [x max edeg]
+    lappend res [x max hdeg]
+    lappend res [x max gen]
+    rename x ""
+    set res
+} {-3 -4 -5 -2 2 3 4 1}
+
+
+
+
+test enum-1.2 {enum, duplicate generators} {
+    set res {}
+    enumerator x -prime 2 -genlist {1 1}
+    lappend res [catch {x max ideg}]
+    rename x ""
+    set res
+} {1}
+
+
+test enum-1.3 {enum, double test segfault I} {
+    set res {}
+    enumerator x -prime 2 -genlist {1 1}
+    x conf -genl {0 0 0 0}
+    x test
+    x test
+    rename x ""
+    set res
 } {}
 
+test enum-1. {} {
+} {}
 
-
-
-test enum- {} {
+test enum-1. {} {
 } {}
 
 # --------------------------------------------------------------------------
