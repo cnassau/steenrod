@@ -265,7 +265,7 @@ void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, char *msg) {
     int optional = 0;
     if (NULL == ip) return ;
     wrk += sprintf(wrk, "problem with argument #%d", pos);
-    if (NULL != msg) wrk += sprintf(wrk, " (%s)", msg);
+    if (NULL != msg) wrk += snprintf(wrk, 300, " (%s)", msg);
     if (NULL != name) {
         wrk += sprintf(wrk, "\nusage: %s", name);
         while (TP_END != (type = va_arg(*ap, int))) {
@@ -282,6 +282,7 @@ void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, char *msg) {
         }
         if (optional) wrk += sprintf(wrk, "?");
     }
+    *wrk = 0;
     Tcl_SetResult(ip, err, TCL_VOLATILE);
 }
 
