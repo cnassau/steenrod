@@ -14,6 +14,8 @@
 #ifndef COMMON_DEF
 #define COMMON_DEF
 
+#include <assert.h>
+
 /* error codes */
 #define SUCCESS         0 
 #define FAIL            1  /* general failure */

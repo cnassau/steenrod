@@ -1,5 +1,5 @@
 /*
- * Multiplication routine
+ * Steenrod algebra multiplication routine
  *
  * Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
  *
@@ -49,7 +49,7 @@ typedef struct {
 } Xfield;
 
 /* At odd primes the algorithm needs an additional matrix E=(e_ij) of 1-bit
- * integers. However, these are stored in an adhoc manner so there's no 
+ * integers. However, these are stored in an ad-hoc manner so there's no 
  * dedicated Efield structure. */
 
 /* Our multiplication routine is based on the extensive use of callback functions.

@@ -1,5 +1,5 @@
 /*
- * Multiplication routine
+ * Steenrod algebra multiplication routine
  *
  * Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
  *

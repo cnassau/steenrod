@@ -90,6 +90,12 @@ int isnegExmo(const exmo *e) {
 #define CALLIFNONZERO1(func,arg1) \
 if (NULL != (func)) (func)(arg1);
 
+int PLgetInfo(polyType *type, void *poly, polyInfo *res) {
+    if (NULL != type->getInfo) 
+        return (type->getInfo)(poly, res);
+    return FAILIMPOSSIBLE;
+}
+
 int PLgetLength(polyType *type, void *poly) {
     return (type->getLength)(poly);
 }
@@ -99,7 +105,8 @@ void PLfree(polyType *type, void *poly) {
 }
 
 int PLclear(polyType *type, void *poly) { 
-    CALLIFNONZERO1(type->clear,poly) else return FAILIMPOSSIBLE;
+    if (NULL == type->clear) return FAILIMPOSSIBLE;
+    (type->clear)(poly);
     return SUCCESS;
 }
 
@@ -155,6 +162,15 @@ int PLappendPoly(polyType *dtp, void *dst,
     return SUCCESS;
 }
 
+int PLcollectCoeffs(polyType *type, void *self, const exmo *ex, 
+                    int *rval, int mod) {
+    if (NULL != type->collectCoeffs)
+        return (type->collectCoeffs)(self, ex, rval, mod);
+    
+    assert(NULL == "collectCoeff not fully implemented");
+    return SUCCESS;
+}
+
 /**** standard polynomial type ****************************************************/
 
 /* The naive standard implementation of polynomials is as an array 
@@ -164,6 +180,14 @@ typedef struct {
     int num, nalloc;
     exmo *dat;
 } stp;
+
+int stdGetInfo(void *src, polyInfo *pli) {
+    stp *s = (stp *) src;
+    pli->name = "standard";
+    pli->bytesAllocated = sizeof(stp) + (s->nalloc * sizeof(exmo));
+    pli->bytesUsed      = sizeof(stp) + (s->num * sizeof(exmo));
+    return SUCCESS;
+}
 
 void *stdCreateCopy(void *src) {
     stp *s = (stp *) src, *n;
@@ -308,9 +332,33 @@ int stdScaleMod(void *self, int scale, int modulo) {
     int i;
     LOGSTD("ScaleMod");
     if (modulo) scale %= modulo;
+    if (0 == scale) {
+        stdClear(self);
+        return SUCCESS;
+    }
     for (i=0;i<s->num;i++) {
         exmo *e = &(s->dat[i]);
         e->coeff *= scale; if (modulo) e->coeff %= modulo;
+    }
+    return SUCCESS;
+}
+
+int stdCollectCoeffs(void *self, const exmo *e, int *coeff, int mod) {
+    stp *s = (stp *) self;
+    const exmo *w,*b,*t;
+    stdSort(self);
+    *coeff = 0;
+    if (NULL == (w = bsearch(e,s->dat,s->num,sizeof(exmo),compareExmo))) 
+        return SUCCESS;
+    for (b=w-1;b>=s->dat;b--)
+        if (0 != compareExmo(b,e))
+            break;
+    for (t=w+1;t<(s->dat + s->num);t++)
+        if (0 != compareExmo(t,e))
+            break;
+    for (w=b+1;w<t;w++) { 
+        *coeff += w->coeff;
+        if (mod) *coeff %= mod;
     }
     return SUCCESS;
 }
@@ -320,6 +368,7 @@ int stdScaleMod(void *self, int scale, int modulo) {
  * see http://gcc.gnu.org/onlinedocs/gcc-3.2.3/gcc/Designated-Inits.html */
 
 struct polyType stdPolyType = {
+    .getInfo    = &stdGetInfo,
     .createCopy = &stdCreateCopy,
     .free       = &stdFree,
     .swallow    = &stdSwallow,
@@ -331,7 +380,8 @@ struct polyType stdPolyType = {
     .getLength  = &stdGetLength,
     .appendExmo = &stdAppendExmo,
     .scaleMod   = &stdScaleMod,
-    .shift      = &stdShift
+    .shift      = &stdShift,
+    .collectCoeffs = &stdCollectCoeffs
 };
 
 void *PLcreateStdCopy(polyType *type, void *poly) {

@@ -55,6 +55,13 @@ typedef enum {
     ISPOSNEG     /* ISPOSITIVE or ISNEGATIVE */
 } pprop;
 
+
+typedef struct {
+    const char *name;
+    size_t bytesAllocated;
+    size_t bytesUsed; 
+} polyInfo;
+
 /* A polynomial is an arbitrary collection of extended monomials. 
  * Different realizations are thinkable (compressed vs. uncompressed, 
  * vector vs. list style, etc...), so we try to support many different 
@@ -62,6 +69,9 @@ typedef enum {
  * by a polyType structure. */
 
 typedef struct polyType {
+
+    int (*getInfo)(void *self, polyInfo *poli); /* obvious, eh? */
+
     void *(*createCopy)(void *src);  /* create a copy; if src is NULL a
                                       * new empty polynomial is created */
 
@@ -84,6 +94,11 @@ typedef struct polyType {
                       exmo **exmo, 
                       int index);    /* try to get in-place pointer to 
                                       * a summand (read-only pointer!) */
+
+    int (*collectCoeffs)(void *self,
+                         const exmo *e,
+                         int *coeff,
+                         int mod); /* determine coefficient of e modulo mod */
 
     int (*test)(void *self, pprop p);  /* test for property */ 
 
@@ -113,12 +128,14 @@ typedef struct polyType {
     void (*shift)(void *self, 
                   const exmo *shift,
                   int shiftflags); /* shift entire polynomial */
+
 } polyType;
 
 /* wrappers for the polyType member functions; these check whether 
  * the member function is non-zero, and try to use work-arounds if 
  * a method is not implemented */
 
+int   PLgetInfo(polyType *type, void *poly, polyInfo *poli);
 int   PLgetLength(polyType *type, void *poly);
 void  PLfree(polyType *type, void *poly);
 int   PLcancel(polyType *type, void *poly, int modulo);
@@ -127,6 +144,8 @@ void *PLcreate(polyType *type);
 int   PLtest(polyType *tp1, void *pol1, pprop prop);
 int   PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *result);
 int   PLgetExmo(polyType *type, void *self, exmo *exmo, int index);
+int   PLcollectCoeffs(polyType *type, void *self, const exmo *exmo, 
+                      int *rval, int mod);
 int   PLappendExmo(polyType *dtp, void *dst, exmo *e);
 int   PLappendPoly(polyType *dtp, void *dst, 
                    polyType *stp, void *src,                      
@@ -148,7 +167,7 @@ int   PLsteenrodMultiply(polyType **rtp, void **res,
                          polyType *fftp, void *ff,
                          polyType *sftp, void *sf, primeInfo *pi);
 
-#ifndef POLYC
+#ifndef POLYC 
 extern polyType stdPolyType;
 #endif
 
