@@ -265,18 +265,17 @@ void PolyDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
 /**** Tcl wrappers for some of the PL functions */
 
 /* for some functions we need to convert the type first */
-Tcl_Obj *Tcl_PolyObjConvert(Tcl_Obj *obj, polyType *newtype) {
+void Tcl_PolyObjConvert(Tcl_Obj *obj, polyType *newtype) {
     void *aux;
     DBGPOLY printf("Tcl_PolyObjConvert obj = %p\n", obj);
-    if (PTR1(obj) == newtype) return obj;
-    if (Tcl_IsShared(obj)) 
-        obj = Tcl_DuplicateObj(obj);
+    if (PTR1(obj) == newtype) return;
+    if (Tcl_IsShared(obj))
+        assert(NULL == "Tcl_PolyObjConvert called for shared object");
     aux = PLcreateCopy(newtype,PTR1(obj),PTR2(obj));
     PLfree(PTR1(obj),PTR2(obj));
     PTR2(obj) = aux; 
     PTR1(obj) = (void *) newtype;
     Tcl_InvalidateStringRep(obj);
-    return obj;
 }
 
 Tcl_Obj *Tcl_PolyObjCancel(Tcl_Obj *obj, int mod) {
@@ -292,7 +291,7 @@ Tcl_Obj *Tcl_PolyObjReflect(Tcl_Obj *obj) {
     if (Tcl_IsShared(obj)) 
         obj = Tcl_DuplicateObj(obj);
     if (NULL == tp->reflect) 
-        obj = Tcl_PolyObjConvert(obj, (tp = stdpoly));
+        Tcl_PolyObjConvert(obj, (tp = stdpoly));
     (tp->reflect)(PTR2(obj));
     Tcl_InvalidateStringRep(obj);
     return obj;
@@ -303,7 +302,7 @@ Tcl_Obj *Tcl_PolyObjScaleMod(Tcl_Obj *obj, int scale, int mod) {
     if (Tcl_IsShared(obj)) 
         obj = Tcl_DuplicateObj(obj);
     if (NULL == tp->scaleMod) 
-        obj = Tcl_PolyObjConvert(obj, (tp = stdpoly));
+        Tcl_PolyObjConvert(obj, (tp = stdpoly));
     (tp->scaleMod)(PTR2(obj),scale,mod);
     Tcl_InvalidateStringRep(obj);
     return obj;
@@ -318,17 +317,31 @@ Tcl_Obj *Tcl_PolyObjAppend(Tcl_Obj *obj, Tcl_Obj *pol2) {
     return obj;
 }
 
-Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a1, Tcl_Obj *a2) {
-    int rval, rcode;
-    Tcl_Obj *b1 = a1, *b2 = a2;
-    if (Tcl_IsShared(a1)) 
-        b1 = Tcl_DuplicateObj(a1);
-    if (Tcl_IsShared(a2)) 
-        b2 = Tcl_DuplicateObj(a2);
-    rcode = PLcompare(PTR1(b1),PTR2(b2),PTR1(b1),PTR2(b2), &rval);
-    if (b1 != a1) Tcl_DecrRefCount(b1);
-    if (b2 != a2) Tcl_DecrRefCount(b2);
-    return (SUCCESS == rcode) ? Tcl_NewIntObj(rval) : NULL;;
+Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
+    int rval, rcode, ash, bsh;
+    Tcl_Obj *ac = a, *bc = b;
+
+    ash = Tcl_IsShared(a);
+    bsh = Tcl_IsShared(b);
+
+    if (SUCCESS == PLcompare(PTR1(ac),PTR2(ac),
+                             PTR1(bc),PTR2(bc), 
+                             &rval, (ash || bsh) ? 0 : PLF_ALLOWMODIFY)) {
+        return Tcl_NewIntObj(rval);
+    }
+
+    /* need to modify the args, so have to use private copies */
+
+    if (ash) ac = Tcl_DuplicateObj(a);
+    if (bsh) bc = Tcl_DuplicateObj(b);
+    
+    rcode = PLcompare(PTR1(ac),PTR2(ac),PTR1(bc),PTR2(bc),&rval,PLF_ALLOWMODIFY);
+
+    /* destroy private copies */
+    if (a != ac) Tcl_DecrRefCount(ac);
+    if (b != bc) Tcl_DecrRefCount(bc);
+
+    return (SUCCESS == rcode) ? Tcl_NewIntObj(rval) : NULL;
 }
 
 Tcl_Obj *Tcl_PolyObjShift(Tcl_Obj *obj, exmo *e, int flags) {
@@ -336,7 +349,7 @@ Tcl_Obj *Tcl_PolyObjShift(Tcl_Obj *obj, exmo *e, int flags) {
     if (Tcl_IsShared(obj)) 
         obj = Tcl_DuplicateObj(obj);
     if (NULL == tp->shift) 
-        obj = Tcl_PolyObjConvert(obj, (tp = stdpoly));
+        Tcl_PolyObjConvert(obj, (tp = stdpoly));
     (tp->shift)(PTR2(obj),e,flags);
     Tcl_InvalidateStringRep(obj);
     return obj;
@@ -406,30 +419,24 @@ typedef enum {
     TPNEGMULT, TPPOSMULT, TPSTMULT
 } PolyCmdCode;
 
-#undef RETERR
-#define RETERR(msg) { Tcl_SetResult(ip,msg,TCL_VOLATILE); goto error; }
-
 int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip, 
                   int objc, Tcl_Obj * CONST objv[]) {
     PolyCmdCode cdi = (PolyCmdCode) cd;
-    int ivar, ivar2, i, status;
+    int ivar, ivar2;
     Tcl_Obj *obj1;
     primeInfo *pi;
-
-    for (i=0;i<objc;i++) 
-        Tcl_IncrRefCount(objv[i]);
 
     switch (cdi) {
         case TPEXMO:
             ENSUREARGS1(TP_EXMO);
             Tcl_InvalidateStringRep(objv[1]);
             Tcl_SetObjResult(ip, objv[1]);
-            goto success;
+            return TCL_OK;
         case TPPOLY:
             ENSUREARGS1(TP_POLY);
             Tcl_InvalidateStringRep(objv[1]);
             Tcl_SetObjResult(ip, objv[1]);
-            goto success;
+            return TCL_OK;
         case TPSCALE:
             ENSUREARGS4(TP_POLY,TP_INT,TP_OPTIONAL,TP_INT);
             Tcl_GetIntFromObj(ip, objv[2], &ivar);
@@ -438,7 +445,7 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             else 
                 ivar2 = 0;
             Tcl_SetObjResult(ip, Tcl_PolyObjScaleMod(objv[1], ivar, ivar2));
-            goto success;
+            return TCL_OK;
         case TPSHIFT:
             ENSUREARGS4(TP_POLY,TP_EXMO,TP_OPTIONAL,TP_INT);
             if (4 == objc) 
@@ -447,7 +454,7 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
                 ivar = 0;
             Tcl_SetObjResult(ip, Tcl_PolyObjShift(objv[1], 
                                                   exmoFromTclObj(objv[2]), ivar));
-            goto success;
+            return TCL_OK;
         case TPCANCEL:
             ENSUREARGS3(TP_POLY,TP_OPTIONAL,TP_INT);
             if (3 == objc) 
@@ -455,23 +462,23 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             else 
                 ivar = 0;
             Tcl_SetObjResult(ip, Tcl_PolyObjCancel(objv[1], ivar));
-            goto success;
+            return TCL_OK;
         case TPREFLECT:
             ENSUREARGS1(TP_POLY);
             Tcl_SetObjResult(ip, Tcl_PolyObjReflect(objv[1]));
-            goto success;
+            return TCL_OK;
         case TPAPPEND:
             ENSUREARGS2(TP_POLY,TP_POLY);
             if (NULL == (obj1 = Tcl_PolyObjAppend(objv[1], objv[2])))
                 RETERR("PLappendPoly failed");
             Tcl_SetObjResult(ip, obj1);
-            goto success;
+            return TCL_OK;
         case TPCOMPARE:
             ENSUREARGS2(TP_POLY,TP_POLY);
             if (NULL == (obj1 = Tcl_PolyObjCompare(objv[1],objv[2])))
                 RETERR("comparison not possible");
             Tcl_SetObjResult(ip, obj1);
-            goto success;
+            return TCL_OK;
         case TPPOSMULT:
             ENSUREARGS4(TP_POLY,TP_POLY,TP_OPTIONAL,TP_INT);
             if (4 == objc) 
@@ -481,7 +488,7 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             if (NULL == (obj1 = Tcl_PolyObjPosProduct(objv[1], objv[2], ivar)))
                 RETERR("PLposMultiply failed");
             Tcl_SetObjResult(ip, obj1);
-            goto success;            
+            return TCL_OK;            
         case TPNEGMULT:
             ENSUREARGS4(TP_POLY,TP_POLY,TP_OPTIONAL,TP_INT);
             if (4 == objc) 
@@ -491,19 +498,19 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             if (NULL == (obj1 = Tcl_PolyObjNegProduct(objv[1], objv[2], ivar)))
                 RETERR("PLnegMultiply failed");
             Tcl_SetObjResult(ip, obj1);
-            goto success;            
+            return TCL_OK;            
         case TPSTMULT:
             ENSUREARGS3(TP_PRIME,TP_POLY,TP_POLY);
             if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[1],&pi))
-                goto error;
+                return TCL_ERROR;
             if (NULL == (obj1 = Tcl_PolyObjSteenrodProduct(objv[2], objv[3], pi)))
                 RETERR("PLsteenrodMultiply failed");
             Tcl_SetObjResult(ip, obj1);
-            goto success;            
+            return TCL_OK;            
         case TPINFO:
             ENSUREARGS1(TP_POLY);
             Tcl_SetObjResult(ip, Tcl_PolyObjGetInfo(objv[1]));
-            goto success;
+            return TCL_OK;
         case TPGETCOEFF:
             ENSUREARGS4(TP_POLY,TP_EXMO,TP_OPTIONAL,TP_INT);
             if (4 == objc) 
@@ -513,23 +520,10 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             if (NULL == (obj1 = Tcl_PolyObjGetCoeff(objv[1], objv[2], ivar)))
                 RETERR("PLcollectCoeff failed");
             Tcl_SetObjResult(ip, obj1);
-            goto success;            
+            return TCL_OK;            
     }
 
     RETERR("tPolyCombiCmd: internal error");
-
- error:
-    status = TCL_ERROR;
-    goto retstat;
-
- success:
-    status = TCL_OK;
-
- retstat:
-    for (i=0;i<objc;i++) 
-        Tcl_DecrRefCount(objv[i]);
-
-    return status;
 }
 
 #define CREATECMD(name, id) \

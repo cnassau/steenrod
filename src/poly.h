@@ -108,7 +108,8 @@ typedef struct polyType {
 
     int  (*compare)(void *pol1, 
                     void *pol2,
-                    int *result);    /* comparison result as in qsort */
+                    int *result,
+                    int flags);    /* comparison result as in qsort */
 
     int  (*appendPoly)(void *self, 
                        void *other, 
@@ -146,10 +147,11 @@ int   PLcancel(polyType *type, void *poly, int modulo);
 int   PLclear(polyType *type, void *poly);
 void *PLcreate(polyType *type);
 int   PLtest(polyType *tp1, void *pol1, pprop prop);
-int   PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *result);
+int   PLcompare(polyType *tp1, void *pol1, polyType *tp2, 
+                void *pol2, int *result, int flags);
 int   PLgetExmo(polyType *type, void *self, exmo *exmo, int index);
 int   PLcollectCoeffs(polyType *type, void *self, const exmo *exmo, 
-                      int *rval, int mod,int flags);
+                      int *rval, int mod, int flags);
 int   PLappendExmo(polyType *dtp, void *dst, const exmo *e);
 int   PLappendPoly(polyType *dtp, void *dst, 
                    polyType *stp, void *src,                      

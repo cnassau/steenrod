@@ -281,11 +281,14 @@ void stdCancel(void *self, int mod) {
     } 
 }
 
-int stdCompare(void *pol1, void *pol2, int *res) {
+int stdCompare(void *pol1, void *pol2, int *res, int flags) {
     stp *s1 = (stp *) pol1;
     stp *s2 = (stp *) pol2;
     LOGSTD("Compare");
-    stdCancel(pol1,0); stdCancel(pol2,0);
+    if (0 == (flags & PLF_ALLOWMODIFY)) 
+        return FAILIMPOSSIBLE;
+    stdCancel(pol1,0); 
+    stdCancel(pol2,0);
     if (s1->num != s2->num) { 
         *res = s1->num - s2->num;
         return SUCCESS;
@@ -412,19 +415,18 @@ void *PLcreateCopy(polyType *newtype, polyType *type, void *poly) {
     return res;
 }
 
-int PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *res) {
+int PLcompare(polyType *tp1, void *pol1, polyType *tp2, 
+              void *pol2, int *res, int flags) {
     void *st1, *st2;
     int rcode;
     if ((tp1 == tp2) && (NULL != tp1->compare)) 
-        return (tp1->compare)(pol1,pol2,res);
-    /* convert both to stdpoly */
-    if (stdpoly == tp1) st1 = pol1;
-    else st1 = PLcreateCopy(stdpoly,tp1,pol1);
-    if (stdpoly == tp2) st2 = pol2;
-    else st2 = PLcreateCopy(stdpoly,tp2,pol2);
-    rcode = (stdpoly->compare)(st1,st2,res);
-    if (st1 != pol1) PLfree(stdpoly,st1);
-    if (st2 != pol2) PLfree(stdpoly,st2);
+        return (tp1->compare)(pol1, pol2, res, flags);
+    /* create private stdpoly copies */
+    st1 = PLcreateCopy(stdpoly,tp1,pol1);
+    st2 = PLcreateCopy(stdpoly,tp2,pol2);
+    rcode = (stdpoly->compare)(st1, st2, res, PLF_ALLOWMODIFY);
+    PLfree(stdpoly,st1);
+    PLfree(stdpoly,st2);
     return rcode;
 }
 
