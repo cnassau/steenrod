@@ -638,7 +638,7 @@ typedef enum { ENCHEX } enctype;
 
 static CONST char *encnames[] = { "hex", (char *) NULL };
 
-static enctype encmap[] = { ENCHEX };
+/* static enctype encmap[] = { ENCHEX }; */
 
 int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
 
@@ -683,7 +683,7 @@ int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
     if (TCL_OK != Tcl_ListObjLength(ip, objv[4], &index))
         return TCL_ERROR;
 
-    if(index != nrows) {
+    if (ncols && (index != nrows)) {
         Tcl_SetResult(ip, "inconsistent number of rows", TCL_STATIC);
         return TCL_ERROR;
     }
@@ -692,7 +692,12 @@ int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
     mdat = mt->createMatrix(nrows, ncols);
     
     if (NULL == mdat) RETERR("out of memory");
-          
+                        
+    if (0 == ncols) {
+        Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt, mdat));
+        return TCL_OK;
+    }
+
     for (i=0;i<nrows;i++) {
         Tcl_Obj *rowPtr;
         char *row;
@@ -780,9 +785,10 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
     /* Calculate and allocate necessary space */
     
     len  = nrows;                       /* number of spaces as separators + one newline */
-    rcs = (3 + ncols * blocksize) / 4;  /* twice the number of bytes per row */
+    rcs = (7 + ncols * blocksize) / 8;  /* the number of bytes per row */
+    rcs *= 2;                           /* now the number of hex digits per row */
     len += nrows * rcs;
-    len++;                              /* trailing zero */
+    //len++;                              /* trailing zero */
 
     if (NULL == (enc = Tcl_AttemptAlloc(len))) {
         Tcl_SetResult(ip, "out of memory", TCL_STATIC);
