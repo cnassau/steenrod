@@ -11,6 +11,8 @@
  *
  */
 
+#define MULTC_INCLUDES
+
 #include "mult.h"
 #include <string.h>
 
@@ -138,6 +140,7 @@ int stdGetExmoFunc(multArgs *ma, int factor, const exmo **ret, int idx) {
 }
 
 /* initxfPA & initxfAP are helper functions for initMultargs */
+
 void initxfPA(multArgs *MA) {
     primeInfo *pi = MA->pi;
     int i,j;
@@ -197,9 +200,19 @@ void handlePABox(multArgs *ma, int row, int col, xint coeff) {
     xint c;
     int eval = 1 << (col - 1); /* value of the exterior component */
     int sgn = 0;
-    if ((0 != ma->xfPA[row][col].estat) && 
-        (*(ma->xfPA[row][col].res) >= ma->xfPA[row][col].res_weight) && 
-        (0 == ((eval<<row) & ma->emsk[row])) && (0 == (eval & ma->esum[row]))) {
+#if 1
+    while (col > (1 + ma->sfMaxLength)) { 
+        zeroXdat(&(ma->xfPA[row][col]));
+        if (col <= 1) {
+            handlePArow(ma, row-1, coeff);
+            return;
+        }
+        col--;
+    }
+#endif
+    if ((0 != ma->xfPA[row][col].estat) 
+        && (*(ma->xfPA[row][col].res) >= ma->xfPA[row][col].res_weight) 
+        && (0 == ((eval<<row) & ma->emsk[row])) && (0 == (eval & ma->esum[row]))) {
         *(ma->xfPA[row][col].res) -= ma->xfPA[row][col].res_weight;
         sgn = SIGNFUNC(ma->emsk[row], (eval<<row)) + SIGNFUNC(ma->esum[row], eval);
         ma->emsk[row] |= (eval<<row); ma->esum[row] |= eval;
@@ -240,7 +253,7 @@ void handleAPBox(multArgs *ma, int row, int col, xint coeff) {
     xint c;
     int emval = 2 << (row - 1);  /* mask version of esval */
     int sgn = 0;
-    while (row > ma->ffMaxLength) { 
+    while (row > (1 + ma->ffMaxLength)) { 
         zeroXdat(&(ma->xfAP[row][col]));
         if (row <= 1) {
             handleAPcol(ma, col-1, coeff);
@@ -248,9 +261,9 @@ void handleAPBox(multArgs *ma, int row, int col, xint coeff) {
         }
         row--;
     }
-    if ((0 != ma->xfAP[row][col].estat) && 
-        (0 != (1 & ma->emsk[col])) &&
-        (0 == (emval & ma->emsk[col]))) { 
+    if ((0 != ma->xfAP[row][col].estat) 
+        && (0 != (1 & ma->emsk[col])) 
+        && (0 == (emval & ma->emsk[col]))) { 
         sgn = SIGNFUNC(1 | emval, 1 ^ ma->emsk[col]);
         ma->emsk[col] ^= 1 | emval;
         *(ma->xfAP[row][col].sum) -= ma->xfAP[row][col].sum_weight; 
@@ -287,28 +300,30 @@ void handleAPcol(multArgs *ma, int col, xint coeff) {
 /* workXYchain starts the computation */
 
 void workPAchain(multArgs *ma) {
-    int i, idx; const exmo *m;
+    int i, idx, inirow; const exmo *m;
     for (idx=0; SUCCESS == (ma->getExmoFF)(ma,FIRST_FACTOR,&m,idx); idx++) {
         /* clear matrices */
         memset(ma->msk, 0, sizeof(xint)*(NALG+1)*(NALG+1));
         memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
-        /* initialize oldmsk, sum, res*/
+        /* initialize oldmsk, sum, res */
         for (i=NALG;i--;) { ma->sum[0][i+1]=0; ma->msk[i+1][0]=m->dat[i]; }
-        ma->emsk[NALG] = m->ext; ma->esum[NALG] = 0;
-        handlePArow(ma, NALG-1, m->coeff);
+        inirow = 1 + ma->ffMaxLength;
+        ma->emsk[inirow + 1] = m->ext; ma->esum[inirow + 1] = 0;
+        handlePArow(ma, inirow, m->coeff);
     }
 }
 
 void workAPchain(multArgs *ma) {
-    int i, idx; const exmo *m;
+    int i, idx, inicol; const exmo *m;
     for (idx=0; SUCCESS == (ma->getExmoFF)(ma,SECOND_FACTOR,&m,idx); idx++) {
         /* clear matrices */
         memset(ma->msk, 0, sizeof(xint)*(NALG+1)*(NALG+1));
         memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
         /* initialize oldmsk, sum, res*/
         for (i=NALG;i--;) { ma->sum[i+1][0]=0; ma->msk[0][i+1]=m->dat[i]; }
-        ma->emsk[NALG] = 0; ma->esum[0] = m->ext;
-        handleAPcol(ma, 1 + ma->sfMaxLength, m->coeff);
+        inicol = 1 + ma->sfMaxLength;
+        ma->emsk[1 + inicol] = 0; ma->esum[0] = m->ext;
+        handleAPcol(ma, inicol, m->coeff);
     }
 }
 
@@ -328,8 +343,11 @@ int stdAddProductToPoly(polyType *rtp, void *res,
     ma->ffIsPos = fIsPos;
     ma->sfIsPos = sIsPos;
 
-    ma->ffMaxLength = PLgetMaxLength(ftp, ff);
-    ma->sfMaxLength = PLgetMaxLength(stp, sf);
+    ma->ffMaxLength = PLgetMaxRedLength(ftp, ff);
+    ma->sfMaxLength = PLgetMaxRedLength(stp, sf);
+
+    ma->ffMaxLength = MIN(ma->ffMaxLength, NALG-2);
+    ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
 
     ma->ffdat = ftp; ma->ffdat2 = ff; 
     ma->getExmoFF = &stdGetExmoFunc;
@@ -347,6 +365,8 @@ int stdAddProductToPoly(polyType *rtp, void *res,
         workPAchain(ma);
     else 
         workAPchain(ma);
+
+    multCount += PLgetNumsum(ftp, ff) * PLgetNumsum(stp, sf);
 
     return SUCCESS;
 }
