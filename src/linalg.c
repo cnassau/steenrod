@@ -114,11 +114,15 @@ void matrix_unit(matrix *mat) {
     for (aux=mat->data,i=0;i<mat->rows;i++,aux+=off) *aux = 1;
 }
 
+void make_matrix_row(vector *v, matrix *m, int r) {
+    v->num = m->cols;
+    v->data = m->data + (m->nomcols * r);
+}
+
 vector *matrix_get_row(matrix *m, int r) {
     vector *res = mallox(sizeof(vector)) ;
     if (NULL == res) return NULL;
-    res->num = m->cols;
-    res->data = m->data + (m->nomcols * r);
+    make_matrix_row(res, m, r);
     return res;
 }
 
@@ -134,12 +138,12 @@ void matrix_set_entry(matrix *m, int r, int c, cint val) {
 
 void matrix_add(matrix *dst, matrix *src, cint coeff, cint prime) {
     int i;
+    vector v1, v2;
     if ((dst->rows != src->rows) || (dst->cols != src->cols)) return;
     for (i=dst->rows; i--;) {
-        vector *v1 = matrix_get_row(dst, i);
-        vector *v2 = matrix_get_row(src, i);
-        vector_add(v1, v2, coeff, prime);
-        freex(v1); freex(v2);
+        make_matrix_row(&v1, dst, i);
+        make_matrix_row(&v2, src, i);
+        vector_add(&v1, &v2, coeff, prime);
     } 
 }
 
