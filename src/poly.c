@@ -253,20 +253,28 @@ inline xint XINTMULT(xint a, xint b, xint prime) {
  *  2)  knows where the mask of forbidden bits is stored (*oldmsk, *newmsk)
  *  3)  knows where the sum is kept (*sum, sum_weight)
  *  4)  knows where the reservoir for this row or column is (*res, res_weight)
+ *
+ * added extra feature:
+ *  
+ *      "quantization of values", used to preserve profiles (quant)
  */
 
 typedef struct {
     primeInfo *pi;
     xint val, 
+        quant,
         *oldmsk, *newmsk, 
         *sum, sum_weight, 
         *res, res_weight;
 } Xfield;
 
 xint firstXdat(Xfield *X) {
-    primeInfo *pi = X->pi; xint c;
+    primeInfo *pi = X->pi; xint c, aux;
     X->val = *(X->res) / X->res_weight;
-    while (0 == (c=binomp(pi,X->val+*(X->oldmsk),*(X->oldmsk)))) --(X->val);
+    X->val /= X->quant; 
+    aux = *(X->oldmsk); aux /= X->quant; 
+    while (0 == (c=binomp(pi,X->val+aux,aux))) --(X->val);
+    X->val *= X->quant;     
     *(X->newmsk) = *(X->oldmsk) + X->val; 
     *(X->res) -= X->val * X->res_weight; 
     *(X->sum) -= X->val * X->sum_weight; 
@@ -274,9 +282,12 @@ xint firstXdat(Xfield *X) {
 }
 
 xint nextXdat(Xfield *X) {
-    primeInfo *pi = X->pi; xint c, nval;
+    primeInfo *pi = X->pi; xint c, nval, aux;;
     if (0 == (nval = X->val)) return 0;
-    while (0 == (c = binomp(pi,--(nval)+*(X->oldmsk),*(X->oldmsk)))) ;
+    nval /= X->quant; 
+    aux = *(X->oldmsk); aux /= X->quant; 
+    while (0 == (c = binomp(pi,--(nval)+aux,aux))) ;
+    nval *= X->quant;
     *(X->newmsk) = *(X->oldmsk) + nval; 
     *(X->sum) += (X->val - nval) * X->sum_weight; 
     *(X->res) += (X->val - nval) * X->res_weight; 
@@ -340,12 +351,14 @@ void workPAchain(multArgs *ma, mono *m) {
     handlePArow(ma, NALG-1, m->coeff);
 }
 
-void initxfPA(primeInfo *pi) {
+void initxfPA(multArgs *MA) {
+    primeInfo *pi = MA->pi;
     int i,j;
     for (i=1;i<NALG;i++) {
         for (j=1;j<NALG;j++) {
             Xfield *xf = &(xfPA[i][j]);
             xf->pi = pi; 
+            xf->quant  = 1;
             xf->oldmsk = &(msk[i+1][j-1]); 
             xf->newmsk = &(msk[i][j]);
             xf->res    = &(msk[i][0]); xf->res_weight = pi->primpows[j];
@@ -354,12 +367,14 @@ void initxfPA(primeInfo *pi) {
     }
 }
 
-void initxfAP(primeInfo *pi) {
+void initxfAP(multArgs *MA) {
+    primeInfo *pi = MA->pi;
     int i,j;
     for (i=1;i<NALG;i++) {
         for (j=1;j<NALG;j++) {
             Xfield *xf = &(xfAP[i][j]);
             xf->pi = pi; 
+            xf->quant  = 1;
             xf->oldmsk = &(msk[i-1][j+1]); 
             xf->newmsk = &(msk[i][j]);
             xf->res    = &(msk[0][j]); xf->res_weight = 1; 
@@ -370,7 +385,7 @@ void initxfAP(primeInfo *pi) {
 
 
 void multPosAny(multArgs *MA, mono *f) {
-    initxfPA(MA->pi);
+    initxfPA(MA);
     workPAchain(MA, f);
 }
 
@@ -428,6 +443,6 @@ void workAPchain(multArgs *ma, mono *m) {
 }
 
 void multAnyPos(multArgs *MA, mono *s) {
-    initxfAP(MA->pi);
+    initxfAP(MA);
     workAPchain(MA, s);
 }
