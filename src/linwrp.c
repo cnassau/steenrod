@@ -190,6 +190,7 @@ void *stdVCreateCopy(void *vec) {
 
 void stdVDestroyVector(void *vec) {
     vector_dispose((vector *) vec);
+    freex(vec);
 }
 
 int stdVReduce(void *vec, int prime) {

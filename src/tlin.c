@@ -85,6 +85,10 @@ int VectorSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         return TCL_ERROR;
     
     vct = (stdvector->createVector)(objc);
+    if (NULL == vct) {
+        Tcl_SetResult(ip, "out of memory in VectorSetFromAnyProc", TCL_STATIC);
+        return TCL_ERROR;
+    }
 
     for (i=0;i<objc;i++) {
         if (TCL_OK != Tcl_GetIntFromObj(ip,objv[i],&val)) { 
