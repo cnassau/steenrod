@@ -13,6 +13,7 @@
 
 #define MOMAC
 
+#include <string.h>
 #include "tprime.h"
 #include "tpoly.h"
 #include "momap.h"
@@ -52,6 +53,15 @@ Tcl_Obj **momapGetValPtr(momap *mo, const exmo *key) {
     int idx = stdpoly->lookup(mo->keys, key, NULL);
     if (idx < 0) return NULL;
     return &(mo->values[idx]);
+}
+
+int momapRemoveValue(momap *mo, const exmo *key) {
+    int idx = stdpoly->lookup(mo->keys, key, NULL), len;
+    if (idx < 0) return FAILIMPOSSIBLE;
+    stdpoly->remove(mo->keys,idx);  
+    len = stdpoly->getNumsum(mo->keys);
+    memmove(&(mo->values[idx]), &(mo->values[idx+1]), sizeof(Tcl_Obj *) * (len-idx));
+    return SUCCESS;
 }
 
 #define MOMAPSTEPSIZE 100 
@@ -164,7 +174,8 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
                return TCL_ERROR;
            ex = exmoFromTclObj(objv[2]);
-           RETERR("unset not yet implemented");
+           momapRemoveValue(mo, ex);
+           return TCL_OK;
    }
 
    RETERR("internal error in Tcl_MomaWidgetCmd");

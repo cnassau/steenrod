@@ -406,7 +406,7 @@ int algSeqnoWithRDegree(enumerator *en, exmo *ex, int deg) {
     int res=0, k, startk;
     startk = en->pi->maxpowerXintI;
     if (ENLOG) printf("algSeqnoWithRDegree deg = %d, startk = %d\n", deg, startk);
-    for (k=startk; k--; ) {
+    for (k=startk; k--;) {
         int prd, maxdeg, actdeg, exo;
         prd = en->profile.dat[k];
         maxdeg = (en->algebra.dat[k] - prd) * en->pi->reddegs[k];

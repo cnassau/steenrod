@@ -358,6 +358,14 @@ int stdLookup(void *self, const exmo *ex, int *coeff) {
     return aux - s->dat;
 }
 
+int stdRemove(void *self, int idx) {
+    stp *s = (stp *) self;
+    if ((idx<0) || (idx>s->num)) return FAILIMPOSSIBLE;
+    memmove(&(s->dat[idx]), &(s->dat[idx+1]), sizeof(exmo) * (s->num - idx));
+    s->num--;
+    return SUCCESS;
+}
+
 int stdCompare(void *pol1, void *pol2, int *res, int flags) {
     stp *s1 = (stp *) pol1;
     stp *s2 = (stp *) pol2;
@@ -473,6 +481,7 @@ struct polyType stdPolyType = {
     .scaleMod   = &stdScaleMod,
     .shift      = &stdShift,
     .lookup     = &stdLookup,
+    .remove     = &stdRemove,
     .collectCoeffs = &stdCollectCoeffs
 };
 

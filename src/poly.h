@@ -126,6 +126,8 @@ typedef struct polyType {
                                       * polynomial, so cancel should have been
                                       * previously invoked. */
 
+    int (*remove)(void *self, int idx); /* remove summand number idx */
+
     int (*test)(void *self, pprop p);  /* test for property */ 
 
     void (*cancel)(void *self, int modulo);  /* cancel as much as possible */
