@@ -17,8 +17,10 @@
 #include <tcl.h>
 #include "tptr.h"
 
-/* our map type */
-#define TP_MAP 42
+/* our types */
+#define TP_MAP    42
+#define TP_MAPGEN 43
+#define TP_MAPSUM 44
 
 int TMap_Init(Tcl_Interp *ip) ;
 

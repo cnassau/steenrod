@@ -22,7 +22,7 @@ SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c \
 
 OBJS = $(SRCS:.c=.o)
 
-LIBS = libtlin.so libtprime.so libtptrtest.so libtpoly.so libtprofile.so
+LIBS = libtlin.so libtprime.so libtptrtest.so libtpoly.so libtprofile.so libtmap.so
 
 LINKSTUB = cc -shared -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
 
@@ -72,6 +72,9 @@ libtpoly.so: tlin.o adlin.o prime.o linalg.o tptr.o tprime.o tpoly.o poly.o
 libtprofile.so: tprime.o tptr.o prime.o profile.o tprofile.o
 	$(LINKSTUB) -o libtprofile.so tprime.o tptr.o prime.o profile.o tprofile.o 
 
+libtmap.so: tmap.o maps.o tptr.o 
+	$(LINKSTUB) -o libtmap.so tmap.o maps.o tptr.o 
+
 clean:
 	$(RM) $(OBJS) $(LIBS) *~ *.bak 2> /dev/null
 
@@ -95,5 +98,5 @@ tptrtest.o: tptr.h
 tpoly.o: tptr.h tpoly.h tprime.h poly.h prime.h
 profile.o: profile.h prime.h
 tprofile.o: tptr.h tprime.h tprofile.h profile.h prime.h
-maps.o: maps.h prime.h
-tmap.o: tmap.h tptr.h
+maps.o: maps.h ./common.h prime.h
+tmap.o: tptr.h tmap.h maps.h ./common.h prime.h
