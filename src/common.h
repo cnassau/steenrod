@@ -17,7 +17,7 @@
 #include <assert.h>
 
 /* namespaces */
-#define POLYNSP "::poly::"
+#define POLYNSP "poly::"
 
 /* error codes */
 #define SUCCESS         0 
