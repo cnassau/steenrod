@@ -1,0 +1,121 @@
+# -*- tcl -*-
+#
+# This file provides a test suite for the basic prime stuff
+#
+# Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+package require Steenrod 1.0
+
+namespace import ::prime::*
+
+# --------------------------------------------------------------------------
+
+# all primes under 63 (which is too large for us)
+set primes {2 3 5 7 11 13 17 19 23 29 31 37 41 43 47 53 59 61}
+
+test prime-1.0 {prime recognition} {
+    set res {}
+    for {set p -50} {$p<63} {incr p} {
+        set aux [catch {prime::inverse $p 1}]
+        if {[lsearch $primes $p]<0} {
+            if {!$aux} { lappend res $p+ }
+        } else {
+            if {$aux} { lappend res $p- }
+        }
+    }
+    set res
+} {}
+
+
+test prime-1.1 {prime inverses} {
+    set res {}
+    foreach p $primes {
+        for {set i 1} {$i<$p} {incr i} {
+            set aux [expr ($i * [prime::inverse $p $i]) % $p]
+            if {$aux != 1} { lappend res $p/$i }
+        }
+    }
+    set res
+} {}
+
+test prime-1.2 {prime tpmo} {
+    set res {}
+    foreach p $primes {
+        if {[prime::tpmo $p] != [expr 2 * ($p - 1)]} { lappend res $p }
+    }
+    set res
+} {}
+
+test prime-1.3 {prime powers} {
+    set res {}
+    foreach p $primes {
+        set pows [prime::primpows $p]
+        set max  [prime::maxpow $p]
+        if {$max<2} { lappend res "maxpow-too-small-$p" }
+        for {set i 0} {$i<$max} {incr i} {
+            if {[expr ($p * [lindex $pows $i])] != [lindex $pows [expr $i+1]]} {
+                lappend res "error-$p-$i"
+            }
+        }
+    }
+    set res
+} {}
+
+
+test prime-1.4 {prime degrees} {
+    set res {}
+    foreach p $primes {
+        set pows [prime::primpows $p]
+        set edegs [prime::extdegs $p]
+        set rdegs [prime::reddegs $p]
+        set tpmo [prime::tpmo $p]
+        set max  [prime::maxpow $p]
+        for {set i 0} {$i<$max} {incr i} {
+            if {[lindex $edegs $i] != [expr 2*[lindex $pows $i] - 1]} {
+                lappend res "mismatch-$p-$i-E"
+            }
+            set a [expr $tpmo * [lindex $rdegs $i]]
+            set b [expr 2*([lindex $pows [expr $i+1]] - 1)]
+            if {$a != $b } {
+                lappend res "mismatch-$p-$i-R"
+            }
+        }
+    }
+    set res
+} {}
+
+
+test prime-1.5 {prime binom} {
+    set res {}
+    foreach p $primes {
+        foreach k {0 1 2 3 4 5 6 7 8 9 10 11 12 13} {
+            # check whether binom(k over i) sums to 2^i mod p
+            set sum 0
+            for {set i [expr $k+10]} {$i>-6} {incr i -1} {
+                incr sum [prime::binom $p $k $i]
+            }
+            if {[expr ($sum - (1 << $k)) % $p] != 0} {
+                lappend res "error-$p-$k"
+            }
+        }
+    }
+    set res
+} {}
+
+# --------------------------------------------------------------------------
+
+# cleanup
+::tcltest::cleanupTests
+return
