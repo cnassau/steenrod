@@ -51,7 +51,7 @@ void *stdCreateMatrix(int row, int col) {
     return matrix_create(row, col);
 }
 
-void *stdCreateCopy(void *mat) {
+void *stdCreateMCopy(void *mat) {
     return matrix_copy((matrix *) mat);
 }
 
@@ -112,7 +112,7 @@ matrixType stdMatrixType = {
     .setEntry      = stdSetEntry,
     .getDimensions = stdGetDimensions,
     .createMatrix  = stdCreateMatrix,
-    .createCopy    = stdCreateCopy,
+    .createCopy    = stdCreateMCopy,
     .destroyMatrix = stdDestroyMatrix,
     .clearMatrix   = stdClearMatrix,
     .unitMatrix    = stdUnitMatrix,

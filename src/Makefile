@@ -17,13 +17,12 @@ NOTANGLE = notangle
 NOWEAVE  = noweave
 
 NOWEBFILES = mult.nw
-SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c \
-       tpoly.c profile.c tprofile.c maps.c tmap.c mult.c linwrp.c enum.c \
-       tenum.c momap.c
+SRCS = adlin.c linalg.c linwrp.c tlin.c prime.c tprime.c tptr.c \
+       poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c
 
 OBJS = $(SRCS:.c=.o)
 
-LIBS = libtlin.so libtprime.so libtptrtest.so libtpoly.so libtprofile.so libtmap.so libtenum.so
+LIBS = libsteenrod.so
 
 LINKSTUB = cc -shared -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
 
@@ -58,26 +57,8 @@ libraries: $(LIBS)
 depend: 
 	makedepend -Y -- $(CFLAGS) -- $(SRCS) 2> /dev/null
 
-libtptrtest.so : tptr.o tptrtest.o
-	$(LINKSTUB) -o libtptrtest.so tptr.o tptrtest.o
-
-libtprime.so: tprime.o tptr.o prime.o
-	$(LINKSTUB) -o libtprime.so tptr.o prime.o tprime.o
-
-libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o linwrp.o
-	$(LINKSTUB) -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o linwrp.o
-
-libtpoly.so: prime.o tptr.o tprime.o tpoly.o poly.o mult.o 
-	$(LINKSTUB) -o libtpoly.so prime.o tptr.o tprime.o tpoly.o poly.o mult.o 
-
-libtenum.so: prime.o tptr.o tprime.o tpoly.o poly.o mult.o enum.o tenum.o momap.o
-	$(LINKSTUB) -o libtenum.so prime.o tptr.o tprime.o tpoly.o poly.o mult.o enum.o tenum.o momap.o
-
-libtprofile.so: tprime.o tptr.o prime.o profile.o tprofile.o
-	$(LINKSTUB) -o libtprofile.so tprime.o tptr.o prime.o profile.o tprofile.o 
-
-libtmap.so: tmap.o maps.o tptr.o 
-	$(LINKSTUB) -o libtmap.so tmap.o maps.o tptr.o 
+libsteenrod.so : $(OBJS)
+	$(LINKSTUB) -o libsteenrod.so $(OBJS)
 
 clean:
 	$(RM) $(OBJS) $(LIBS) *~ *.bak 2> /dev/null
@@ -93,19 +74,16 @@ refmt: reformat
 
 adlin.o: adlin.h linalg.h prime.h common.h
 linalg.o: linalg.h prime.h common.h
-poly.o: poly.h common.h prime.h mult.h
+linwrp.o: ./linwrp.h prime.h common.h linalg.h adlin.h
+tlin.o: tlin.h tptr.h common.h tprime.h prime.h ./linwrp.h
 prime.o: prime.h common.h
-tlin.o: tlin.h tptr.h common.h tprime.h prime.h linwrp.h
 tprime.o: tprime.h prime.h common.h tptr.h
 tptr.o: tptr.h common.h
-tptrtest.o: tptr.h common.h
+poly.o: poly.h common.h prime.h mult.h
 tpoly.o: tptr.h common.h tpoly.h poly.h prime.h tprime.h mult.h
-profile.o: profile.h prime.h common.h
-tprofile.o: tptr.h common.h tprime.h prime.h tprofile.h profile.h
-maps.o: maps.h common.h prime.h profile.h
-tmap.o: tptr.h common.h tmap.h tprofile.h profile.h prime.h maps.h
 mult.o: mult.h common.h prime.h poly.h
-linwrp.o: linwrp.h prime.h common.h linalg.h adlin.h
 enum.o: enum.h poly.h common.h prime.h
 tenum.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tenum.h enum.h
-momap.o: momap.h poly.h common.h prime.h
+momap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h momap.h
+steenrod.o: steenrod.h momap.h poly.h common.h prime.h tenum.h enum.h
+steenrod.o: ./linwrp.h

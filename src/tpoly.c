@@ -528,6 +528,8 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
   Tcl_CreateObjCommand(ip, name, tPolyCombiCmd, \
                        (ClientData) id, NULL)
 
+int Tpoly_HaveTypes = 0;
+
 int Tpoly_Init(Tcl_Interp *ip) {
     
     Tcl_InitStubs(ip, "8.0", 0);
@@ -535,23 +537,27 @@ int Tpoly_Init(Tcl_Interp *ip) {
     Tptr_Init(ip);
     Tprime_Init(ip);
 
-    /* set up types and register */ 
-    tclExmo.name               = "monomial";
-    tclExmo.freeIntRepProc     = ExmoFreeInternalRepProc;
-    tclExmo.dupIntRepProc      = ExmoDupInternalRepProc;
-    tclExmo.updateStringProc   = ExmoUpdateStringProc;
-    tclExmo.setFromAnyProc     = ExmoSetFromAnyProc;
-    Tcl_RegisterObjType(&tclExmo);
-    TPtr_RegObjType(TP_EXMO, &tclExmo);
-
-    /* set up types and register */ 
-    tclPoly.name               = "polynomial";
-    tclPoly.freeIntRepProc     = PolyFreeInternalRepProc;
-    tclPoly.dupIntRepProc      = PolyDupInternalRepProc;
-    tclPoly.updateStringProc   = PolyUpdateStringProc;
-    tclPoly.setFromAnyProc     = PolySetFromAnyProc;
-    Tcl_RegisterObjType(&tclPoly);
-    TPtr_RegObjType(TP_POLY, &tclPoly);
+    if (!Tpoly_HaveTypes) {
+        /* set up types and register */ 
+        tclExmo.name               = "monomial";
+        tclExmo.freeIntRepProc     = ExmoFreeInternalRepProc;
+        tclExmo.dupIntRepProc      = ExmoDupInternalRepProc;
+        tclExmo.updateStringProc   = ExmoUpdateStringProc;
+        tclExmo.setFromAnyProc     = ExmoSetFromAnyProc;
+        Tcl_RegisterObjType(&tclExmo);
+        TPtr_RegObjType(TP_EXMO, &tclExmo);
+        
+        /* set up types and register */ 
+        tclPoly.name               = "polynomial";
+        tclPoly.freeIntRepProc     = PolyFreeInternalRepProc;
+        tclPoly.dupIntRepProc      = PolyDupInternalRepProc;
+        tclPoly.updateStringProc   = PolyUpdateStringProc;
+        tclPoly.setFromAnyProc     = PolySetFromAnyProc;
+        Tcl_RegisterObjType(&tclPoly);
+        TPtr_RegObjType(TP_POLY, &tclPoly);
+        
+        Tpoly_HaveTypes = 1;
+    }
 
     CREATECMD(NSP "exmocheck",   TPEXMO);
     CREATECMD(NSP "polycheck",   TPPOLY);
