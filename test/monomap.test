@@ -20,10 +20,96 @@ package require Steenrod 1.0
 
 namespace import ::steenrod::*
 
+interp alias {} refcount {} ::steenrod::_refcount
+
 # --------------------------------------------------------------------------
 
-test monomap- {} {
+test monomap-1.0 {basic stuff} {
+    set res [list]
+    monomap m
+    foreach i {0 1 2 3 4 5 6 7 8 9} {
+	m set [list 0 0 0 $i] [list 0 0 0 $i]
+    }		
+    foreach {opt val} [m list] {
+	set go [lindex $opt end]
+	set gv [lindex $val end]
+	if {$go != $gv} { lappend res "$opt!=$val" }
+    }
+    set res
 } {}
+
+test monomap-1.1 {key/value refcounts} {
+    set res [list]
+    monomap m
+    set m1 [list 0 0 0 1]
+    set m2 [list 0 0 0 2]
+    set r1 [refcount $m1]
+    set r2 [refcount $m2]
+    m set $m1 $m2
+    lappend res [expr [refcount $m1]-$r1] [expr [refcount $m2]-$r2] 
+    m set $m2 uhu
+    lappend res [expr [refcount $m1]-$r1] [expr [refcount $m2]-$r2]
+    m set $m2 $m1
+    lappend res [expr [refcount $m1]-$r1] [expr [refcount $m2]-$r2]
+    m unset [list 0 0 0 1]
+    lappend res [expr [refcount $m1]-$r1] [expr [refcount $m2]-$r2]
+    m set [list 0 0 0 1] uhu
+    lappend res [expr [refcount $m1]-$r1] [expr [refcount $m2]-$r2]
+    m set $m1 uhu                          
+    lappend res [expr [refcount $m1]-$r1] [expr [refcount $m2]-$r2]
+    rename m ""
+    lappend res [expr [refcount $m1]-$r1] [expr [refcount $m2]-$r2]
+} {1 1 1 2 2 2 1 1 1 1 1 1 0 0}        
+
+
+test monomap-1.2 {coefficients not significant} {
+    set res [list]
+    monomap m
+    m set [list 0 0 0 1] uhu
+    m set [list 1 0 0 1] gaga
+    set res [llength [m list]]
+} {2}
+
+test monomap-1.3 {add basics} {
+    set res [list]
+    monomap m
+    set m1 {0 0 0 0}
+    set p {{1 0 0 0}}
+    set q {{2 0 1 0}}
+    m set $m1 $p
+    m add $m1 $q
+    set res [poly compare [m get $m1] [poly add $p $q]]
+} {0}
+
+test monomap-1.4 {add, error detection} {
+    set res [list]
+    monomap m
+    m set {0 0 0 0} huhu
+    set res [catch {m add {0 0 0 0} {{1 0 0 0}}}] 
+    set res
+} {1}
+
+test monomap-1.5 {} {
+    set res [list]
+    monomap m
+
+    set res
+} {}
+
+test monomap-1. {} {
+    set res [list]
+    monomap m
+
+    set res
+} {}
+
+test monomap-1. {} {
+    set res [list]
+    monomap m
+
+    set res
+} {}
+
 
 test monomap- {} {
 } {}
@@ -33,3 +119,11 @@ test monomap- {} {
 # cleanup
 ::tcltest::cleanupTests
 return
+
+
+
+
+
+
+
+
