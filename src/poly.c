@@ -25,12 +25,21 @@
 
 /**** extended monomials ***********************************************************/
 
-int exmoGetLen(exmo *e) {
+int exmoGetRedLen(exmo *e) {
     int pad = exmoGetPad(e), j;
     for (j=NALG;j--;) 
         if (e->dat[j] != pad) 
             return (j+1);
     return 0;
+}
+
+int exmoGetLen(exmo *e) {
+    int pad = exmoGetPad(e), res, ex, j;
+    for (res=0, ex=e->ext; pad != ex; res++) ex >>= 1; 
+    for (j=res;j<NALG;j++) 
+        if (e->dat[j] != pad) 
+            res = j+1;
+    return res;
 }
 
 int exmoGetPad(exmo *e) {
@@ -97,7 +106,7 @@ int PLgetInfo(polyType *type, void *poly, polyInfo *res) {
     if (NULL != type->getInfo) {
         int rcode = (type->getInfo)(poly, res);
         if (SUCCESS != rcode) return rcode;
-        res->maxLength = PLgetMaxLength(type, poly);
+        res->maxRedLength = PLgetMaxRedLength(type, poly);
         return SUCCESS;
     }
     return FAILIMPOSSIBLE;
@@ -107,10 +116,10 @@ int PLgetNumsum(polyType *type, void *poly) {
     return (type->getNumsum)(poly);
 }
 
-int PLgetMaxLength(polyType *type, void *poly) {
+int PLgetMaxRedLength(polyType *type, void *poly) {
     int rval, i, j, num; 
-    if (NULL != type->getMaxLength) 
-        if (SUCCESS == (type->getMaxLength)(poly, &rval))
+    if (NULL != type->getMaxRedLength) 
+        if (SUCCESS == (type->getMaxRedLength)(poly, &rval))
             return rval;
     num = PLgetNumsum(type, poly);
     if (NULL != type->getExmoPtr) {
@@ -118,7 +127,7 @@ int PLgetMaxLength(polyType *type, void *poly) {
         for (rval=i=0;i<num;i++) {
             if (SUCCESS != (type->getExmoPtr)(poly, &aux, i))
                 goto exit;
-            if ((j = exmoGetLen(aux)) > rval) rval = j;
+            if ((j = exmoGetRedLen(aux)) > rval) rval = j;
         }
         return rval;
     }
