@@ -221,7 +221,7 @@ int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
     progressInfo info, *infoptr;
     matrixType *mtp;
     void *mat;
-    
+
     if ((objc<4) || (objc>6)) {
         Tcl_WrongNumArgs(ip, 1, objv, 
                          "<enumerator> <monomap> <enumerator> ?<varname>? ?<int>?");
@@ -258,10 +258,10 @@ int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
     }
 
     if (SUCCESS != MakeMatrixSameSig(ip, src, map, dst, infoptr, &mtp, &mat)) {
-        if (NULL != mtp) mtp->destroyMatrix(mat);
+        if (NULL != mat) mtp->destroyMatrix(mat);
         return TCL_ERROR;
     }
-
+  
     Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mtp, mat));
 
     return TCL_OK;
@@ -290,6 +290,7 @@ int StealStringRep(ClientData cd, Tcl_Interp *ip,
 
 
 int Steenrod_Init(Tcl_Interp *ip) {
+
     Tcl_InitStubs(ip, "8.0", 0);
 
     Tptr_Init(ip);
