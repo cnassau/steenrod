@@ -47,8 +47,9 @@ void shiftExmo(exmo *e, const exmo *shft, int flags);
 /* compute internal degree with respect to pi */
 int exmoIdeg(primeInfo *pi, const exmo *ex);
 
-/* set dst to the maximal algebra profile */
+/* set dst to the maximal/minimal algebra profile */
 void exmoSetMaxAlg(primeInfo *pi, exmo *dst);
+void exmoSetMinAlg(primeInfo *pi, exmo *dst);
 
 /* make "exponential copy" */
 void copyExpExmo(primeInfo *pi, exmo *dst, const exmo *src);

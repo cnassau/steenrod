@@ -103,6 +103,12 @@ void exmoSetMaxAlg(primeInfo *pi, exmo *dst) {
     for (i=0;i<NALG;i++) dst->dat[i] = pi->maxpowerXint;
 }
 
+void exmoSetMinAlg(primeInfo *pi, exmo *dst) {
+    int i;
+    dst->ext = 0;
+    for (i=0;i<NALG;i++) dst->dat[i] = 1;
+}
+
 void copyExpExmo(primeInfo *pi, exmo *dst, const exmo *src) {
     int i;
     dst->ext = src->ext;
