@@ -37,18 +37,36 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
     int row = (int) ma->cd5;
     int idx;
     int rcode;
+    Tcl_Interp *ip = (Tcl_Interp *) ma->TclInterp;
 
     idx = SeqnoFromEnum(dst, (exmo *) smd);
 
     if (idx < 0) { 
         ma->cd4 = (void *) FAIL;
-        return;
+        goto error;
     }
+
+    /* TODO: support optional checking whether dst[idx] really equals *smd */
 
     rcode = mtp->addToEntry(mat, row, idx, smd->coeff, ma->prime);
 
-    if (SUCCESS != rcode) 
-        ma->cd4 = (void *) rcode;
+    if (SUCCESS == rcode)
+        return;
+   
+    ma->cd4 = (void *) rcode;
+   
+ error:
+ 
+    if (NULL != ip) {
+        char err[200];
+        Tcl_Obj *aux = Tcl_NewExmoCopyObj((exmo *) smd);
+        sprintf(err, 
+                "cannot account for monomial {%s}\n"
+                "    (found sequence number %d)", 
+                Tcl_GetString(aux), idx);
+        Tcl_SetResult(ip, err, TCL_VOLATILE);
+        Tcl_DecrRefCount(aux);
+    }
 }
 
 
@@ -111,6 +129,7 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
     ma->cd3 = dst;
     ma->cd4 = SUCCESS;
     ma->cd5 = (void *) -1;
+    ma->TclInterp = ip;
     ma->stdSummandFunc = &addToMatrixCB;
 
     if (firstRedmon(src)) 
@@ -177,8 +196,17 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
 
             multCount += dgnumsum;
 
-            if (SUCCESS != (int) ma->cd4) 
-                RETERR("error encountered while computing matrix");
+            if (SUCCESS != (int) ma->cd4) {
+                if (NULL != ip) {
+                    char err[500];
+                    Tcl_Obj *aux = Tcl_NewExmoCopyObj(&(src->theex));
+                    sprintf(err, "\nwhile computing image of {%s}", 
+                            Tcl_GetString(aux));
+                    Tcl_DecrRefCount(aux);
+                    Tcl_AddObjErrorInfo(ip, err, strlen(err));
+                }
+                return FAIL;
+            }
 
         } while (nextRedmon(src));
 

@@ -102,6 +102,9 @@ typedef struct multArgs {
     int (*getExmoSF)(struct multArgs *self, int factor, const exmo **ex, int idx);
     void (*fetchFuncSF)(struct multArgs *self, int coeff); 
 
+    /* ids of both factors. These are adjusted by the workXYchain functions. */
+    int ffid, sfid;
+
     /* The multiplication matrix is stored here. For historical reasons
      * there are actually two matrices, one for "AP" and one for "PA". 
      * Here AP and PA stands for "any times positive" resp. "positive times any". */
@@ -117,7 +120,10 @@ typedef struct multArgs {
 
     /* client data -- interpretation is up to the callbacks */
     void *cd1, *cd2, *cd3, *cd4, *cd5;
-    exmo fcdexmo, scdexmo; 
+    exmo fcdexmo, scdexmo;
+
+    /* reserved for a "Tcl_Interp *" that could be used for error reporting */
+    void *TclInterp; 
 
     /* callbacks that add the summands to a poly can use these: */
     void     *resPolyPtr; 
