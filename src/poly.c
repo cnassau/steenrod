@@ -106,10 +106,11 @@ void exmoSetMaxAlg(primeInfo *pi, exmo *dst) {
 void copyExpExmo(primeInfo *pi, exmo *dst, const exmo *src) {
     int i;
     dst->ext = src->ext;
-    for (i=0;i<NALG;i++)
-        dst->dat[i] =
-            (src->dat[i] >= pi->maxpowerXintI) ?
-            pi->maxpowerXint : pi->primpows[src->dat[i]];
+    for (i=0;i<NALG;i++) {
+        int log = src->dat[i];
+        dst->dat[i] = (log < pi->maxpowerXintI) ? 
+            ((log>=0) ? pi->primpows[src->dat[i]] : 1) :  pi->maxpowerXint;
+    }
 }
 
 int exmoIdeg(primeInfo *pi, const exmo *ex) {
