@@ -58,6 +58,33 @@ The package consists...
 </dl>
 
 
+<p>
+hhu
+
+</p>
+<p> </p>
+<example>
+lappend auto_path <emph>&lt;path to steenrod.tcl&gt;</emph>
+package require Steenrod
+namespace import poly::*
+</example>
+
+hihi
+
+
+<example>poly steenmult 3 {{1 0 5 0}} {{2 1 {0 1} 0}} 
+</example>
+
+aha
+
+
+<example>poly steenmult 3 {{1 0 5 0}} {{2 1 {0 1} 0}}
+</example>
+
+hhu
+
+
+
 <p> The most recent version of the package should be available from 
 the <emph>cnext</emph> homepage at <url>http://www.nullhomotopie.de/cnext</url>.
 

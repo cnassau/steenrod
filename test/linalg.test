@@ -1,0 +1,153 @@
+# -*- tcl -*-
+#
+# This file provides a test suite for the linear algebra routines
+#
+# Copyright (C) 2003 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+
+package require Steenrod
+
+namespace import ::linalg::*
+
+#test linalg-1.0 {isvector, from list} { isvector {1 10 26 -12 23 } } {1}
+#test linalg-1.1 {isvector, from list} { isvector [list 1 10 26 -12 23 ] } {1}
+#test linalg-1.2 {isvector, empty list} { isvector [list] } {1}
+#test linalg-1.3 {isvector, empty input} { isvector "" } {""}
+
+test linalg-1.4 {matrix test, empty input} { matrix test {} } {}
+test linalg-1.5 {matrix test, simple list 4x1} { matrix test {1 0 2 1} } {}
+test linalg-1.6 {matrix test, simple list 1x4} { matrix test {{1} {0} {2} {1}} } {}
+test linalg-1.7 {matrix test, 1x1} { matrix test {{1}} } {}
+test linalg-1.7 {matrix test, 1x1} { matrix test {{1}} } {}    
+
+test linalg-1.9 {matrix test, shared entries} { 
+    set i 5 
+    set row [list 0 $i $i 5] 
+    matrix test [list $row $row $row]
+} {}
+
+test linalg-1.10 {string length [matrix test, rows of different length} { 
+    set res {}
+    lappend res [expr ![string length [matrix test { {0 1} {} }]]]
+    lappend res [expr ![string length [matrix test { {0 1} {2} }]]]
+    lappend res [expr ![string length [matrix test { {0 1} {7 1} }]]]
+    lappend res [expr ![string length [matrix test { {0 1} {7 1 -1} }]]]
+} {0 0 1 0}
+
+test linalg-2.0 {matrix dimensions, 0x0} { matrix dimensions {} } {0 0} 
+test linalg-2.1 {matrix dimensions, 1x0 - 1x3} { 
+    set res {}
+    lappend res [matrix dimensions {}] 
+    lappend res [matrix dimensions {{}}] 
+    lappend res [matrix dimensions {{} {}}] 
+    lappend res [matrix dimensions {{} {} {}}] 
+} {{0 0} {1 0} {2 0} {3 0}}
+
+test linalg-2.2 {matrix dimensions, 5x1} { matrix dimensions {1 2 3 4 5} } {5 1}
+test linalg-2.3 {matrix dimensions, 5x1 (sane)} { matrix dimensions {{1} {2} {3} {4} {5}} } {5 1}
+
+
+
+
+# First, a bunch of individual tests
+
+test list-1.1 {basic tests} {list a b c} {a b c}
+test list-1.2 {basic tests} {list {a b} c} {{a b} c}
+test list-1.3 {basic tests} {list \{a b c} {\{a b c}
+test list-1.4 {basic tests} "list a{}} b{} c}" "a\\{\\}\\} b{} c\\}"
+test list-1.5 {basic tests} {list a\[ b\] } "{a\[} b\\]"
+test list-1.6 {basic tests} {list c\  d\t } "{c } {d\t}"
+test list-1.7 {basic tests} {list e\n f\$ } "{e\n} {f\$}"
+test list-1.8 {basic tests} {list g\; h\\} {{g;} h\\}
+test list-1.9 {basic tests} "list a\\\[} b\\\]} " "a\\\[\\\} b\\\]\\\}"
+test list-1.10 {basic tests} "list c\\\} d\\t} " "c\\} d\\t\\}"
+test list-1.11 {basic tests} "list e\\n} f\\$} " "e\\n\\} f\\$\\}"
+test list-1.12 {basic tests} "list g\\;} h\\\\} " "g\\;\\} {h\\}}"
+test list-1.13 {basic tests} {list a {{}} b} {a {{}} b}
+test list-1.14 {basic tests} {list a b xy\\} "a b xy\\\\"
+test list-1.15 {basic tests} "list a b\} e\\" "a b\\} e\\\\"
+test list-1.16 {basic tests} "list a b\}\\\$ e\\\$\\" "a b\\}\\\$ e\\\$\\\\"
+test list-1.17 {basic tests} {list a\f \{\f} "{a\f} \\\{\\f"
+test list-1.18 {basic tests} {list a\r \{\r} "{a\r} \\\{\\r"
+test list-1.19 {basic tests} {list a\v \{\v} "{a\v} \\\{\\v"
+test list-1.20 {basic tests} {list \"\}\{} "\\\"\\}\\{"
+test list-1.21 {basic tests} {list a b c\\\nd} "a b c\\\\\\nd"
+test list-1.22 {basic tests} {list "{ab}\\"} \\{ab\\}\\\\
+test list-1.23 {basic tests} {list \{} "\\{"
+test list-1.24 {basic tests} {list} {}
+
+# For the next round of tests create a list and then pick it apart
+# with "index" to make sure that we get back exactly what went in.
+
+set num 0
+proc lcheck {testid a b c} {
+    global num d
+    set d [list $a $b $c]
+    test ${testid}-0 {what goes in must come out} {lindex $d 0} $a
+    test ${testid}-1 {what goes in must come out} {lindex $d 1} $b
+    test ${testid}-2 {what goes in must come out} {lindex $d 2} $c
+}
+lcheck list-2.1  a b c
+lcheck list-2.2  "a b" c\td e\nf
+lcheck list-2.3  {{a b}} {} {  }
+lcheck list-2.4  \$ \$ab ab\$
+lcheck list-2.5  \; \;ab ab\;
+lcheck list-2.6  \[ \[ab ab\[
+lcheck list-2.7  \\ \\ab ab\\
+lcheck list-2.8  {"} {"ab} {ab"}	;#" Stupid emacs highlighting!
+lcheck list-2.9  {a b} { ab} {ab }
+lcheck list-2.10 a{ a{b \{ab
+lcheck list-2.11 a} a}b }ab
+lcheck list-2.12 a\\} {a \}b} {a \{c}
+lcheck list-2.13 xyz \\ 1\\\n2
+lcheck list-2.14 "{ab}\\" "{ab}xy" abc
+
+concat {}
+
+# Check that tclListObj.c's SetListFromAny handles possible overlarge
+# string rep lengths in the source object.
+
+proc slowsort list {
+    set result {}
+    set last [expr [llength $list] - 1]
+    while {$last > 0} {
+	set minIndex [expr [llength $list] - 1]
+	set min [lindex $list $last]
+	set i [expr $minIndex-1]
+	while {$i >= 0} {
+	    if {[string compare [lindex $list $i] $min] < 0} {
+		set minIndex $i
+		set min [lindex $list $i]
+	    }
+	    set i [expr $i-1]
+	}
+	set result [concat $result [list $min]]
+	if {$minIndex == 0} {
+	    set list [lrange $list 1 end]
+	} else {
+	    set list [concat [lrange $list 0 [expr $minIndex-1]] \
+			  [lrange $list [expr $minIndex+1] end]]
+	}
+	set last [expr $last-1]
+    }
+    return [concat $result $list]
+}
+test list-3.1 {SetListFromAny and lrange/concat results} {
+    slowsort {fred julie alex carol bill annie}
+} {alex annie bill carol fred julie}
+
+# cleanup
+::tcltest::cleanupTests
+return

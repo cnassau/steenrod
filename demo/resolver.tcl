@@ -19,8 +19,7 @@ if {[catch {package require Steenrod}]} {
     exit 1
 }
 
-namespace import linalg::*
-namespace import poly::*
+namespace import steenrod::*
 
 array set defoptions {
     -prime   { {} "the prime" }
@@ -70,7 +69,7 @@ foreach {opt val} $argv {
 if {$options(-prime)==""} { usage }
 
 # see if options make sense
-poly::enumerator x 
+enumerator x 
 if {[catch {
     x co -prime $options(-prime) -algebra $options(-algebra)
     x dim
@@ -187,9 +186,9 @@ proc maxUpperProfile {prime algebra s ideg edeg} {
 
     if {!$useupper} { return {0 0 0 0} }
 
-    set edegs [prime::extdegs $prime]
-    set rdegs [prime::reddegs $prime]
-    set tpmo  [prime::tpmo $prime]
+    set edegs [prime $prime edegrees]
+    set rdegs [prime $prime rdegrees]
+    set tpmo  [prime $prime tpmo]
 
     set NALG [llength $rdegs]
 
@@ -224,14 +223,14 @@ proc maxLowerProfile {prime algebra s ideg edeg} {
 
     if {!$uselower} { return {0 0 0 0} }
 
-    set edegs [prime::extdegs $prime]
-    set rdegs [prime::reddegs $prime]
-    set tpmo  [prime::tpmo $prime]
+    set edegs [prime $prime edegrees]
+    set rdegs [prime $prime rdegrees]
+    set tpmo  [prime $prime tpmo]
     set NALG  [llength $rdegs]
 
     if {$algebra=={}} { 
         set aux {}
-        foreach dg [prime::reddegs $prime] { lappend aux $NALG }
+        foreach dg [prime $prime rdegrees] { lappend aux $NALG }
         set algebra [list 0 -1 $aux 0]
     }
     
@@ -241,8 +240,7 @@ proc maxLowerProfile {prime algebra s ideg edeg} {
     # ext and red describe the profile of the used subalgebra B
     set ext 0
     set red {}
-    foreach dg [prime::reddegs $prime] { lappend red 0 }
-
+    foreach dg [prime $prime rdegrees] { lappend red 0 }
 
     # dB is the maximal slope, tB the maximal dimension of B
     set dB 0
@@ -374,11 +372,11 @@ for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
                     set mdsc {}
                     for {set i [C0 dim]} {$i>0} {incr i -1} { lappend mdsc 0 }
                 }                
-                eval set mdsn \[poly::ComputeMatrix C$sn d$sn C$sc\]  
+                eval set mdsn \[ComputeMatrix C$sn d$sn C$sc\]  
             } else {
                 # using eval here gives nicer error reports
-                eval set mdsc \[poly::ComputeMatrix C$sc d$sc C$sp\]  
-                eval set mdsn \[poly::ComputeMatrix C$sn d$sn C$sc\]  
+                eval set mdsc \[ComputeMatrix C$sc d$sc C$sp\]  
+                eval set mdsn \[ComputeMatrix C$sn d$sn C$sc\]  
             }
             
             # compute image...
@@ -425,7 +423,7 @@ for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
             # We use an auxiliary enumerator as a reference for error vectors. 
             # This one agrees with C$sp except that it has empty profile
 
-            poly::enumerator errenu
+            enumerator errenu
             foreach parm [C$sp configure] { 
                 errenu configure [lindex $parm 0] [lindex $parm 1] 
             }
@@ -438,7 +436,7 @@ for {set sdeg 0} {$sdeg<$maxs} {incr sdeg} {
             # The rows in the matrix errterms are "d(d($id))" so they
             # should be zero at the end of the correction process
 
-            set errterms [poly::ComputeImage d$sc errenu $newdiffs]
+            set errterms [ComputeImage d$sc errenu $newdiffs]
             
             dbgadd { "errterms = $errterms" }
             dbgadd { "C$sp basis = [errenu basis]" }

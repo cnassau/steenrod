@@ -18,8 +18,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 
 package require Steenrod 1.0
 
-namespace import ::poly::mono
-namespace import ::poly::poly
+namespace import steenrod::*
 
 # --------------------------------------------------------------------------
 
@@ -428,7 +427,7 @@ foreach prime {2 3 5 7 11 13} {
             set pol1 [poly posmult $pol1 $pol2 $prime]
             for {set j 0} {$j<=$i} {incr j} {
                 set cf [poly coeff $pol1 [list 0 0 [list $j [expr $i-$j]] 0]]
-                set bn [prime::binom $prime $i $j]
+                set bn [prime $prime binom $i $j]
                 if {$cf!=$bn} { lappend res "coeffs:$cf!=$bn" }
             }
             set ln [llength $pol1]
@@ -447,7 +446,7 @@ foreach prime {2 3 5 7 11 13} {
             set pol1 [poly negmult $pol1 $pol2 $prime]
             for {set j 0} {$j<=$i} {incr j} {
                 set cf [poly coeff $pol1 [list 0 -1 [list [expr -1-$j] [expr -1-$i+$j]] 0]]
-                set bn [prime::binom $prime $i $j]
+                set bn [prime $prime binom $i $j]
                 if {$cf!=$bn} { lappend res "coeffs:$cf!=$bn" }
             }
             set ln [llength $pol1]

@@ -139,7 +139,7 @@ proc myfilter {m} {
     if {$ext==0} {
         set v [lindex $m 2] 
         set i 1
-        foreach pow [::prime::primpows $::p] {
+        foreach pow [::prime $::p powers] {
             if {$pow==$v} {
                 addLine [lindex $m 3] $i
                 return -code continue 

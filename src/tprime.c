@@ -16,71 +16,92 @@
 #include "tptr.h"
 #include "prime.h"
 
-/* client data to distinguish the subcommands */
-#define CD_CREATE      1
-#define CD_DISPOSE     2
-#define CD_MAXPOW      3
-#define CD_TPMO        4
-#define CD_N           5
-#define CD_PRIMPOWS    6
-#define CD_REDDEGS     7
-#define CD_EXTDEGS     8
-#define CD_INVERSE     9
-#define CD_BINOM       10
-#define CD_PRIME       11
-
 #define DBGPR if (0)
     
-#define RETURNINT(rval) Tcl_SetObjResult(ip,Tcl_NewIntObj(rval)); return TCL_OK
+#define RETURNINT(rval) { Tcl_SetObjResult(ip,Tcl_NewIntObj(rval)); return TCL_OK; }
 #define RETURNLIST(list,len) \
-Tcl_SetObjResult(ip,Tcl_ListFromArray(len,list)); return TCL_OK
+{ Tcl_SetObjResult(ip,Tcl_ListFromArray(len,list)); return TCL_OK; }
+#define RETERR(errmsg) \
+{ if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
 
-int tPrInfo(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
-    int cdi = (int) cd;
-    int a, b;
+typedef enum { TEST, MAXPOW, TPMO, N, PRIMPOWS, RDEGS, EDEGS, INVERSE, BINOM } ecmdcode;
+
+static CONST char *eCmdNames[] = { "test", "maxpower", "tpmo", "N", "powers",
+                                   "rdegrees", "edegrees", "inverse", "binom",
+                                   (char *) NULL };
+
+static ecmdcode eCmdmap[] = { TEST, MAXPOW, TPMO, N, PRIMPOWS, 
+                              RDEGS, EDEGS, INVERSE, BINOM };
+
+#define EXPECTARGS(num,msg) \
+ { if (objc != (num)) { Tcl_WrongNumArgs(ip, 3, objv, msg); return TCL_ERROR; } }
+
+int PrimeCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
+ {
+    int result, index, a, b;
     primeInfo *pi;
 
-    /* the initial switch just implements create & dispose;
-     * for other commands we only check the arguments here */
-    switch (cdi) {
-        case CD_INVERSE:
-            if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,TP_PRIME,TP_INT,TP_END))
-                return TCL_ERROR;
-            Tcl_GetIntFromObj(ip, objv[2], &a);
-            break;
-        case CD_BINOM:
-            if (TCL_OK!=TPtr_CheckArgs(ip,objc,objv,
-                                       TP_PRIME,TP_INT,TP_INT,TP_END))
-                return TCL_ERROR;
-            Tcl_GetIntFromObj(ip, objv[2], &a);
-            Tcl_GetIntFromObj(ip, objv[3], &b);
-            break;
-        default:
-            if (TCL_OK != TPtr_CheckArgs(ip, objc, objv, TP_PRIME, TP_END))
-                return TCL_ERROR;
+    if (objc < 3) {
+        Tcl_WrongNumArgs(ip, 1, objv, "<prime> subcommand ?arg arg ...?");
+        return TCL_ERROR;
     }
-    
-    if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[1], &pi)) return TCL_ERROR;
 
-    switch (cdi) {
-        case CD_BINOM: RETURNINT(binomp(pi, a, b)) ;
-        case CD_INVERSE:
-            a %= pi->prime;
-            if (0 == a) {
-                Tcl_SetResult(ip, "division by zero", TCL_VOLATILE);
+    result = Tcl_GetIndexFromObj(ip, objv[2], eCmdNames, "subcommand", 0, &index);
+    if (result != TCL_OK) return result;
+
+    if (TEST != eCmdmap[index]) 
+        if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[1], &pi))
+            return TCL_ERROR;
+
+    switch (eCmdmap[index]) {
+        case TEST:
+            EXPECTARGS(3,"");
+            Tcl_GetPrimeInfo(ip, objv[1], &pi);
+            return TCL_OK;
+
+        case MAXPOW:
+            EXPECTARGS(3,""); 
+            RETURNINT(pi->maxpowerXintI);
+
+        case TPMO:
+            EXPECTARGS(3,""); 
+            RETURNINT(pi->tpmo);
+
+        case N:
+            EXPECTARGS(3,""); 
+            RETURNINT(NALG);
+
+        case PRIMPOWS:
+            EXPECTARGS(3,""); 
+            RETURNLIST(pi->primpows, NALG);
+
+        case RDEGS:
+            EXPECTARGS(3,""); 
+            RETURNLIST(pi->reddegs, NALG);
+
+        case EDEGS:
+            EXPECTARGS(3,""); 
+            RETURNLIST(pi->extdegs, NALG);
+ 
+        case INVERSE:
+            EXPECTARGS(4,"<integer>"); 
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &a))
                 return TCL_ERROR;
-            }
+            a %= pi->prime;
+            if (0 == a) 
+                RETERR("division by zero");
             RETURNINT(pi->inverse[a]);
-        case CD_PRIME: RETURNINT(pi->prime);
-        case CD_MAXPOW: RETURNINT(pi->maxpowerXintI);
-        case CD_N: RETURNINT(NALG);
-        case CD_TPMO: RETURNINT(pi->tpmo);
-        case CD_REDDEGS: RETURNLIST(pi->reddegs, NALG);
-        case CD_EXTDEGS: RETURNLIST(pi->extdegs, NALG);
-        case CD_PRIMPOWS: RETURNLIST(pi->primpows, NALG);
-    } 
-    
-    Tcl_SetResult(ip, "internal error in tPtrInfo", TCL_VOLATILE);
+            
+        case BINOM:
+            EXPECTARGS(5,"<integer> <integer>"); 
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &a))
+                return TCL_ERROR;
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &b))
+                return TCL_ERROR;
+            RETURNINT(binomp(pi, a, b));
+    }
+ 
+    Tcl_SetResult(ip, "internal error in PrimeCombiCmd", TCL_STATIC);
     return TCL_ERROR;
 }
 
@@ -161,7 +182,7 @@ int Tcl_GetPrimeInfo(Tcl_Interp *ip, Tcl_Obj *obj, primeInfo **pi) {
 }
 
 /* our namespace */
-#define NSP "prime::"
+#define NSP "steenrod::"
 
 int Tprime_HaveType; 
 
@@ -184,18 +205,7 @@ int Tprime_Init(Tcl_Interp *ip) {
         Tprime_HaveType = 1;
     }
 
-#define CREATECOMMAND(name, code) \
-Tcl_CreateObjCommand(ip, NSP name,tPrInfo,(ClientData) code, NULL);
-
-    CREATECOMMAND("primecheck", CD_PRIME);
-    CREATECOMMAND("maxpow",     CD_MAXPOW);
-    CREATECOMMAND("tpmo",       CD_TPMO);
-    CREATECOMMAND("N",          CD_N);
-    CREATECOMMAND("primpows",   CD_PRIMPOWS);
-    CREATECOMMAND("reddegs",    CD_REDDEGS);
-    CREATECOMMAND("extdegs",    CD_EXTDEGS);
-    CREATECOMMAND("inverse",    CD_INVERSE);
-    CREATECOMMAND("binom",      CD_BINOM);
+    Tcl_CreateObjCommand(ip, NSP "prime", PrimeCombiCmd, (ClientData) 0, NULL);
 
     Tcl_Eval(ip, "namespace eval " NSP " { namespace export * }");
 

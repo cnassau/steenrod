@@ -238,7 +238,7 @@ Database Class:	\\fB\\$3\\fR
 .de UL
 \\$1\l'|0\(ul'\\$2
 ..
-.TH "Steenrod" n 1.0  "Tcl"
+.TH "Steenrod" n 1.0  "Tcl package"
 .BS
 .SH "NAME"
 Steenrod \- Tcl package for Steenrod algebra computations
@@ -261,13 +261,46 @@ The package consists...
 .TP
 poly subcommand ?args?\fR
 .PP
-The most recent version of the package should be available from
+hhu
+.PP
+.nf
+lappend auto_path \fI<path to steenrod.tcl>\fR
+package require Steenrod
+namespace import poly::*.fi
+
+hihi
+
+
+
+.nfpoly steenmult 3 {{1 0 5 0}} {{2 1 {0 1} 0}} .fi
+
+aha
+
+
+
+.nfpoly steenmult 3 {{1 0 5 0}} {{2 1 {0 1} 0}}.fi
+
+hhu
+
+
+
+.PP
+ The most recent version of the package should be available from
 the \fIcnext\fR homepage at \fIhttp://www.nullhomotopie.de/cnext\fR.
+
+
+
+
+
+
 .SH "SEE ALSO"
 enumerator, linalg, matrix, mono, monomap, poly, prime
+
 .SH "KEYWORDS"
 Mathematics, Steenrod algebra, Tcl package
+
 .SH "COPYRIGHT"
+
 .nf
 Copyright (c) 2003 Christian Nassau
 .fi
