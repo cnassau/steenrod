@@ -74,7 +74,7 @@ proc addDot {x y edeg id s} {
     set col [format "\#%0x2d%0x2d%0x2d" $colval $colval $bval]
 
     while {[info exists ::clst($x,$y)]} {
-        set x [expr $x-.1]
+        set x [expr $x-.11]
         set y [expr $y+.1]
     }
     set ::clst($x,$y) {}
