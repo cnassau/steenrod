@@ -48,7 +48,7 @@ void momapClear(momap *mo) {
 
 void momapDestroy(momap *mo) {
     freeValues(mo);
-    stdpoly->clear(mo->keys);
+    stdpoly->free(mo->keys);
     freex(mo);
 }
 

@@ -306,7 +306,7 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
                 return TCL_ERROR;
             case GENLIST:
                 if (objv[1] == te->genlist) break;
-                if (NULL != te->gl) freex(te->gl);
+                if (NULL != te->gl) freex(te->gl); 
                 if (NULL == (te->gl = getGenList(ip, objv[1], &(te->gllength)))) 
                     return TCL_ERROR;
                 aux.genlist = objv[1];
@@ -712,7 +712,12 @@ void Tcl_DestroyEnum(ClientData cd) {
     TRYFREEOBJ(te->edeg);
     TRYFREEOBJ(te->hdeg);
     TRYFREEOBJ(te->genlist);
-    if (NULL != te->enm) enmDestroy(te->enm);
+    /* don't free te->ispos */    
+    if (NULL != te->gl) freex(te->gl);
+    if (NULL != te->enm) {
+        enmDestroy(te->enm);
+        freex(te->enm);
+    }
     freex(te);
 }
 
@@ -760,7 +765,7 @@ int Tcl_CreateEnumCmd(ClientData cd, Tcl_Interp *ip,
     te->prime = te->alg = te->pro = te->sig = te->ideg = te->edeg = te->hdeg 
         = te->genlist = NULL;
 
-    te->ispos = ourPosObj; Tcl_IncrRefCount(ourPosObj);
+    te->ispos = ourPosObj; 
 
     /* mark all options as changed */
     te->cprime = te->calg = te->cpro = te->csig = te->cideg = te->cedeg = te->chdeg 

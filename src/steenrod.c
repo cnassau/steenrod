@@ -531,6 +531,19 @@ int StealStringRep(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
+int GetRefCount(ClientData cd, Tcl_Interp *ip,
+                   int objc, Tcl_Obj * CONST objv[]) {
+    if (objc != 2) {
+        Tcl_SetResult(ip, "usage: ", TCL_STATIC);
+        Tcl_AppendResult(ip, Tcl_GetString(objv[0]));
+        Tcl_AppendResult(ip, " <argument>");
+        return TCL_ERROR;
+    }
+    
+    Tcl_SetObjResult(ip, Tcl_NewIntObj(objv[1]->refCount));
+
+    return TCL_OK;
+}
 
 int Steenrod_Init(Tcl_Interp *ip) {
 
@@ -552,7 +565,10 @@ int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_CreateObjCommand(ip, STEALCOMMAND,
                          StealStringRep, (ClientData) 0, NULL);
 
-    Tcl_Eval(ip, "namespace eval " POLYNSP " { namespace export * }");
+    Tcl_CreateObjCommand(ip, POLYNSP "_refcount",
+                         GetRefCount, (ClientData) 0, NULL);
+
+    Tcl_Eval(ip, "namespace eval " POLYNSP " { namespace export -clear \\[a-zA-Z\\]* }");
 
 #if 0
     /* We need to use a Tcl wrapper for platform specific library
