@@ -45,8 +45,6 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
         return;
     }
 
-    printf("add %d to (%d,%d)\n", smd->coeff, row, idx);
-
     rcode = mtp->addToEntry(mat, row, idx, smd->coeff, ma->prime);
 
     if (SUCCESS != rcode) 
