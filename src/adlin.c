@@ -133,7 +133,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
     uspr = un->nomcols;
 
     for (v1.data=inp->data, i=0; i<inp->rows; i++, v1.data+=spr) {
-        cint coeff; int pos;
+        cint coeff, negcoeff; int pos;
         if ((NULL != progvar) && (0==(i&pmsk))) {
             perc = i; perc /= inp->rows;
             perc = 1-perc; perc *= perc; perc = 1-perc;
@@ -146,7 +146,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
             /* row is zero */
         } else {
             pos = aux - v1.data;
-            coeff = pi->inverse[(unsigned) *aux]; 
+            negcoeff = coeff = pi->inverse[(unsigned) *aux]; 
             coeff = prime-coeff; coeff %= prime;
             /* go through all other rows and normalize */
             v2.data = v1.data + spr; aux += spr;
@@ -162,7 +162,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
             v2.data = lft->data; v4.data = res->data; aux = v2.data + pos;
             for (j=0; j<lft->rows; j++, v2.data+=spr, v4.data+=uspr, aux+=spr)
                 if (0 != *aux) {
-                    vector_add(&v4, &v3, CINTMULT(*aux,coeff,prime), prime);
+                    vector_add(&v4, &v3, CINTMULT(*aux,negcoeff,prime), prime);
                     vector_add(&v2, &v1, CINTMULT(*aux,coeff,prime), prime);
                 }
         }
