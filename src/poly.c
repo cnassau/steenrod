@@ -434,7 +434,7 @@ int stdAppendExmo(void *self, const exmo *ex) {
     stp *s = (stp *) self;
     LOGSTD("AppendExmo");
     if (s->num == s->nalloc) {
-        int aux = s->nalloc + 10;
+        int aux = s->nalloc + 10; 
         if (SUCCESS != stdRealloc(self, s->nalloc + ((aux > 200) ? 200: aux)))
             return FAILMEM;
     }
@@ -645,19 +645,39 @@ int compSortItem(const void *a, const void *b) {
     return compareExmo(aa->ex, bb->ex);
 }
 
+#define SLOG 0
+
 int stdpolySortWithValues(void *poly, void **values) {
     stp *s = (stp *) poly;
     sortitem *sit;
-    int i;
-    if (NULL == (sit = mallox(sizeof(sortitem) * s->num))) 
+    int i, snum;
+
+    if (NULL == (sit = mallox(sizeof(sortitem) * (s->num + 0)))) 
         return FAILMEM;
+
+    if (SLOG) printf("Sorting:");
+
+    snum = s->num;
+
     for (i=0;i<s->num;i++) {
         sit[i].ex  = &(s->dat[i]);
         sit[i].val = values[i];
+        if (SLOG) printf(" %p", values[i]);
     }
+
     qsort(sit, s->num, sizeof(sortitem), compSortItem);
     stdSort(s);
-    for (i=0;i<s->num;i++)
+
+    if (SLOG) assert(snum == s->num); 
+
+    if (SLOG) printf("\nResult:");
+
+    for (i=0;i<s->num;i++) {
         values[i] = sit[i].val;
+        if (SLOG) printf(" %p", values[i]);  
+    }
+
+    if (SLOG) printf("\n");
+
     return SUCCESS;
 }

@@ -57,7 +57,7 @@ void stdGetDimensions(void *m, int *row, int *col) {
 
 void *stdCreateMatrix(int row, int col) {
     matrix *mat = matrix_create(row, col);
-    matrix_clear(mat);
+    if (NULL != mat) matrix_clear(mat);
     return mat;
 }
 
@@ -81,6 +81,7 @@ int stdReduceMatrix(void *mat, int prime) {
     int i, j;
     matrix *m = (matrix *) mat;
     cint *rowptr;
+    if (m->rows>1000) assert(0==*((int *) 0));
     for (j=m->rows;j--;) {
         rowptr = m->data + j* m->nomcols;
         for (i=m->cols;i--;)

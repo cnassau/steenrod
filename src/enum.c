@@ -70,7 +70,14 @@ void enmDestroySeqOff(enumerator *en) {
 }
 
 void enmDestroySeqtab(enumerator *en) {
-    int i;        
+    int i;      
+#if 0  
+    printf("enmDestroySeqtab en=%p\n",en);
+    for (i=0;i<NALG+1;i++) {
+        printf("  en(%p)->dimtab[%d]=%p\n",en,i,en->dimtab[i]);
+        printf("  en(%p)->seqtab[%d]=%p\n",en,i,en->seqtab[i]);
+    }
+#endif
     for (i=0;i<NALG+1;i++) {
         FREEPTR(en->dimtab[i]);
         FREEPTR(en->seqtab[i]);
@@ -200,9 +207,11 @@ int findExtsForGenerator(enumerator *en, int id, int rideg, int redeg) {
 int enmRecreateEfflist(enumerator *en) {
     int i, *glp, tideg, tedeg, thdeg;
     if (NULL == en->pi) return FAILIMPOSSIBLE;
+
     /* if present: destroy old values */
     enmDestroyEffList(en);
     en->maxrrideg = 0; en->maxredeg = -1;
+
     /* find real tridegree coords */
     enmUpdateSigInfo(en, &(en->signature), &(en->sigideg), &(en->sigedeg));
     thdeg = en->hdeg;
@@ -211,6 +220,7 @@ int enmRecreateEfflist(enumerator *en) {
     if (ENLOG) printf("after signature correction: (sig: %d,%d) "
                       "trideg = (%d, %d, %d)\n", 
                       en->sigideg, en->sigedeg, tideg, tedeg, thdeg);
+
     /* go through all gens in the genlist and look for appropriate exteriors */
     for (i=0,glp=en->genList; i<en->numgens; i++,glp+=4) {
         int id = glp[0], ideg = glp[1], edeg = glp[2], hdeg = glp[3];
@@ -230,6 +240,7 @@ int enmRecreateEfflist(enumerator *en) {
             } 
         }
     }
+
     /* realloc to minimal space */
     if (SUCCESS != enmReallocEfflist(en, 0)) {
         enmDestroyEffList(en);
@@ -381,18 +392,18 @@ int enmCreateSeqtab(enumerator *en) {
         }
 
     if (ENLOG) {
-        printf("dimtab & seqtable debug info (prime %d):\n", en->pi->prime);
+        printf("dimtab & seqtab info (prime %d, en %p):\n", en->pi->prime, en);
         printf("en->effdeg ="); 
         for (i=0;i<NALG;i++) printf(" %d",en->effdeg[i]);
         printf("\nbeginning of dimtab:\n");
         for (i=0;i<NALG;i++) {
-            printf("  dimtab[%d] = ",i);
+            printf("  dimtab[%d] (at %p) = ",i,en->dimtab[i]);
             for (n=0;n<10;n++) printf(" %d",en->dimtab[i][n]); 
             printf("...\n");
         }
         printf("\nbeginning of seqtab: (seqtab[0][0] = %d)\n",en->seqtab[0][0]);
         for (i=1;i<NALG;i++) {
-            printf("  seqtab[%d] = ",i);
+            printf("  seqtab[%d] (at %p) = ",i,en->seqtab[i]);
             for (n=0;n<10;n++) printf(" %d",en->seqtab[i][n]); 
             printf("...\n");
         }
@@ -408,7 +419,9 @@ int algDimension(enumerator *en, int rdim) {
 int enmCreateSeqoff(enumerator *en) {
     int cnt, i;
 
-    if (NULL == en->efflist) enmRecreateEfflist(en);
+    if (NULL == en->efflist) 
+        if (SUCCESS != (i = enmRecreateEfflist(en)))
+            return i;
 
     if (en->maxrrideg > en->tabmaxrideg) 
         enmDestroySeqtab(en);
