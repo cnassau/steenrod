@@ -18,7 +18,7 @@ NOWEAVE  = noweave
 
 NOWEBFILES = mult.nw
 SRCS = adlin.c linalg.c poly.c prime.c tlin.c tprime.c tptr.c tptrtest.c \
-       tpoly.c profile.c tprofile.c maps.c
+       tpoly.c profile.c tprofile.c maps.c tmap.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -78,6 +78,10 @@ clean:
 reformat:
 	refmt.sh *.c *.h 
 
+.PHONY: refmt
+
+refmt: reformat
+
 # DO NOT DELETE -- make depend will overwrite the entries below
 
 adlin.o: adlin.h linalg.h prime.h
@@ -89,5 +93,7 @@ tprime.o: tprime.h tptr.h prime.h
 tptr.o: tptr.h
 tptrtest.o: tptr.h
 tpoly.o: tptr.h tpoly.h tprime.h poly.h prime.h
-profile.o: ./profile.h prime.h
-tprofile.o: tptr.h tprime.h tprofile.h ./profile.h prime.h
+profile.o: profile.h prime.h
+tprofile.o: tptr.h tprime.h tprofile.h profile.h prime.h
+maps.o: maps.h prime.h
+tmap.o: tmap.h tptr.h

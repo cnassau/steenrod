@@ -11,7 +11,7 @@
  *
  */
 
-#include <maps.h>
+#include "maps.h"
 
 int diffRealloc(diff *df, int newalloc) {
     diffsum *ndat;
