@@ -16,8 +16,12 @@
 \documentclass{article}
 \usepackage{a4}
 \usepackage{noweb}
+\usepackage{amsmath}
 
 \begin{document} 
+
+\newcommand{\FF}{\mathbb{F}}
+
 \title{The multiplication routine}
 \author{Christian Nassau}
 
@@ -62,6 +66,21 @@ is outlined here:
 
 <<putting it all together>>
 @ These files are gradually built up as we go through this document.
+
+@ \end{section}
+
+@ \begin{section}{Background}
+We work at an arbitrary prime $p$ which is only restricted by the 
+size of the data type [[cint]] that we use for elements of $\F_p$. 
+[[cint]] stands for ``\underline{c}oefficient \underline{int}eger''
+and is declared in [[prime.h]].
+
+Naturally, we assume sufficient familiarity with the Steenrod algebra. 
+We use Milnor's basis to represent algebra elements; recall that
+such a basis element is given by an expression 
+$Q(\eps_0, \eps_1,\ldots) P(r_1, r_2, \ldots)$ where $\eps_i\in\{0,1\}$
+and $r_i\ge 0$, with almost all $r_i=0$ and almost all $\eps_i=0$.
+
 
 @ \end{section}
 
