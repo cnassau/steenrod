@@ -44,7 +44,7 @@ typedef struct {
         *oldmsk, *newmsk,
         *sum,
         *res;
-    int sum_weight, res_weight;
+    int sum_weight, res_weight, ext_weight;
     int estat;
 } Xfield;
 

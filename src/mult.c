@@ -175,11 +175,7 @@ void initxfPA(multArgs *MA) {
                 xf->quant = 1;
                 xf->estat = 1;
             } else {
-#if 0
-                xf->quant = pi->primpows[MA->profile->dat[i+j-1]];
-#else
                 xf->quant = MA->profile->dat[i+j-1];
-#endif
                 xf->estat = 
                     (0 == (MA->profile->ext & (1 << (i+j-1)))) ? 1 : 0;  
             }
@@ -187,6 +183,7 @@ void initxfPA(multArgs *MA) {
             xf->newmsk = &(MA->msk[i][j]);
             xf->res    = &(MA->msk[i][0]); xf->res_weight = pi->primpows[j];
             xf->sum    = &(MA->sum[0][j]); xf->sum_weight = 1;
+            xf->ext_weight = pi->primpows[j-1];
         }
     }
 }
@@ -201,7 +198,7 @@ void initxfAP(multArgs *MA) {
                 xf->quant = 1;
                 xf->estat = 1;
             } else {
-                xf->quant = pi->primpows[MA->profile->dat[i+j-1]];
+                xf->quant = MA->profile->dat[i+j-1];
                 xf->estat = 
                     (0 == (MA->profile->ext & (1 << (i+j-1)))) ? 1 : 0;  
             }
@@ -209,6 +206,7 @@ void initxfAP(multArgs *MA) {
             xf->newmsk = &(MA->msk[i][j]);
             xf->res    = &(MA->msk[0][j]); xf->res_weight = 1; 
             xf->sum    = &(MA->sum[i][0]); xf->sum_weight = pi->primpows[j];
+            xf->ext_weight = pi->primpows[j-1];
         }
     }
 }
@@ -242,9 +240,9 @@ void handlePABox(multArgs *ma, int row, int col, xint coeff) {
     }
 #endif
     if ((0 != ma->xfPA[row][col].estat) 
-        && (*(ma->xfPA[row][col].res) >= ma->xfPA[row][col].res_weight) 
+        && (*(ma->xfPA[row][col].res) >= ma->xfPA[row][col].ext_weight) 
         && (0 == ((eval<<row) & ma->emsk[row])) && (0 == (eval & ma->esum[row]))) {
-        *(ma->xfPA[row][col].res) -= ma->xfPA[row][col].res_weight;
+        *(ma->xfPA[row][col].res) -= ma->xfPA[row][col].ext_weight;
         sgn = SIGNFUNC(ma->emsk[row], (eval<<row)) + SIGNFUNC(ma->esum[row], eval);
         ma->emsk[row] |= (eval<<row); ma->esum[row] |= eval;
     } else eval = 0;
@@ -270,7 +268,7 @@ void handlePABox(multArgs *ma, int row, int col, xint coeff) {
         }
         if (!eval) return;
         /* reset exterior bit */
-        *(ma->xfPA[row][col].res) += ma->xfPA[row][col].res_weight;
+        *(ma->xfPA[row][col].res) += ma->xfPA[row][col].ext_weight;
         ma->emsk[row] ^= (eval<<row); ma->esum[row] ^= eval;
         eval = 0; sgn = 0;      
     } while (1);
@@ -307,7 +305,7 @@ void handleAPBox(multArgs *ma, int row, int col, xint coeff) {
         && (0 == (emval & ma->emsk[col]))) { 
         sgn = SIGNFUNC(1 | emval, 1 ^ ma->emsk[col]);
         ma->emsk[col] ^= 1 | emval;
-        *(ma->xfAP[row][col].sum) -= ma->xfAP[row][col].sum_weight; 
+        *(ma->xfAP[row][col].sum) -= ma->xfAP[row][col].ext_weight; 
     } else {
         emval = 0; sgn = 0;
     }
@@ -324,7 +322,7 @@ void handleAPBox(multArgs *ma, int row, int col, xint coeff) {
         if (!emval) return;
         /* reset exterior fields */
         ma->emsk[col] ^= 1 | emval;
-        *(ma->xfAP[row][col].sum) += ma->xfAP[row][col].sum_weight; 
+        *(ma->xfAP[row][col].sum) += ma->xfAP[row][col].ext_weight; 
         sgn = 0; emval = 0;
     } while (1);
 }
