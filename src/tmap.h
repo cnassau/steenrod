@@ -21,6 +21,7 @@
 #define TP_MAP    42
 #define TP_MAPGEN 43
 #define TP_MAPSUM 44
+#define TP_MAPSQD 45
 
 int TMap_Init(Tcl_Interp *ip) ;
 

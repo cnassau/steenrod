@@ -13,6 +13,7 @@
 
 #include "tptr.h"
 #include "tmap.h"
+#include "tprofile.h"
 #include "maps.h"
 
 /* copied these macros from tpoly.c */
@@ -92,6 +93,7 @@ int getSumData(Tcl_Interp *ip, mapsum *mps) {
 typedef enum {
     MP_CREATE, MP_DESTROY, MP_INFO, MP_GETNUM, 
     MP_GETMAXGEN, MP_GETMINIDEG, MP_GETMAXIDEG,
+    MP_CREATESQN, MP_DESTROYSQN, 
     GEN_CREATE, GEN_FIND, 
     GEN_SETIDEGREE, GEN_SETEDEGREE, 
     GEN_GETIDEGREE, GEN_GETEDEGREE,
@@ -106,6 +108,8 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
     map *mp;
     mapgen *mpg;
     mapsum *mps;
+    mapsqndata *mpsd;
+    enumEnv *env;
 
     int privateInt, ivar1, ivar2;
 
@@ -209,6 +213,21 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
                 if (SUCCESS != mapsumAppendFromList(mps, len, obc, obv))
                     RETERR("mapsumAppendFromList failed");
             }
+            return TCL_OK;       
+        case MP_CREATESQN:    
+            ENSUREARGS4(TP_MAP,TP_ENENV,TP_INT,TP_INT);
+            mp = (map *) TPtr_GetPtr(objv[1]);
+            env = (enumEnv *) TPtr_GetPtr(objv[2]);
+            GETINT(objv[3],ivar1);
+            GETINT(objv[4],ivar2);
+            if (NULL == (mpsd = mapCreateSqnData(mp,env,ivar1,ivar2))) 
+                RETERR("Out of memory");
+            Tcl_SetObjResult(ip, Tcl_NewTPtr(TP_MAPSQD, mpsd));
+            return TCL_OK;
+        case MP_DESTROYSQN:
+            ENSUREARGS1(TP_MAPSQD);
+            mpsd = (mapsqndata *) TPtr_GetPtr(objv[1]);
+            mapDestroySqnData(mpsd);
             return TCL_OK;
     }
 
@@ -228,6 +247,7 @@ int Tmap_Init(Tcl_Interp *ip) {
         TPtr_RegType(TP_MAP,    "map");
         TPtr_RegType(TP_MAPGEN, "map_generator");
         TPtr_RegType(TP_MAPSUM, "map_summand");
+        TPtr_RegType(TP_MAPSQD, "map_seqno_data");
         Tmap_HaveType = 1;
     }
 
@@ -253,6 +273,8 @@ Tcl_CreateObjCommand(ip,name,tMapCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND(NSM "getTarget",      GEN_GETTARGET);
     CREATECOMMAND(NSM "appendTarget",   GEN_APPENDTARGET);
     CREATECOMMAND(NSM "getSumData",     SUM_GETDATA);
+    CREATECOMMAND(NSM "createMapSqnData",  MP_CREATESQN);
+    CREATECOMMAND(NSM "destroyMapSqnData", MP_DESTROYSQN);
 
     return TCL_OK;
 }
