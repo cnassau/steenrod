@@ -276,29 +276,67 @@ void handleAPcol(multArgs *ma, int col, xint coeff) {
 
 /* workXYchain starts the computation */
 
-void workPAchain(multArgs *ma, exmo *m) {
-    int i;
-    /* clear matrices */
-    memset(ma->msk, 0, sizeof(xint)*(NALG+1)*(NALG+1));
-    memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
-    /* initialize oldmsk, sum, res*/
-    for (i=NALG;i--;) { ma->sum[0][i+1]=0; ma->msk[i+1][0]=m->dat[i]; }
-    ma->emsk[NALG] = m->ext; ma->esum[NALG] = 0;
-    handlePArow(ma, NALG-1, m->coeff);
+void workPAchain(multArgs *ma) {
+    int i, idx; const exmo *m;
+    for (idx=0; SUCCESS == (ma->getExmoFF)(ma,FIRST_FACTOR,&m,idx); idx++) {
+        /* clear matrices */
+        memset(ma->msk, 0, sizeof(xint)*(NALG+1)*(NALG+1));
+        memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
+        /* initialize oldmsk, sum, res*/
+        for (i=NALG;i--;) { ma->sum[0][i+1]=0; ma->msk[i+1][0]=m->dat[i]; }
+        ma->emsk[NALG] = m->ext; ma->esum[NALG] = 0;
+        handlePArow(ma, NALG-1, m->coeff);
+    }
 }
 
-void workAPchain(multArgs *ma, exmo *m) {
-    int i;
-    /* clear matrices */
-    memset(ma->msk, 0, sizeof(xint)*(NALG+1)*(NALG+1));
-    memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
-    /* initialize oldmsk, sum, res*/
-    for (i=NALG;i--;) { ma->sum[i+1][0]=0; ma->msk[0][i+1]=m->dat[i]; }
-    ma->emsk[NALG] = 0; ma->esum[0] = m->ext;
-    handleAPcol(ma, NALG-1, m->coeff);
+void workAPchain(multArgs *ma) {
+    int i, idx; const exmo *m;
+    for (idx=0; SUCCESS == (ma->getExmoFF)(ma,SECOND_FACTOR,&m,idx); idx++) {
+        /* clear matrices */
+        memset(ma->msk, 0, sizeof(xint)*(NALG+1)*(NALG+1));
+        memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
+        /* initialize oldmsk, sum, res*/
+        for (i=NALG;i--;) { ma->sum[i+1][0]=0; ma->msk[0][i+1]=m->dat[i]; }
+        ma->emsk[NALG] = 0; ma->esum[0] = m->ext;
+        handleAPcol(ma, NALG-1, m->coeff);
+    }
 }
 
-/* */
+void stdAddSummandToPoly(struct multArgs *ma, const exmo *smd) {
+    PLappendExmo(ma->resPolyType,ma->resPolyPtr, smd);
+}
+
+int stdAddProductToPoly(polyType *rtp, void *res,
+                        polyType *ftp, void *ff,
+                        polyType *stp, void *sf,
+                        primeInfo *pi, const exmo *pro,
+                        int fIsPos, int sIsPos) {
+    multArgs ourMA, *ma = &ourMA;
+    
+    initMultargs(ma, pi, (exmo *) pro);
+
+    ma->ffIsPos = fIsPos;
+    ma->sfIsPos = sIsPos;
+
+    ma->ffdat = ftp; ma->ffdat2 = ff; 
+    ma->getExmoFF = &stdGetExmoFunc;
+    ma->fetchFuncFF = &stdFetchFuncFF;
+    
+    ma->sfdat = stp; ma->sfdat2 = sf; 
+    ma->getExmoSF = &stdGetExmoFunc;
+    ma->fetchFuncSF = &stdFetchFuncSF;
+
+    ma->resPolyType = rtp;
+    ma->resPolyPtr = res;
+    ma->stdSummandFunc = stdAddSummandToPoly;
+
+    if (fIsPos) 
+        workPAchain(ma);
+    else 
+        workAPchain(ma);
+
+    return SUCCESS;
+}
 
 #if 0
 

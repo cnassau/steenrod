@@ -141,4 +141,11 @@ void stdAddSummandToPoly(struct multArgs *self, const exmo *smd);
 /* The next function sets up the multiplication matrices: */
 void initMultargs(multArgs *ma, primeInfo *pi, exmo *profile);
 
+/* finally, one invocaton that puts it all together */
+int stdAddProductToPoly(polyType *rtp, void *res,
+                        polyType *ftp, void *ff,
+                        polyType *stp, void *sf,
+                        primeInfo *pi, const exmo *pro,
+                        int fIsPos, int sIsPos);
+
 #endif
