@@ -38,8 +38,8 @@ char dfp[] = "default parameter";
 
 typedef struct {
     /* Configuration values & flags. */
-    Tcl_Obj *prime, *alg, *pro, *sig, *ideg, *edeg, *hdeg, *genlist;
-    int     cprime, calg, cpro, csig, cideg, cedeg, chdeg, cgenlist;
+    Tcl_Obj *prime, *alg, *pro, *sig, *ideg, *edeg, *hdeg, *genlist, *ispos;
+    int     cprime, calg, cpro, csig, cideg, cedeg, chdeg, cgenlist, cispos;
     
     /* new genlist */
     int *gl, gllength;
@@ -81,12 +81,28 @@ int *getGenList(Tcl_Interp *ip, Tcl_Obj *obj, int *length) {
     return res;
 }
 
+static CONST char *typeNames[] = { "positive", "negative" };
+
+int checkForType(Tcl_Interp *ip, Tcl_Obj *obj, int *ispos) {
+    int index;
+    if (NULL == obj) return TCL_ERROR;
+    if (TCL_OK != Tcl_GetIndexFromObj(ip, obj, typeNames, "type", 0, &index))
+        return TCL_ERROR;
+        
+    /* we prefer to report the type option as "positive / negative", so
+     * positive will get index 0, and we need to reverse this here: */
+    if (NULL != ispos) *ispos = !index;
+
+    return TCL_OK;
+}
+
 /* Here we try to activate the configured values. */
 
 int Tcl_EnumSetValues(ClientData cd, Tcl_Interp *ip) {
     tclEnum *te = (tclEnum *) cd;
     primeInfo *pi;
     exmo *alg, *pro, *sig;
+    int ispos = 1; /* default: positive */
 
 #define TRYGETEXMO(ex,obj)                          \
 if (NULL != (obj)) {                                \
@@ -95,16 +111,19 @@ if (NULL != (obj)) {                                \
    ex = exmoFromTclObj(obj);                        \
 } else ex = (exmo *) NULL; 
 
-    if (te->cprime || te->calg || te->cpro) {
+    if (te->cprime || te->calg || te->cpro || te->cispos) {
         if (NULL == te->prime) RETERR("prime not given");
         if (TCL_OK != Tcl_GetPrimeInfo(ip, te->prime, &pi))
             return TCL_ERROR;
 
         TRYGETEXMO(alg,te->alg);
         TRYGETEXMO(pro,te->pro);
-        
-        enmSetBasics(te->enm, pi, alg, pro);
-        te->cprime = te->calg = te->cpro = 0;
+       
+        if (TCL_OK != checkForType(ip, te->ispos, &ispos))
+            return TCL_ERROR;
+ 
+        enmSetBasics(te->enm, pi, alg, pro, ispos);
+        te->cprime = te->calg = te->cpro = te->cispos = 0;
     }
 
     if (te->csig) {
@@ -141,15 +160,18 @@ if (NULL != (obj))                                       \
     return TCL_OK;
 }
 
+static Tcl_Obj *ourPosObj; /* always holds the value "positive" */
+static Tcl_Obj *ourNegObj; /* always holds the value "negative" */
+
 typedef enum  { PRIME, ALGEBRA, PROFILE, SIGNATURE, 
-                IDEG, EDEG, HDEG, GENLIST } enumoptcode;
+                TYPE, IDEG, EDEG, HDEG, GENLIST } enumoptcode;
 
 static CONST char *optNames[] = { "-prime", "-algebra", "-profile", "-signature",
-                                  "-ideg", "-edeg", "-hdeg", "-genlist", 
+                                  "-type", "-ideg", "-edeg", "-hdeg", "-genlist",  
                                   (char *) NULL };
 
 static enumoptcode optmap[] = { PRIME, ALGEBRA, PROFILE, SIGNATURE,
-                                IDEG, EDEG, HDEG, GENLIST };
+                                TYPE, IDEG, EDEG, HDEG, GENLIST };
 
 /* note that this command differs from the others: it assumes that option value 
  * pairs start at objv[0]. */
@@ -185,6 +207,7 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
         APPENDOPT("-algebra", te->alg);
         APPENDOPT("-profile", te->pro);
         APPENDOPT("-signature", te->sig);
+        APPENDOPT("-type", te->ispos);
         APPENDOPT("-ideg", te->ideg);
         APPENDOPT("-edeg", te->edeg);
         APPENDOPT("-hdeg", te->hdeg);
@@ -227,6 +250,13 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
             case SIGNATURE:
                 aux.sig = value; if (defaultParameter == value) break;
                 if (TCL_OK != Tcl_ConvertToExmo(ip, value)) return TCL_ERROR;
+                break;
+            case TYPE:
+                if (defaultParameter == value) 
+                    return TCL_ERROR;
+                if (TCL_OK != checkForType(ip, value, &result))
+                    return TCL_ERROR;
+                aux.ispos = result ? ourPosObj : ourNegObj;
                 break;
             case IDEG:
                 aux.ideg = value; if (defaultParameter == value) break;
@@ -280,6 +310,7 @@ if (NULL != (new)) {                                                   \
     SETOPT(te->alg, aux.alg, te->calg);
     SETOPT(te->pro, aux.pro, te->cpro);
     SETOPT(te->sig, aux.sig, te->csig);
+    SETOPT(te->ispos, aux.ispos, te->cispos);
     SETOPT(te->ideg, aux.ideg, te->cideg);
     SETOPT(te->edeg, aux.edeg, te->cedeg);    
     SETOPT(te->hdeg, aux.hdeg, te->chdeg);       
@@ -320,6 +351,7 @@ int Tcl_EnumCgetCmd(ClientData cd, Tcl_Interp *ip,
                 SETRESRET(auxobj);
             } 
             SETRESRET(te->sig);
+        case TYPE:      SETRESRET(te->ispos);
         case IDEG:      SETRESRET(te->ideg);
         case EDEG:      SETRESRET(te->edeg);
         case HDEG:      SETRESRET(te->hdeg);
@@ -532,6 +564,8 @@ int Tcl_CreateEnumCmd(ClientData cd, Tcl_Interp *ip,
     te->prime = te->alg = te->pro = te->sig = te->ideg = te->edeg = te->hdeg 
         = te->genlist = NULL;
 
+    te->ispos = ourPosObj; Tcl_IncrRefCount(ourPosObj);
+
     /* mark all options as changed */
     te->cprime = te->calg = te->cpro = te->csig = te->cideg = te->cedeg = te->chdeg 
         = te->cgenlist = 1;
@@ -555,6 +589,15 @@ int Tenum_Init(Tcl_Interp *ip) {
     Tptr_Init(ip);
     Tprime_Init(ip);
     Tpoly_Init(ip);
+
+    if (NULL == ourPosObj) 
+        ourPosObj = Tcl_NewStringObj("positive", strlen("positive"));
+
+    if (NULL == ourNegObj) 
+        ourNegObj = Tcl_NewStringObj("negative", strlen("negative"));
+
+    Tcl_IncrRefCount(ourPosObj); 
+    Tcl_IncrRefCount(ourNegObj); 
 
     Tcl_CreateObjCommand(ip, POLYNSP "enumerator", 
                          Tcl_CreateEnumCmd, (ClientData) 0, NULL);
