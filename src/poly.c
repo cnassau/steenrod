@@ -420,8 +420,11 @@ void initxfAP(multArgs *MA) {
             xf->pi = pi; 
             if (NULL == MA->profile) { 
                 xf->quant = 1;
+                xf->estat = 1;
             } else {
                 xf->quant = pi->primpows[MA->profile->dat[i+j-1]];
+                xf->estat = 
+                    (0 == (MA->profile->ext & (1 << (i+j-1)))) ? 1 : 0;  
             }
             xf->oldmsk = &(msk[i-1][j+1]); 
             xf->newmsk = &(msk[i][j]);
@@ -443,25 +446,53 @@ void handleAPcol(multArgs *ma, int col, xint coeff);
 
 void handleAPBox(multArgs *ma, int row, int col, xint coeff) {
     xint c;
-    if (0 != (c = firstXdat(&(xfAP[row][col]))))
-        do {
-            xint prime = ma->pi->prime ;
-            if (row>1) 
-                handleAPBox(ma, row-1, col, CINTMULT(coeff, c, prime));
-            else 
-                handleAPcol(ma, col-1, CINTMULT(coeff, c, prime));
-        } while (0 != (c = nextXdat(&(xfAP[row][col]))));
+    int emval = 2 << (row - 1);  /* mask version of esval */
+    int sgn;
+    if ((0 != xfAP[row][col].estat) && 
+        (0 != (1 & emsk[col])) &&
+        (0 == (emval & emsk[col]))) { 
+        sgn = SIGNFUNC(1 | emval, 1 ^ emsk[col]);
+        emsk[col] ^= 1 | emval;
+        *(xfAP[row][col].sum) -= xfAP[row][col].sum_weight; 
+    } else {
+        emval = 0; sgn = 0;
+    }
+    do {
+        if (0 != (c = firstXdat(&(xfAP[row][col]))))
+            do {
+                xint prime = ma->pi->prime ;
+                if (1 & sgn) c = prime-c;
+                if (row>1) 
+                    handleAPBox(ma, row-1, col, CINTMULT(coeff, c, prime));
+                else 
+                    handleAPcol(ma, col-1, CINTMULT(coeff, c, prime));
+            } while (0 != (c = nextXdat(&(xfAP[row][col]))));
+        if (!emval) return;
+        /* reset exterior fields */
+        emsk[col] ^= 1 | emval;
+        *(xfAP[row][col].sum) += xfAP[row][col].sum_weight; 
+        sgn = 0; emval = 0;
+    } while (1);
 }
 
 void handleAPcol(multArgs *ma, int col, xint coeff) {
     int i,k; xint c; 
     primeInfo *pi = ma->pi; xint prime = pi->prime;
-    if (0 != col) return handleAPBox(ma, NALG-col, col, coeff);
+    if (0 != col) {
+        emsk[col] = (emsk[col+1] << 1) 
+            | (1 & (esum[0] >> (col - 1))); 
+        handleAPBox(ma, NALG-col, col, coeff);
+        return;
+    }
     /* fetch summand */
     for (k=0;k<ma->f->num;k++) {
         mono res; /* summand of the result */
         mono *f = &(ma->f->dat[k]); /* first factor */
         c = coeff;
+        /* check exterior component */
+        if (0 != (emsk[1] & f->ext)) continue;
+        if (0 != (1 & SIGNFUNC(f->ext, emsk[1]))) c = prime-c;
+        /* check reduced component */
         for (i=NALG;c && i--;) {
             xint aux, aux2;
             aux  = f->dat[i] + sum[i+1][0];
@@ -471,7 +502,7 @@ void handleAPcol(multArgs *ma, int col, xint coeff) {
         }
         if (0 == c) continue;
         res.coeff = XINTMULT(c, f->coeff, prime);
-        res.ext   = 0;
+        res.ext = f->ext | emsk[1];
         res.id    = f->id; /* should this be done in the callback function ? */
         ma->multCB(ma->clientData, &res);
     }
@@ -484,6 +515,7 @@ void workAPchain(multArgs *ma, mono *m) {
     memset(sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
     /* initialize oldmsk, sum, res*/
     for (i=NALG;i--;) { sum[i+1][0]=0; msk[0][i+1]=m->dat[i]; }
+    emsk[NALG] = 0; esum[0] = m->ext;
     handleAPcol(ma, NALG-1, m->coeff);
 }
 

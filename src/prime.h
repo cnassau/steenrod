@@ -14,7 +14,7 @@
 #ifndef PRIME_DEF
 #define PRIME_DEF
 
-#define NALG 6
+#define NALG 9
 
 #include <stdlib.h>
 #define cmalloc  malloc
