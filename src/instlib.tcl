@@ -29,6 +29,14 @@ foreach fname $argv {
         file mkdir $targdir
     }
 
-    file copy -force $fname $targdir
+    set newname [file tail $fname]
+    if {[file extension $newname] == ".so"} {
+        # map this to native shared lib extension
+        set newname [file rootname $newname][info sharedlibextension]
+    }
+
+    set target [file join $targdir $newname]
+    # puts "file copy -force $fname $target"
+    file copy -force $fname $target
     #file delete $fname 
 }
