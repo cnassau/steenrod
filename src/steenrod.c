@@ -12,6 +12,7 @@
  */
 
 #include <tcl.h>
+#include <string.h>
 #include "tprime.h"
 #include "tpoly.h"
 #include "tlin.h"
@@ -24,6 +25,12 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
                       progressInfo *pinf, matrixType **mtp, void **mat) {
     
     int srcdim, dstdim;
+    Tcl_Obj **dg = NULL;
+    exmo theG; 
+    polyType *dgpolyType;
+    void *dgpoly;
+
+    *mtp = NULL; *mat = NULL; /* if non-zero, caller will free this */
 
     /* check whether src and target are compatible */
     if ((NULL == src->pi) || (src->pi != dst->pi))
@@ -39,7 +46,52 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
 
     stdmatrix->clearMatrix(*mat);
 
+    memset(&theG, 0, sizeof(exmo));
+    theG.gen = -654321; /* invalid (=highly unusual) generator id */
 
+    if (firstRedmon(src)) 
+        do {
+            /* find differential of src->theex'es generator */
+
+            if (theG.gen != src->theex.gen) {
+                /* new generator: need to get its differential dg */
+
+                theG.gen = src->theex.gen; 
+                dg = momapGetValPtr(map, &theG);
+                
+                if (NULL == dg) continue;
+
+                if (TCL_OK != Tcl_ConvertToPoly(ip, *dg)) {
+                    char err[200];
+                    sprintf(err,"target of generator #%d not of polynomial type", 
+                            theG.gen);
+                    RETERR(err);
+                }
+
+                dgpolyType = polyTypeFromTclObj(*dg);
+                dgpoly     = polyFromTclObj(*dg);
+                
+                if (!src->ispos) {
+                    /* src is negative, so dgpoly must not also be negative: */
+                    if (SUCCESS != PLtest(dgpolyType, dgpoly, ISPOSITIVE)) { 
+                        char err[200];
+                        /* TODO: should we make sure and check each summand ? */ 
+                        sprintf(err,"target of generator #%d not positive (?)", 
+                                theG.gen);
+                        RETERR(err);
+                    }
+                }
+            }
+            
+            if (NULL == dg) continue;
+     
+            /* compute src->theex * dg */
+            
+            
+            
+            
+
+        } while (nextRedmon(src));
 
     return SUCCESS;
 }
@@ -88,9 +140,11 @@ int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
         return TCL_ERROR;
     }
 
-    if (SUCCESS != MakeMatrixSameSig(ip, src, map, dst, infoptr, &mtp, &mat))
+    if (SUCCESS != MakeMatrixSameSig(ip, src, map, dst, infoptr, &mtp, &mat)) {
+        if (NULL != mtp) mtp->destroyMatrix(mat);
         return TCL_ERROR;
-   
+    }
+
     Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mtp, mat));
 
     return TCL_OK;
