@@ -19,5 +19,6 @@
 #define FAIL            1  /* general failure */
 #define FAILMEM         2  /* out of memory */
 #define FAILIMPOSSIBLE  3  /* operation not possible */
+#define FAILUNTRUE      4  /* another word for "no" */
 
 #endif

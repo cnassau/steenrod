@@ -43,6 +43,18 @@ void copyExmo(exmo *dest, exmo *src);
                        * or should we simulate an exterior algebra? */
 void shiftExmo(exmo *e, const exmo *shft, int flags);
 
+/* pprop stands for "polynom property"; one can check for these 
+ * properties using the "test" member function of the polyType 
+ * structure. The test function returns SUCCESS (resp. FAILUNTRUE)
+ * if the property is known to be true (resp. false). Other return
+ * codes indicate that test is not possible. */
+
+typedef enum {
+    ISPOSITIVE,  /* all exponents >= 0, exterior component >= 0 */
+    ISNEGATIVE,  /* all exponents  < 0, exterior component  < 0 */
+    ISPOSNEG     /* ISPOSITIVE or ISNEGATIVE */
+} pprop;
+
 /* A polynomial is an arbitrary collection of extended monomials. 
  * Different realizations are thinkable (compressed vs. uncompressed, 
  * vector vs. list style, etc...), so we try to support many different 
@@ -72,6 +84,8 @@ typedef struct polyType {
                       exmo **exmo, 
                       int index);    /* try to get in-place pointer to 
                                       * a summand (read-only pointer!) */
+
+    int (*test)(void *self, pprop p);  /* test for property */ 
 
     void (*cancel)(void *self, int modulo);  /* cancel as much as possible */
 
@@ -110,6 +124,7 @@ void  PLfree(polyType *type, void *poly);
 int   PLcancel(polyType *type, void *poly, int modulo);
 int   PLclear(polyType *type, void *poly);
 void *PLcreate(polyType *type);
+int   PLtest(polyType *tp1, void *pol1, pprop prop);
 int   PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *result);
 int   PLgetExmo(polyType *type, void *self, exmo *exmo, int index);
 int   PLappendExmo(polyType *dtp, void *dst, exmo *e);

@@ -67,6 +67,24 @@ int compareExmo(const void *aa, const void *bb) {
     return 0;
 }
 
+int isposExmo(const exmo *e) {
+    int i;
+    if (e->ext < 0) return 0;
+    for (i=0;i<NALG;i++)
+        if (e->dat[i] < 0) 
+            return 0;
+    return 1;
+}
+
+int isnegExmo(const exmo *e) {
+    int i;
+    if (e->ext >= 0) return 0;
+    for (i=0;i<NALG;i++)
+        if (e->dat[i] >= 0) 
+            return 0;
+    return 1;
+}
+
 /**** generic polynomials *********************************************************/
 
 #define CALLIFNONZERO1(func,arg1) \
@@ -348,6 +366,33 @@ int PLcompare(polyType *tp1, void *pol1, polyType *tp2, void *pol2, int *res) {
     return rcode;
 }
 
+int PLtest(polyType *tp, void *pol1, pprop prop) {
+    int i, len; exmo e;
+    if (NULL != tp->test) return (tp->test)(pol1, prop);
+    len = PLgetLength(tp,pol1);
+    switch (prop) {
+        case ISPOSITIVE:
+            for (i=0;i<len;i++) 
+                if (SUCCESS != PLgetExmo(tp,pol1,&e,i)) 
+                    return FAILIMPOSSIBLE;
+                else 
+                    if (!isposExmo(&e)) return FAILUNTRUE;
+        case ISNEGATIVE:
+            for (i=0;i<len;i++) 
+                if (SUCCESS != PLgetExmo(tp,pol1,&e,i)) 
+                    return FAILIMPOSSIBLE;
+                else 
+                    if (!isnegExmo(&e)) return FAILUNTRUE;
+        case ISPOSNEG:
+            for (i=0;i<len;i++) 
+                if (SUCCESS != PLgetExmo(tp,pol1,&e,i)) 
+                    return FAILIMPOSSIBLE;
+                else 
+                    if (!(isposExmo(&e) || isnegExmo(&e))) return FAILUNTRUE;
+    }
+    return FAILIMPOSSIBLE;
+}
+
 int PLposMultiply(polyType **rtp, void **res,
                   polyType *fftp, void *ff,
                   polyType *sftp, void *sf, int mod) {
@@ -381,6 +426,27 @@ int PLnegMultiply(polyType **rtp, void **res,
 int PLsteenrodMultiply(polyType **rtp, void **res,
                        polyType *fftp, void *ff,
                        polyType *sftp, void *sf, primeInfo *pi) {
+    int flen, slen;
+    int fpos = PLtest(fftp,ff,ISPOSITIVE);
+    int fneg = PLtest(fftp,ff,ISNEGATIVE);
+    int spos = PLtest(sftp,sf,ISPOSITIVE);
+    int sneg = PLtest(sftp,sf,ISNEGATIVE);
+
+    /* check if both factors are all positive or all negative */
+    if ((!(fpos || fneg)) || (!(spos || sneg))) 
+        return FAILIMPOSSIBLE;
+
+    /* check if both factors are non-zero */
+    if ((0 == (flen = PLgetLength(fftp,ff)))
+        || (0 == (slen = PLgetLength(sftp,sf)))) {
+        *rtp = stdpoly; *res = stdCreateCopy(NULL);
+        return SUCCESS;
+    }
+
+    /* negative times negative is undefined */
+    if (fneg && sneg) return FAILIMPOSSIBLE;
     
+    
+
     return FAILIMPOSSIBLE;
 }
