@@ -19,7 +19,6 @@
     Tcl_Obj *ProgVar, *NameObj;        \
     ProgVar = Tcl_NewDoubleObj(0.0); \
     NameObj = Tcl_NewStringObj(LAPROGRESSVAR, sizeof(LAPROGRESSVAR)); \
-    Tcl_IncrRefCount(ProgVar);       \
     Tcl_IncrRefCount(NameObj)      
 
 #define PROGVARSET(val) if (NULL!=ip)	{                             \
@@ -29,7 +28,7 @@
        goto done ; }
 
 #define PROGVARDONE \
-    Tcl_DecrRefCount(ProgVar); Tcl_DecrRefCount(NameObj) 
+    Tcl_DecrRefCount(NameObj) 
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
