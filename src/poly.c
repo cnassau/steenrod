@@ -269,15 +269,17 @@ typedef struct {
     xint val, 
         quant,
         *oldmsk, *newmsk, 
-        *sum, sum_weight, 
-        *res, res_weight;
+        *sum, 
+        *res;
+    int sum_weight, res_weight;
+    int estat; 
 } Xfield;
 
 xint firstXdat(Xfield *X) {
     primeInfo *pi = X->pi; xint c, aux;
     X->val = *(X->res) / X->res_weight;
     X->val /= X->quant; 
-    aux = *(X->oldmsk); aux /= X->quant; 
+    aux = *(X->oldmsk); aux /= X->quant;
     while (0 == (c=binomp(pi,X->val+aux,aux))) --(X->val);
     X->val *= X->quant;     
     *(X->newmsk) = *(X->oldmsk) + X->val; 
@@ -302,32 +304,62 @@ xint nextXdat(Xfield *X) {
 
 Xfield xfPA[NALG+1][NALG+1], xfAP[NALG+1][NALG+1];
 xint msk[NALG+1][NALG+1], sum[NALG+1][NALG+1];
+int emsk[NALG+1], esum[NALG+1];
 
 void handlePArow(multArgs *ma, int row, xint coeff);
 
 void handlePABox(multArgs *ma, int row, int col, xint coeff) {
     xint c;
-    if (0 != (c = firstXdat(&(xfPA[row][col]))))
-        do {
-            xint prime = ma->pi->prime ;
-            if (0) printf("xfPA[%d][%d].val=%d\n",row,col,(int) xfPA[row][col].val);
-            if (col>1) 
-                handlePABox(ma, row, col-1, XINTMULT(coeff, c, prime));
-            else 
-                handlePArow(ma, row-1, XINTMULT(coeff, c, prime));
-        } while (0 != (c = nextXdat(&(xfPA[row][col]))));
+    int eval = 1 << (col - 1); /* value of the exterior component */
+    int sgn = 0;
+    if ((0 != xfPA[row][col].estat) && 
+        (*(xfPA[row][col].res) >= xfPA[row][col].res_weight) && 
+        (0 == ((eval<<row) & emsk[row])) && (0 == (eval & esum[row]))) {
+        *(xfPA[row][col].res) -= xfPA[row][col].res_weight;
+        sgn = SIGNFUNC(emsk[row], (eval<<row)) + SIGNFUNC(esum[row], eval);
+        emsk[row] |= (eval<<row); esum[row] |= eval;
+    } else eval = 0;
+    do {
+        if (0 != (c = firstXdat(&(xfPA[row][col]))))
+            do {
+                xint prime = ma->pi->prime ;
+                if (0 != (sgn & 1)) c = prime - c;
+                if (col>1) 
+                    handlePABox(ma, row, col-1, XINTMULT(coeff, c, prime));
+                else 
+                    handlePArow(ma, row-1, XINTMULT(coeff, c, prime));
+            } while (0 != (c = nextXdat(&(xfPA[row][col]))));
+        if (!eval) return;
+        /* reset exterior bit */
+        *(xfPA[row][col].res) += xfPA[row][col].res_weight;
+        emsk[row] ^= (eval<<row); esum[row] ^= eval;
+        eval = 0; sgn = 0;      
+    } while (1);
 }
 
 void handlePArow(multArgs *ma, int row, xint coeff) {
     int i,k; xint c; 
     primeInfo *pi = ma->pi; xint prime = pi->prime;
-    if (0 != row) return handlePABox(ma, row, NALG-row, coeff);
-    if (0) printf("F\n"); 
+     /* clear exterior field for this row */
+    emsk[row] = emsk[row+1];
+    esum[row] = esum[row+1];
+    if (0 != row) {
+        handlePABox(ma, row, NALG-row, coeff);
+        return;
+    }
     /* fetch summand */
     for (k=0;k<ma->s->num;k++) {
         mono res; /* summand of the result */
         mono *s = &(ma->s->dat[k]); /* second factor */
         c = coeff;
+        /* first check exterior part */
+        if (esum[1] != (s->ext & esum[1])) continue;
+        if (0 != ((s->ext ^ esum[1]) & emsk[1])) continue;
+        res.ext = (s->ext ^ esum[1]) | emsk[1];
+        if (0 != (1 & (SIGNFUNC(emsk[1], s->ext ^ esum[1]) 
+                       + SIGNFUNC(esum[1], s->ext ^ esum[1])))) 
+            c = prime - c;
+        /* now check reduced part */
         for (i=NALG;c && i--;) {
             xint aux, aux2;
             aux  = s->dat[i] + sum[0][i+1];
@@ -338,10 +370,8 @@ void handlePArow(multArgs *ma, int row, xint coeff) {
                 c = XINTMULT(c, binomp(pi, res.dat[i], aux), prime);
             }        
         }
-        if (0) printf("%d*\n",(int) c);
         if (0 == c) continue;
         res.coeff = XINTMULT(c, s->coeff, prime);
-        res.ext   = 0;
         res.id    = s->id; /* should this be done in the callback function ? */
         ma->multCB(ma->clientData, &res);
     }
@@ -354,6 +384,7 @@ void workPAchain(multArgs *ma, mono *m) {
     memset(sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
     /* initialize oldmsk, sum, res*/
     for (i=NALG;i--;) { sum[0][i+1]=0; msk[i+1][0]=m->dat[i]; }
+    emsk[NALG] = m->ext; esum[NALG] = 0;
     handlePArow(ma, NALG-1, m->coeff);
 }
 
@@ -366,8 +397,11 @@ void initxfPA(multArgs *MA) {
             xf->pi = pi; 
             if (NULL == MA->profile) { 
                 xf->quant = 1;
+                xf->estat = 1;
             } else {
                 xf->quant = pi->primpows[MA->profile->dat[i+j-1]];
+                xf->estat = 
+                    (0 == (MA->profile->ext & (1 << (i+j-1)))) ? 1 : 0;  
             }
             xf->oldmsk = &(msk[i+1][j-1]); 
             xf->newmsk = &(msk[i][j]);
@@ -412,7 +446,6 @@ void handleAPBox(multArgs *ma, int row, int col, xint coeff) {
     if (0 != (c = firstXdat(&(xfAP[row][col]))))
         do {
             xint prime = ma->pi->prime ;
-            if (0) printf("xfAP[%d][%d].val=%d\n",row,col,(int) xfAP[row][col].val);
             if (row>1) 
                 handleAPBox(ma, row-1, col, CINTMULT(coeff, c, prime));
             else 
@@ -424,7 +457,6 @@ void handleAPcol(multArgs *ma, int col, xint coeff) {
     int i,k; xint c; 
     primeInfo *pi = ma->pi; xint prime = pi->prime;
     if (0 != col) return handleAPBox(ma, NALG-col, col, coeff);
-    if (0) printf("F\n"); 
     /* fetch summand */
     for (k=0;k<ma->f->num;k++) {
         mono res; /* summand of the result */
@@ -438,7 +470,6 @@ void handleAPcol(multArgs *ma, int col, xint coeff) {
             c = XINTMULT(c, binomp(pi, res.dat[i], aux), prime);
         }
         if (0 == c) continue;
-        if (0) printf("*\n");
         res.coeff = XINTMULT(c, f->coeff, prime);
         res.ext   = 0;
         res.id    = f->id; /* should this be done in the callback function ? */
