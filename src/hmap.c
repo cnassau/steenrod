@@ -156,8 +156,6 @@ void freeTensor(hmap_tensor *h) {
 }
 
 int allocTensor(hmap_tensor *h, int numMono, int numInt) {
-    h->edat = NULL; h->idat = NULL;
-    if (NULL == h) return FAILMEM;
     h->edat = mallox(sizeof(exmo) * numMono);
     h->idat = mallox(sizeof(int) * numInt);
     if ((NULL == h->edat) || (NULL == h->idat)) {
@@ -185,26 +183,31 @@ void copyTensor(hmap_tensor *dst, hmap_tensor *src, int numMono, int numInt) {
         dst->idat[i] = src->idat[i];
 }
 
-void multTensor(hmap_tensor *dst, hmap_tensor *src, int numMono, int numInt, int modval) {
-    int i;
+void multTensor(hmap_tensor *dst, hmap_tensor *src, int scale, int numMono, int numInt, int modval) {
+    int i,j;
     dst->coeff = 1;
     for (i=0;i<numMono;i++) {
-        shiftExmo(&(dst->edat[i]),&(src->edat[i]),ADJUSTSIGNS);
-        dst->coeff *= src->coeff; 
-        if (modval) dst->coeff %= modval;
+        shiftExmo2(&(dst->edat[i]),&(src->edat[i]),scale,ADJUSTSIGNS);
+        for (j=scale;j--;) {
+            dst->coeff *= src->coeff; 
+            if (modval) dst->coeff %= modval;
+        }
     }
-    for (i=0;i<numInt;i++) 
-        dst->idat[i] += src->idat[i];    
+    for (i=0;i<numInt;i++) {
+        printf("B: dst->idat[i]=%d\n",dst->idat[i]);
+        dst->idat[i] += src->idat[i] * scale;
+        printf("A: dst->idat[i]=%d\n",dst->idat[i]);
+    }    
 }
 
 int compareTensor(hmap_tensor *a, hmap_tensor *b, hmap_tensor *res, int numMono, int numInt) {
     int i;
     for (i=0;i<numMono;i++)
-        if (0 > (res->edat[i].coeff = compareExmo(&(a->edat[i]),&(b->edat[i]))))
-            return 0;
-    for (i=0;i<numInt;i++) 
-        if (0 > (res->idat[i] = a->idat[i] - b->idat[i]))
-            return 0;
+        res->edat[i].coeff = compareExmo(&(a->edat[i]),&(b->edat[i]));
+    for (i=0;i<numInt;i++) {
+        printf("comparing %d <= %d\n",a->idat[i], b->idat[i]);
+        res->idat[i] = a->idat[i] - b->idat[i];
+    }
     return 1;
 }
 
@@ -296,7 +299,13 @@ typedef struct {
     hmap_summand **summands;
 
     /* restrictions */
-    hmap_summand *restrictions;
+    exmo sourceRestriction; 
+    hmap_tensor restrictions1; /* integer slots: 0 - no restriction, 1 - equal, 2 - less/equal */
+    hmap_tensor restrictions2; /* integer slots: value of the restriction */ 
+    int modval;
+
+    hmap_tensor comparison1; /* result of the last comparison operation */
+    int comparison2;
 
     /* callback */
     int (*callback)(void *self);
@@ -325,6 +334,7 @@ void hmapTclTensor(hmap_tensor *h,
     if (NULL == lst) {
         *b = Tcl_NewStringObj("Out of memory",13);
     } else {
+        printf("h = %p\n",h);
         for (i=0;i<numInt;i++)
             lst[i] = Tcl_NewIntObj(h->idat[i]);
         *b = Tcl_NewListObj(numInt, lst);
@@ -332,24 +342,33 @@ void hmapTclTensor(hmap_tensor *h,
     }    
 }
 
-int stdTclCallback(void *self) {
-    hmap *hm = (hmap *) self;
-    hmap_summand *result = hm->summands[hm->numSummands];
+#define LogStuff 1
+#define LOGMSG(format,arg) { if (LogStuff) {printf("> " format "\n", arg);}; }
+
+int invokeCallback(Tcl_Interp *ip, Tcl_Obj *callback, hmap *hm,  hmap_summand *result) {
     Tcl_Obj *(command[4]);
-    Tcl_Interp *ip = (Tcl_Interp *) hm->callbackdata1;
     int retval;
 
-    command[0] = (Tcl_Obj *) hm->callbackdata2;
+    LOGMSG("invokeCallback result=%p",result);
+
+    command[0] = callback;
     command[1] = Tcl_NewExmoCopyObj(&(result->source));
     hmapTclTensor(&(result->pardat),&(command[2]),&(command[3]),hm->numMono,hm->numInt);
 
     INCREFCNT(command[1]);
     INCREFCNT(command[2]);
-    
+    INCREFCNT(command[3]);
+
+#if 1
+    retval = TCL_OK;
+    { int i; for (i=0;i<4;i++) printf("command[%d] = %s\n", i, Tcl_GetString(command[i])); }
+#else
     retval = Tcl_EvalObjv(ip, 4, command, 0);
+#endif
 
     DECREFCNT(command[1]);
     DECREFCNT(command[2]);
+    DECREFCNT(command[3]);
 
     return retval;
 }
@@ -372,6 +391,16 @@ int hmapGrow(hmap *hm, int newSumnum) {
     hm->numAlloc = newSumnum;
 
     return SUCCESS;
+}
+
+int stdTclCallback(void *self) {
+    hmap *hm = (hmap *) self;
+    hmap_summand *result = hm->summands[hm->numSummands];
+    Tcl_Interp *ip = (Tcl_Interp *) hm->callbackdata1;
+
+    LOGMSG("stdTclCallback result=%p",result);
+
+    return invokeCallback(ip, (Tcl_Obj *) hm->callbackdata2, hm, result);
 }
 
 Tcl_Obj *hmapTclSummand(hmap_summand *h, int numMono, int numInt) {
@@ -491,83 +520,208 @@ int hmapAddSummand(hmap *hm, Tcl_Interp *ip, Tcl_Obj *obj) {
     return TCL_OK;
 }
 
+int recogOp(Tcl_Obj *obj) {
+    char *str = Tcl_GetString(obj);
+    switch (*str) {
+        case '*': return 0;
+        case '=' : return 1;
+        case '<' : return 2;
+        default: ;
+    }
+    return -1;
+} 
+
+int hmapParseRestrictions(hmap *hm, Tcl_Interp *ip, Tcl_Obj *obj) {
+    Tcl_Obj **vec, **vec2;
+    int cnt, cnt2, compop, i, j, k;
+
+    if (TCL_OK != Tcl_ListObjGetElements(ip, obj, &cnt, &vec)) 
+        return TCL_ERROR;
+    
+    if (cnt != (1 + hm->numMono + hm->numInt)) 
+        RETERR("cannot parse restrictions: wrong number of entries");
+    
+    for (i=0,j=0;i<=hm->numMono;i++,j++) {
+        if (TCL_OK != Tcl_ListObjGetElements(ip, vec[i], &cnt2, &vec2)) 
+            return TCL_ERROR;
+        
+        if ((0 == cnt2) || (cnt2 > 2)) 
+            RETERR("restriction problem (monomial slots)");
+        
+        if (-1 == (compop = recogOp(vec2[0])))
+            RETERR("comparison operator not recognized");
+        
+        if (i) {
+            hm->restrictions1.edat[i-1].coeff = compop;
+        } else {
+            hm->sourceRestriction.coeff = compop;
+        }
+
+        if (0 == compop) 
+            continue;
+
+        if (TCL_OK != Tcl_ConvertToExmo(ip,vec2[1]))
+            return TCL_ERROR;
+
+        if (i) { 
+            copyExmo(&(hm->restrictions1.edat[i-1]), exmoFromTclObj(vec2[1]));
+            hm->restrictions1.edat[i-1].coeff = compop;
+        } else {
+            copyExmo(&(hm->sourceRestriction), exmoFromTclObj(vec2[1]));
+            hm->sourceRestriction.coeff = compop;           
+        }
+    }
+
+    for (i=0;i<hm->numInt;i++,j++) {
+
+        if (TCL_OK != Tcl_ListObjGetElements(ip, vec[j], &cnt2, &vec2)) 
+            return TCL_ERROR;
+        
+        if ((0 == cnt2) || (cnt2 > 2)) 
+            RETERR("restriction problem (integer slots)");
+        
+        if (-1 == (compop = recogOp(vec2[0])))
+            RETERR("comparison operator not recognized");
+        
+        hm->restrictions2.idat[i] = compop;
+        
+        if (0 == compop) 
+            continue;
+
+        if (TCL_OK != Tcl_GetIntFromObj(ip,vec2[1],&k))
+            return TCL_ERROR;
+
+        hm->restrictions1.idat[i] = k;
+    }
+
+    return TCL_OK;
+}
+
+void handleSummand(hmap *hm, int numsum);
+
 int hmapSelectFunc(hmap *hm, Tcl_Interp *ip, Tcl_Obj *rest, Tcl_Obj *callback) {
     
-
-    if (TCL_OK != hmapParseSummand(hm, hm->restrictions, ip, rest))
+    if (TCL_OK != hmapParseRestrictions(hm, ip, rest))
         return TCL_ERROR;
 
     hm->callback = stdTclCallback;
     hm->callbackdata1 = ip;
     hm->callbackdata2 = callback;
 
-    
+    clearTensor(&(hm->summands[0]->pardat),hm->numMono,hm->numInt);
+    clearExmo(&(hm->summands[0]->source));
+
+    handleSummand(hm, 0);
 
     return TCL_OK;
 }
 
-#if 0
+void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next);
 
-void handleSummand(hmap *hm, int numsum) {
-    
-    
-
-
-
+int checkPartialRestriction(hmap *hm, hmap_summand *next) {
+    int i;
+    LOGMSG("checkPartialRestriction %p",next);
+    printf("another check...\n");
+    compareTensor(&(next->pardat), &(hm->restrictions1), 
+                  &(hm->comparison1), hm->numMono, hm->numInt);
+    for (i=0;i<hm->numMono;i++) 
+        if (hm->restrictions1.edat[i].coeff)
+            if (hm->comparison1.edat[i].coeff > 0)
+                return 0; /* constraint violated */
+    for (i=0;i<hm->numInt;i++) 
+        if (hm->restrictions2.idat[i])
+            if (hm->comparison1.idat[i] > 0)
+                return 0; /* constraint violated */
+    printf("still ok\n");
+    return 1;
 }
-
-void hmapWorkFunc(hmap *hm, int modval) {
-    
-    hmap_summand *current, *last, *workptr;
-
-    int NM = hm->numMono, NI, hm->numInt, i;
-
-    current = hm->summands; 
-    last = hm->summands + hm->numSummands;
-
-    /* initialize first partial product to zero: */
-    
-    clearExmo(&(current->source));
-    clearTensor(&(current->pardat));
-
-    while (1) {
-
-        /* We have just increased previous->value, so reset all 
-         * following values. */
         
-        for (workptr = current; workptr < last; workptr++) 
-            workptr->value = 0;
+void handleSummand(hmap *hm, int numsum) {
+
+    hmap_summand *current = hm->summands[numsum];
+    hmap_summand *next = hm->summands[numsum+1];
+
+    LOGMSG("handleSummand current=%p",current);
+    LOGMSG("handleSummand next=%p",next);
+
+    if (numsum == hm->numSummands) {
+        int i;
         
+        LOGMSG("numsum == hm->numSummands == %d", numsum);
         
-        next = current + 1;
-
-        clearExmo(&(next->source));
-        clearTensor(&(next->pardat));
-
-        for (current->value = 0; current->value <= current->maxvalue;) {
-
-            /* go to next value */
-
-            current->value += current->quant;
-            if (current->value > current->maxval) 
-                break;
-            
-            
-            multTensor(&(next->pardat),&(current->sumdat), NM, NI, modval);
-
-            /* find binomial coefficient */
-
-            
-            bin = binom();
-            
+        /* check whether constraints have been *exactly* met */
+        for (i=0;i<hm->numMono;i++) {
+            if (1 == hm->restrictions1.edat[i].coeff) {
+                if (hm->comparison1.edat[i].coeff)
+                    return; 
+            }
         }
-        
-        /* Increase current->value and go to next summand */
+        for (i=0;i<hm->numInt;i++) {
+            if (1 == hm->restrictions2.idat[i])
+                if (hm->comparison1.idat[i])
+                    return;
+        }
 
+        /* yes => invoke callback */
+        hm->callback(hm);
+        return;
+    }
+
+    for (current->value = 0; 
+         current->value <= current->maxval; 
+         current->value += current->quant) {
+        
+        makeNextPartial(hm, current, next);
+
+        printf("Summand %d / value %d:\n",numsum,current->value);
+        invokeCallback((Tcl_Interp *) hm->callbackdata1, (Tcl_Obj *) hm->callbackdata2, hm, next);
+
+        if (!next->pardat.coeff) 
+            continue;
+
+        if (!checkPartialRestriction(hm, next)) 
+            return; 
+
+        handleSummand(hm, numsum+1);
     }
 
 }
-#endif
+
+void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
+
+    if (current->gtype == RED) {
+        int sum, newcoeff;
+
+        sum = current->source.dat[current->idx] + current->value;
+        newcoeff = current->pardat.coeff * binom(sum, current->value);
+        
+        if (hm->modval) {
+            next->pardat.coeff %= hm->modval;
+            if (0 == next->pardat.coeff) 
+                return; 
+        }         
+
+        copyTensor(&(next->pardat),&(current->pardat),hm->numMono,hm->numInt);
+        copyExmo(&(next->source),&(current->source));
+
+        printf("current = %p, next = %p\n",current,next);
+        printf("current->sumdat.idat[0]=%d\n",current->sumdat.idat[0]);
+        printf("next->pardat.idat[0]=%d\n",next->pardat.idat[0]);
+        printf("current->value = %d\n",current->value);
+
+        multTensor(&(next->pardat),&(current->sumdat),
+                   current->value,hm->numMono,hm->numInt,hm->modval);
+
+        printf("next->pardat.idat[0]=%d\n",next->pardat.idat[0]);
+
+        next->source.dat[current->idx] = sum;
+        next->pardat.coeff = newcoeff;
+    }
+
+    
+}
+
+
 
 hmap *hmapCreate(int numMono, int numInt) {
     hmap *res = mallox(sizeof(hmap));
@@ -582,7 +736,17 @@ hmap *hmapCreate(int numMono, int numInt) {
     res->numAlloc = res->numSummands = 0;
     res->summands = NULL;
 
-    if (NULL == (res->restrictions = allocSummand(numMono, numInt))) {
+    if (SUCCESS != allocTensor(&(res->restrictions1), numMono, numInt)) {
+        freex(res);
+        return NULL;
+    }
+
+    if (SUCCESS != allocTensor(&(res->restrictions2), numMono, numInt)) {
+        freex(res);
+        return NULL;
+    }
+
+    if (SUCCESS != allocTensor(&(res->comparison1), numMono, numInt)) {
         freex(res);
         return NULL;
     }
@@ -600,7 +764,9 @@ void hmapDestroy(hmap *hm) {
             freeSummand(hm->summands[i]);
             freex(hm->summands[i]);
         }
-        freex(hm->restrictions);
+        freeTensor(&(hm->restrictions1));
+        freeTensor(&(hm->restrictions2));
+        freeTensor(&(hm->comparison1));
         freex(hm->summands);
     }
 
@@ -619,8 +785,6 @@ int Tcl_HmapWidgetCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
     hmap *hm = (hmap *) cd;
     int result, index;
-    int scale, modulo;
-    Tcl_Obj *auxptr;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
@@ -639,12 +803,15 @@ int Tcl_HmapWidgetCmd(ClientData cd, Tcl_Interp *ip,
             return hmapAddSummand(hm,ip,objv[2]);
 
         case SELECT:
-            if (objc != 4) {
-                Tcl_WrongNumArgs(ip, 2, objv, "<restrictions> <callback>");
+            if (objc != 5) {
+                Tcl_WrongNumArgs(ip, 2, objv, "<modval> <restrictions> <callback>");
                 return TCL_ERROR;
             }
             
-            return hmapSelectFunc(hm, ip, objv[2], objv[3]);
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2],&(hm->modval)))
+                return TCL_ERROR;
+
+            return hmapSelectFunc(hm, ip, objv[3], objv[4]);
 
         case LIST:
             if (objc != 2) {

@@ -51,6 +51,7 @@ void clearExmo(exmo *e);
 #define ADJUSTSIGNS 1 /* should we just xor the exterior data,
                        * or should we simulate an exterior algebra? */
 void shiftExmo(exmo *e, const exmo *shft, int flags);
+void shiftExmo2(exmo *e, const exmo *shft, int scale, int flags);
 
 /* compute internal degree with respect to pi */
 int exmoIdeg(primeInfo *pi, const exmo *ex);

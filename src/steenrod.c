@@ -20,6 +20,7 @@
 #include "tlin.h"
 #include "steenrod.h"
 #include "mult.h"
+#include "hmap.h"
 
 char *theprogvar; /* ckalloc'ed name of the progress variable */
 int   theprogmsk; /* progress reporting granularity */
@@ -598,6 +599,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     Momap_Init(ip);
     Tenum_Init(ip);
     Tlin_Init(ip);
+    Hmap_Init(ip);
 
     Tcl_CreateObjCommand(ip, POLYNSP "ComputeMatrix",
                          TMakeMatrixSameSig, (ClientData) 0, NULL);

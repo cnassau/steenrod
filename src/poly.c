@@ -58,10 +58,13 @@ void clearExmo(exmo *e) {
     e->coeff = 1;
 }
 
-void shiftExmo(exmo *e, const exmo *s, int flags) {
+void shiftExmo2(exmo *e, const exmo *s, int scale, int flags) {
     int i;
     if (0 != (flags & USENEGSHIFT)) {
         int ee = -1 - e->ext, se = -1 - s->ext;
+        if ((scale>1) && (se!=0)) {
+            e->coeff = 0; return;  /* square of exterior part is zero */
+        }
         for (i=NALG;i--;) 
             e->dat[i] += s->dat[i] + 1;
         if (0 != (flags & ADJUSTSIGNS)) {
@@ -70,6 +73,9 @@ void shiftExmo(exmo *e, const exmo *s, int flags) {
         }
         e->ext = -1 - (ee ^ se);        
     } else {
+        if ((scale>1) && (s->ext!=0)) {
+            e->coeff = 0; return;  /* square of exterior part is zero */
+        }
         for (i=NALG;i--;) 
             e->dat[i] += s->dat[i];
         if (0 != (flags & ADJUSTSIGNS)) {
@@ -79,6 +85,8 @@ void shiftExmo(exmo *e, const exmo *s, int flags) {
         e->ext ^= s->ext;
     }
 }
+
+void shiftExmo(exmo *e, const exmo *s, int flags) { shiftExmo2(e,s,1,flags); }
 
 void reflectExmo(exmo *e) {
     int i;
