@@ -26,13 +26,16 @@ LIBS = libsteenrod.so
 
 LINKSTUB = cc -shared -L/home/cn/selfmade-tcl/lib/ -ltclstub8.4
 
-.PHONY: depend all clean distclean objects libraries
+.PHONY: depend all clean distclean objects libraries install
 
 all: objects libraries
 
 objects: $(OBJS)
 
 libraries: $(LIBS)
+
+install: libraries
+	for i in $(LIBS) ; do instlib.tcl $$i ; done; 
 
 %.c : %.nw
 	$(NOTANGLE) -L -R$*.c $(NOWEBFILES) > $*.c
