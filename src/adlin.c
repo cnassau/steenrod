@@ -204,9 +204,11 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
 
     cols = im->cols;
     v1.num = v2.num = cols;
+
 #if 0
     assert(im->cols == ker->cols);
 #endif
+
     spr = im->nomcols; /* sints per row */
 
     for (v1.data=im->data, i=0; i<im->rows; i++, v1.data+=spr) {
@@ -219,7 +221,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
         /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
             if (0 != *aux) break;
-        if (0 == j) {  /* row is zero */ exit(1); }
+        if (0 == j) {  /* row is zero */ assert(0=="row shouldn't be zero!"); }
 
         else {
             pos = aux - v1.data;
@@ -236,7 +238,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
 
     /* now reduce ker and collect results */
 
-    PROGVARSET(-1.0); /* -1 to indicate begin of last phase */
+    PROGVARSET(-1.0); /* -1 to indicate beginning of last phase */
 
     for (v1.data=ker->data, i=0; i<ker->rows; i++, v1.data+=spr) {
         cint coeff; int pos;
