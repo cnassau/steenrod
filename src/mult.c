@@ -139,6 +139,16 @@ int stdGetExmoFunc(multArgs *ma, int factor, const exmo **ret, int idx) {
     return PLgetExmo(ptp,pol,exm,idx);
 }
 
+int stdGetSingleExmoFunc(multArgs *ma, int factor, const exmo **ret, int idx) {
+    if (idx) return 0;
+    if (0 != (FIRST_FACTOR & factor)) {
+        *ret = (exmo *) ma->ffdat;
+    } else {
+        *ret = (exmo *) ma->sfdat;
+    }
+    return 1;
+}
+
 /* initxfPA & initxfAP are helper functions for initMultargs */
 
 void initxfPA(multArgs *MA) {
@@ -188,6 +198,7 @@ void initxfAP(multArgs *MA) {
 void initMultargs(multArgs *ma, primeInfo *pi, exmo *profile) {
     ma->pi = pi;
     ma->profile = profile;
+    ma->prime = pi->prime;
     initxfAP(ma); 
     initxfPA(ma);
 }

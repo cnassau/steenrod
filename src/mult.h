@@ -88,6 +88,7 @@ typedef struct multArgs {
     /* pi and profile have to remain valid during multiplication */
     primeInfo *pi;       /* describes the prime */
     exmo      *profile;  /* the subalgebra profile that we want to respect */
+    int        prime;    /* same as pi->prime, provided for faster access */
     
     /* first factor data & callbacks */
     void *ffdat, *ffdat2;
@@ -115,7 +116,7 @@ typedef struct multArgs {
         esum[NALG+1];
 
     /* client data -- interpretation is up to the callbacks */
-    void *cd1, *cd2, *cd3;
+    void *cd1, *cd2, *cd3, *cd4, *cd5;
     exmo fcdexmo, scdexmo; 
 
     /* callbacks that add the summands to a poly can use these: */
@@ -126,10 +127,16 @@ typedef struct multArgs {
     void (*stdSummandFunc)(struct multArgs *self, const exmo *smd);
 } multArgs;
 
-/* The standard getExmo function is just a wrapper for PLgetExmo */
+/* The standard getExmo function is just a wrapper for PLgetExmo.
+ * Depending on "factor", it interprets the pair (ffdat, ffdat2) 
+ * [resp. (sfdat, sfdat2)] as (polyType, poly) */
 #define FIRST_FACTOR  1
 #define SECOND_FACTOR 2
 int stdGetExmoFunc(struct multArgs *self, int factor, const exmo **ex, int idx);
+
+/* This callback is used to implement a single exmo. Its address should 
+ * be kept in the ffdat field (resp sfdat for the second factor). */
+int stdGetSingleExmoFunc(multArgs *ma, int factor, const exmo **ret, int idx);
 
 /* Here are the standard fetch funcs */
 void stdFetchFuncFF(struct multArgs *self, int coeff); 
@@ -140,6 +147,10 @@ void stdAddSummandToPoly(struct multArgs *self, const exmo *smd);
 
 /* The next function sets up the multiplication matrices: */
 void initMultargs(multArgs *ma, primeInfo *pi, exmo *profile);
+
+/* These functions start the computation: */
+void workPAchain(multArgs *ma);
+void workAPchain(multArgs *ma);
 
 /* finally, one invocaton that puts it all together */
 int stdAddProductToPoly(polyType *rtp, void *res,

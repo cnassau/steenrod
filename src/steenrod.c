@@ -17,6 +17,39 @@
 #include "tpoly.h"
 #include "tlin.h"
 #include "steenrod.h"
+#include "mult.h"
+
+
+/* Our multiplication callback function. This interprets ma's client
+ * data fields as follows:
+ *
+ *   ma->cd1 = matrixType
+ *   ma->cd2 = matrix 
+ *   ma->cd3 = destination enumerator
+ *   ma->cd4 = error code  
+ *   ma->cd5 = number of row that we're currently working on
+ */
+
+void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
+    matrixType *mtp = (matrixType *) ma->cd1;
+    void *mat = ma->cd2;
+    enumerator *dst = (enumerator *) ma->cd3;
+    int idx;
+    int rcode;
+
+    idx = SeqnoFromEnum(dst, (exmo *) smd);
+
+    if (idx < 0) { 
+        ma->cd4 = (void *) FAIL;
+        return;
+    }
+
+    rcode = mtp->addToEntry(mat, (int) ma->cd5, idx, smd->coeff, ma->prime);
+    
+    if (SUCCESS != rcode) 
+        ma->cd4 = (void *) rcode;
+}
+
 
 #define RETERR(msg)\
 { if (NULL != ip) Tcl_SetResult(ip,msg,TCL_VOLATILE); return FAIL; }
@@ -29,12 +62,24 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
     exmo theG; 
     polyType *dgpolyType;
     void *dgpoly;
+    int dgispos, dgnumsum = 0; 
+    multArgs ourMA, *ma = &ourMA;
 
     *mtp = NULL; *mat = NULL; /* if non-zero, caller will free this */
 
     /* check whether src and target are compatible */
     if ((NULL == src->pi) || (src->pi != dst->pi))
         RETERR("prime mismatch");
+
+    /* see what kind of dg's we have to expect */
+    if (src->ispos) {
+        dgispos = dst->ispos;
+    } else {
+        if (dst->ispos) {
+            RETERR("map from negative to positive not possible");
+        } 
+        dgispos = 1;
+    }
 
     srcdim = DimensionFromEnum(src);
     dstdim = DimensionFromEnum(dst);
@@ -49,9 +94,30 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
     memset(&theG, 0, sizeof(exmo));
     theG.gen = -654321; /* invalid (=highly unusual) generator id */
 
+    initMultargs(ma, src->pi, &(src->profile));
+
+    ma->ffIsPos = src->ispos;
+    ma->sfIsPos = dgispos;
+
+    ma->getExmoFF = &stdGetSingleExmoFunc;
+    ma->getExmoSF = &stdGetExmoFunc;
+
+    ma->fetchFuncFF = &stdFetchFuncFF;
+    ma->fetchFuncSF = &stdFetchFuncSF;
+
+    ma->cd1 = *mtp;
+    ma->cd2 = *mat;
+    ma->cd3 = dst;
+    ma->cd4 = SUCCESS;
+    ma->cd5 = 0;
+    ma->stdSummandFunc = &addToMatrixCB;
+
     if (firstRedmon(src)) 
         do {
             /* find differential of src->theex'es generator */
+            ma->ffdat = &(src->theex);
+            ma->ffMaxLength = exmoGetRedLen(&(src->theex));
+            ma->ffMaxLength = MIN(ma->ffMaxLength, NALG-2);
 
             if (theG.gen != src->theex.gen) {
                 /* new generator: need to get its differential dg */
@@ -70,9 +136,9 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
 
                 dgpolyType = polyTypeFromTclObj(*dg);
                 dgpoly     = polyFromTclObj(*dg);
-                
-                if (!src->ispos) {
-                    /* src is negative, so dgpoly must not also be negative: */
+                dgnumsum   = PLgetNumsum(dgpolyType, dgpoly);
+
+                if (dgispos) {
                     if (SUCCESS != PLtest(dgpolyType, dgpoly, ISPOSITIVE)) { 
                         char err[200];
                         /* TODO: should we make sure and check each summand ? */ 
@@ -80,16 +146,38 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
                                 theG.gen);
                         RETERR(err);
                     }
+                } else {
+                    if (SUCCESS != PLtest(dgpolyType, dgpoly, ISNEGATIVE)) { 
+                        char err[200];
+                        /* TODO: should we make sure and check each summand ? */ 
+                        sprintf(err,"target of generator #%d not negative (?)", 
+                                theG.gen);
+                        RETERR(err);
+                    }
                 }
+
+                ma->sfdat  = dgpolyType; 
+                ma->sfdat2 = dgpoly;
+                ma->sfMaxLength = PLgetMaxRedLength(dgpolyType, dgpoly);
+                ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
+
             }
             
+            ++((int) ma->cd5); /* row indicator */
+
             if (NULL == dg) continue;
      
             /* compute src->theex * dg */
             
-            
-            
-            
+            if (src->ispos)
+                workPAchain(ma);
+            else
+                workAPchain(ma);
+
+            multCount += dgnumsum;
+
+            if (SUCCESS != (int) ma->cd4) 
+                RETERR("error encountered while computing matrix");
 
         } while (nextRedmon(src));
 

@@ -42,6 +42,15 @@ int stdSetEntry(void *m, int row, int col, int val) {
     return SUCCESS;
 }
 
+int stdAddToEntry(void *m, int row, int col, int val, int mod) {
+    int rcode, aux;
+    if (SUCCESS != (rcode = stdGetEntry(m, row, col, &aux)))
+        return rcode;
+    aux = aux + val; 
+    if (mod) aux %= mod; 
+    return stdSetEntry(m, row, col, aux);
+}
+
 void stdGetDimensions(void *m, int *row, int *col) {
     matrix *mat = (matrix *) m;
     *row = mat->rows; *col = mat->cols;

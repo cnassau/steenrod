@@ -46,6 +46,8 @@ typedef struct {
 
     int  (*setEntry)(void *mat, int row, int col, int val);
 
+    int  (*addToEntry)(void *mat, int row, int col, int val, int mod);
+
     void (*getDimensions)(void *mat, int *row, int *col);
 
     void *(*createMatrix)(int row, int col);
