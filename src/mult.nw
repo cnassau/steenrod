@@ -19,31 +19,53 @@
 
 \begin{document} 
 \title{The multiplication routine}
-\author{C.\ Nassau}
+\author{Christian Nassau}
 
 \maketitle
 
 \begin{center}
-\begin{minipage}{10cm}{\small
+\begin{minipage}{10cm}
+{\small
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
-}\end{minipage} \\[.6cm]
-{\small {\sc Version} \verb|$Id$|} 
+}\end{minipage}\\[.6cm]
+{\small {\sc Version} \verb|$Id$|}
 \end{center}
 
-@ \begin{section}{What this is}
-Our header file:
+@ \begin{section}{About {\sc noweb}}
+You're currently reading the documentation that has been extracted 
+from a {\sc noweb} source file -- if you're unfamiliar with literate 
+programming you might want to visit the {\sc noweb} homepage at 
+\verb|http://www.eecs.harvard.edu/~nr/noweb/|.
+ 
+From the {\sc noweb} source we extract two program files: 
+the first is the header that just advertises 
+our publicly visible routines to the rest of the world:
 <<mult.h>>=
 #ifndef MULT_DEF
 #define MULT_DEF
-#include <prime.h>
-#endif
 
-@ The implementation
+#include <prime.h>
+
+<<public functions>>
+
+#endif
+@ The actual implementation is then contained in the second file [[mult.c]] which
+is outlined here:
 <<mult.c>>=
 #include "mult.h"
 
+<<types we need>>
+
+<<helper routines>>
+
+<<putting it all together>>
+@ These files are gradually built up as we go through this document.
+
 @ \end{section}
+
+
+
 
 @ \end{document}
