@@ -55,13 +55,24 @@ void copyExmo(exmo *dest, const exmo *src) {
 
 void shiftExmo(exmo *e, const exmo *s, int flags) {
     int i;
-    for (i=NALG;i--;) 
-        e->dat[i] += s->dat[i];
-    if (0 != (flags & ADJUSTSIGNS)) {
-        if (0 != (e->ext & s->ext)) e->coeff = 0;
-        if (0 != (1 & SIGNFUNC(e->ext,s->ext))) e->coeff = - e->coeff;
+    if (0 != (flags & USENEGSHIFT)) {
+        int ee = -1 - e->ext, se = -1 - s->ext;
+        for (i=NALG;i--;) 
+            e->dat[i] += s->dat[i] + 1;
+        if (0 != (flags & ADJUSTSIGNS)) {
+            if (0 != (ee & se)) e->coeff = 0;
+            if (0 != (1 & SIGNFUNC(ee,se))) e->coeff = - e->coeff;
+        }
+        e->ext = -1 - (ee ^ se);        
+    } else {
+        for (i=NALG;i--;) 
+            e->dat[i] += s->dat[i];
+        if (0 != (flags & ADJUSTSIGNS)) {
+            if (0 != (e->ext & s->ext)) e->coeff = 0;
+            if (0 != (1 & SIGNFUNC(e->ext,s->ext))) e->coeff = - e->coeff;
+        }
+        e->ext ^= s->ext;
     }
-    e->ext ^= s->ext;
 }
 
 void reflectExmo(exmo *e) {
@@ -608,12 +619,9 @@ int PLnegMultiply(polyType **rtp, void **res,
             return rc;
         }
 
-        reflectExmo(&aux);
-        negateExmo(&aux);
-
         if (SUCCESS != (rc = PLappendPoly(*rtp,*res,
                                           fftp,ff,
-                                          &aux,ADJUSTSIGNS,
+                                          &aux,ADJUSTSIGNS | USENEGSHIFT,
                                           aux.coeff,mod))) {
             PLfree(*rtp,*res); 
             return rc;

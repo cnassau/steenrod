@@ -44,6 +44,7 @@ int exmoIsBelow(const exmo *a, const exmo *b);
 
 void copyExmo(exmo *dest, const exmo *src);
 
+#define USENEGSHIFT 2 /* reflect arguments at -1 */
 #define ADJUSTSIGNS 1 /* should we just xor the exterior data,
                        * or should we simulate an exterior algebra? */
 void shiftExmo(exmo *e, const exmo *shft, int flags);
