@@ -2,7 +2,7 @@
 
 [moddesc {Steenrod Tcl package}]
 
-[titledesc {a collection of constants associated to the prime}]
+[titledesc {a collection of constants associated to a prime}]
 
 [copyright "2003 Christian Nassau"]
 
@@ -14,20 +14,68 @@ The [cmd prime] command ensemble allows to retrieve certain constants
 that are often needed by Steenrod algebra computations. 
 
 [usage namespace import steenrod::prime]
-[usage [cmd prime] [arg <prime>] [cmd subcommand] ?arg arg ...?]
+[usage [cmd prime] [arg prime] [cmd subcommand] ?arg arg ...?]
 
 [list_begin definitions]
 
-[lst_item "[cmd prime] [arg <integer>] [cmd test]"]
-Tests whether [arg <integer>] is an (acceptable) prime. 
+[lst_item "[cmd prime] [arg integer] [cmd test]"]
+Tests whether [arg integer] is an (acceptable) prime. 
 If the argument is not a prime or is not acceptable for other reasons,
 an error message is returned. Otherwise the result is an empty string. 
 
-[lst_item "[cmd prime] [arg <prime>] [cmd powers]"]
-Returns a list of the first few prime powers. 
+[lst_item "[cmd prime] [arg prime] [cmd NALG]"]
+Returns the maximal allowed length [const NALG] of exponent sequences. 
+This value is independant of the prime and 
+can only be changed by re-compiling the library. 
+
+[lst_item "[cmd prime] [arg prime] [cmd tpmo]"]
+Returns 'two * (prime minus one)', hence the name.
+
+[lst_item "[cmd prime] [arg prime] [cmd inverse] [arg integer]"]
+Returns the inverse of [arg integer] modulo [arg prime].
+
+[lst_item "[cmd prime] [arg prime] [cmd binom] [arg integer1] [arg integer2]"]
+Returns the binomial coefficient '[arg integer1] over [arg integer2]' modulo [arg prime].
+
+[lst_item "[cmd prime] [arg prime] [cmd maxpower]"]
+Returns the largest [const k] such that [const p^k] does not 
+lead to an internal overflow. 
 
 [list_end]
 
+[para]
+The following commands all return a list of [const NALG] integers.
+Their entries are [strong not] protected against overflows!
+
+[list_begin definitions]
+
+[lst_item "[cmd prime] [arg prime] [cmd powers]"]
+Returns the first few prime powers. 
+
+[lst_item "[cmd prime] [arg prime] [cmd rdegrees]"]
+Returns the 'reduced degrees': 
+these are the degrees of the generators [const xi_k] divided by [const 2(p-1)].
+
+[lst_item "[cmd prime] [arg prime] [cmd edegrees]"]
+Returns the degrees of the generators [const tau_k].
+
+[list_end]
+
+[section Example]
+[example {
+package require Steenrod
+namespace import steenrod::*
+
+# print binomial table mod 5 
+
+for {set i 0} {$i<=25} {incr i} {
+    set line ""
+    for {set j 0} {$j<=40} {incr j} {
+        append line [prime 5 binom $i $j]
+    }   
+    puts [string map {"0" " "} $line]
+}
+}]
 
 [see_also enumerator linalg matrix mono monomap poly prime ]
 
