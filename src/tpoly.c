@@ -575,7 +575,8 @@ typedef enum {
     TPEXMO, TPPOLY, 
     TPINFO, TPGETCOEFF,
     TPCANCEL, TPSHIFT, TPREFLECT, TPSCALE, TPAPPEND, TPCOMPARE,
-    TPNEGMULT, TPPOSMULT, TPSTMULT, TPSPLIT, TPVARSPLIT
+    TPNEGMULT, TPPOSMULT, TPSTMULT, TPSPLIT, TPVARSPLIT,
+    TMABOVE, TMBELOW, TMLENGTH, TMRLENGTH, TMPAD
 } PolyCmdCode;
 
 int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip, 
@@ -750,6 +751,39 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             
             Tcl_ResetResult(ip);
             return TCL_OK;
+            
+        case TMABOVE:
+            ENSUREARGS2(TP_EXMO, TP_EXMO);
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 exmoIsAbove(exmoFromTclObj(objv[1]),
+                                             exmoFromTclObj(objv[2]))));
+            return TCL_OK;
+            
+        case TMBELOW:
+            ENSUREARGS2(TP_EXMO, TP_EXMO);
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 exmoIsBelow(exmoFromTclObj(objv[1]),
+                                             exmoFromTclObj(objv[2]))));
+            return TCL_OK;
+
+        case TMLENGTH:
+            ENSUREARGS1(TP_EXMO);
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 exmoGetLen(exmoFromTclObj(objv[1]))));
+            return TCL_OK;
+
+        case TMRLENGTH:
+            ENSUREARGS1(TP_EXMO);
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 exmoGetRedLen(exmoFromTclObj(objv[1]))));
+            return TCL_OK;
+
+        case TMPAD:
+            ENSUREARGS1(TP_EXMO);
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 exmoGetPad(exmoFromTclObj(objv[1]))));
+            return TCL_OK;
+
     }
 
     RETERR("tPolyCombiCmd: internal error");
@@ -807,7 +841,13 @@ int Tpoly_Init(Tcl_Interp *ip) {
     CREATECMD(POLYNSP "varsplit", TPVARSPLIT);
 
     CREATECMD(POLYNSP "coeff",  TPGETCOEFF);
-    CREATECMD(POLYNSP "info",  TPINFO);
+    CREATECMD(POLYNSP "info",   TPINFO);
+
+    CREATECMD(MONONSP "isabove",   TMABOVE);
+    CREATECMD(MONONSP "isbelow",   TMBELOW);
+    CREATECMD(MONONSP "length",    TMLENGTH);
+    CREATECMD(MONONSP "redlength", TMRLENGTH);
+    CREATECMD(MONONSP "padding",   TMPAD);
 
     Tcl_LinkVar(ip, POLYNSP "multCount", (char *) &multCount, TCL_LINK_INT);
 

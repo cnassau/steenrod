@@ -18,6 +18,7 @@
 
 /* namespaces */
 #define POLYNSP "poly::"
+#define MONONSP "mono::"
 
 /* error codes */
 #define SUCCESS         0 
