@@ -495,10 +495,7 @@ enumerator *Tcl_EnumFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
     
     cmd = Tcl_GetCommandFromObj(ip, obj);
 
-    if (NULL == cmd)
-        return NULL;
-
-    if (TCL_OK != Tcl_GetCommandInfoFromToken(cmd, &info))
+    if (!Tcl_GetCommandInfoFromToken(cmd, &info))
         return NULL;
 
     if (info.objProc != Tcl_EnumWidgetCmd)
