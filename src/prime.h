@@ -39,9 +39,6 @@ typedef struct {
     cint *inverse;   /* table of inverses */
     /* binom */
     cint *binom;     /* table of binomials (a over b) with 0 <= a,b < prime */
-    /* seqno */
-    int rseqnum;     /* number of necessary tables */
-    int **rseqtab;   /* helper tables for the seqno function */
 } primeInfo;
 
 /* possible return values of makePrimeInfo: */
