@@ -433,15 +433,39 @@ int Tcl_EnumDimensionCmd(ClientData cd, Tcl_Interp *ip,
 int Tcl_EnumSeqnoCmd(ClientData cd, Tcl_Interp *ip, 
                       int objc, Tcl_Obj * const objv[]) {
     tclEnum *te = (tclEnum *) cd;
+    enumerator *enu;
     int res;
 
     if (objc != 3) {
-        Tcl_WrongNumArgs(ip, 2, objv, "<monomial>");
+        Tcl_WrongNumArgs(ip, 2, objv, "(<monomial> or <enumerator>)");
         return TCL_ERROR;
     }
 
     if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
  
+    if (!Tcl_ObjIsExmo(objv[2])) 
+        if (NULL != (enu = Tcl_EnumFromObj(ip, objv[2]))) {
+            
+            int max = DimensionFromEnum(te->enm);
+            Tcl_Obj *res = Tcl_NewObj();
+
+            if (firstRedmon(enu))
+                do {
+                    int sqn = SeqnoFromEnum(te->enm, &(enu->theex));
+                    
+                    if ((sqn < 0) || (sqn >= max)) sqn = -1;
+
+                    if (TCL_ERROR == Tcl_ListObjAppendElement(ip, res, 
+                                                              Tcl_NewIntObj(sqn))) {
+                        Tcl_DecrRefCount(res);
+                        return TCL_ERROR;
+                    }
+                } while (nextRedmon(enu));
+            
+            Tcl_SetObjResult(ip, res);
+            return TCL_OK;
+        }
+
     if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
         return TCL_ERROR;
     
@@ -588,7 +612,6 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
     return TCL_OK;
 }
 
-
 typedef enum { CGET, CONFIGURE, BASIS, SEQNO, DIMENSION,
                SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE } enumcmdcode;
 
@@ -599,7 +622,8 @@ static CONST char *cmdNames[] = { "cget", "configure",
                                   (char *) NULL };
 
 static enumcmdcode cmdmap[] = { CGET, CONFIGURE, BASIS, SEQNO, DIMENSION,
-                                SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE };
+                                SIGRESET, SIGNEXT, SIGLIST, 
+                                DECODE, ENCODE };
 
 int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip, 
                       int objc, Tcl_Obj * const objv[]) {
