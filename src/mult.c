@@ -304,7 +304,7 @@ void handleAPcol(multArgs *ma, int col, xint coeff) {
     if (0 != col) {
         ma->emsk[col] = (ma->emsk[col+1] << 1) 
             | (1 & (ma->esum[0] >> (col - 1))); 
-        handleAPBox(ma, MIN(NALG-col, NALG) , col, coeff);
+        handleAPBox(ma, MIN(NALG-col, NALG), col, coeff);
     } else 
         (ma->fetchFuncFF)(ma,coeff);
 }

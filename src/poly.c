@@ -21,7 +21,7 @@
 #define LOGSTD(msg) if (0) printf("stdpoly::%s\n", msg) 
 
 #define LOGPL(func) if (0) printf(#func) 
-#define LOGPLFMT(func,fmt,dat) if (0) printf( #func ": " fmt "\n", dat) 
+#define LOGPLFMT(func,fmt,dat) if (0) printf(#func ": " fmt "\n", dat) 
 
 /**** extended monomials ***********************************************************/
 
