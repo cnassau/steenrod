@@ -46,7 +46,6 @@ libraries: $(LIBS)
 %.tex : %.nw
 	$(NOWEAVE) -n  $*.nw  > $*.tex
 
-
 depend: 
 	makedepend -Y -- $(CFLAGS) -- $(SRCS) 2> /dev/null
 
@@ -58,6 +57,7 @@ libtprime.so: tprime.o tptr.o prime.o
 
 libtlin.so:  tlin.o adlin.o prime.o linalg.o tptr.o tprime.o
 	$(LINKSTUB) -o libtlin.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o 
+
 libtpoly.so: tlin.o adlin.o prime.o linalg.o tptr.o tprime.o tpoly.o poly.o
 	$(LINKSTUB) -o libtpoly.so tlin.o adlin.o prime.o linalg.o tptr.o tprime.o tpoly.o poly.o
 
