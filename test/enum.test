@@ -86,6 +86,7 @@ proc do-test {name cmdlist} {
                 if {$XXX} { append NDATA "  { [list seqtest $dm] }\n" }
                 # save internal degree
                 set idg [::ENU cget -ideg]
+                ::ENU conf -ideg $dm
                 set bas [::ENU basis]
                 set cnt 0
                 set fail {}
