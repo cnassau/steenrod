@@ -170,7 +170,7 @@ mapsum *mapgenFindSum(mapgen *mpi, int gen, int edat) {
 map *mapCreate(void) {
     map *res = malloc(sizeof(map));
     if (NULL == res) return NULL;
-    res->num = res->alloc = 0; res->dat = NULL; res->maxgen = 0;
+    memset(res, 0, sizeof(map));
     return res;
 }
 

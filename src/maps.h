@@ -51,6 +51,7 @@ typedef struct {
     int alloc;
     mapgen *dat;
     int maxgen;   /* suggested number of next generator */
+    int minideg, maxideg; /* min and max of internal degrees */
 } map;
 
 void mapsumInit(mapsum *mps);

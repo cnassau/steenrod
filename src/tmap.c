@@ -90,7 +90,8 @@ int getSumData(Tcl_Interp *ip, mapsum *mps) {
 
 
 typedef enum {
-    MP_CREATE, MP_DESTROY, MP_INFO, MP_GETNUM, MP_GETMAXGEN,
+    MP_CREATE, MP_DESTROY, MP_INFO, MP_GETNUM, 
+    MP_GETMAXGEN, MP_GETMINIDEG, MP_GETMAXIDEG,
     GEN_CREATE, GEN_FIND, 
     GEN_SETIDEGREE, GEN_SETEDEGREE, 
     GEN_GETIDEGREE, GEN_GETEDEGREE,
@@ -128,6 +129,14 @@ int tMapCombiCmd(ClientData cd, Tcl_Interp *ip,
             ENSUREARGS1(TP_MAP);
             mp = (map *) TPtr_GetPtr(objv[1]);
             RETINT(mp->maxgen);
+        case MP_GETMINIDEG:
+            ENSUREARGS1(TP_MAP);
+            mp = (map *) TPtr_GetPtr(objv[1]);
+            RETINT(mp->minideg);
+        case MP_GETMAXIDEG:
+            ENSUREARGS1(TP_MAP);
+            mp = (map *) TPtr_GetPtr(objv[1]);
+            RETINT(mp->maxideg);
         case MP_INFO:
             ENSUREARGS1(TP_MAP);
             mp = (map *) TPtr_GetPtr(objv[1]);
@@ -232,6 +241,8 @@ Tcl_CreateObjCommand(ip,name,tMapCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND(NSM "infoMap",        MP_INFO);
     CREATECOMMAND(NSM "getNumGens",     MP_GETNUM);
     CREATECOMMAND(NSM "getMaxGen",      MP_GETMAXGEN);
+    CREATECOMMAND(NSM "getMaxIDeg",     MP_GETMAXIDEG);
+    CREATECOMMAND(NSM "getMinIDeg",     MP_GETMINIDEG);
     CREATECOMMAND(NSM "createGen",      GEN_CREATE);
     CREATECOMMAND(NSM "genGetId",       GEN_GETID);
     CREATECOMMAND(NSM "genSetIDegree",  GEN_SETIDEGREE);
