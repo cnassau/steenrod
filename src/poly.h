@@ -47,7 +47,7 @@ void shiftExmo(exmo *e, const exmo *shft, int flags);
  * properties using the "test" member function of the polyType 
  * structure. The test function returns SUCCESS (resp. FAILUNTRUE)
  * if the property is known to be true (resp. false). Other return
- * codes indicate that test is not possible. */
+ * codes indicate that the test is not possible. */
 
 typedef enum {
     ISPOSITIVE,  /* all exponents >= 0, exterior component >= 0 */

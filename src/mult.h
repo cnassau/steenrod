@@ -39,7 +39,6 @@
  */
 
 typedef struct {
-    primeInfo *pi;
     xint val,
         quant,
         *oldmsk, *newmsk,
@@ -90,15 +89,17 @@ typedef struct multArgs {
     primeInfo *pi;       /* describes the prime */
     exmo      *profile;  /* the subalgebra profile that we want to respect */
     
-    /* first factor callbacks */
+    /* first factor data & callbacks */
     void *ffdat;
+    int   ffIsPos;
     int (*getExmoFF)(void *ffd, const exmo **ex, int idx);
-    void (*fetchFuncFF)(struct multArgs *self); 
+    void (*fetchFuncFF)(struct multArgs *self, int coeff); 
     
-    /* second factor callbacks */
+    /* second factor data & callbacks */
     void *sfdat;
+    int   sfIsPos; 
     int (*getExmoSF)(void *sfd, const exmo **ex, int idx);
-    void (*fetchFuncSF)(struct multArgs *self); 
+    void (*fetchFuncSF)(struct multArgs *self, int coeff); 
 
     /* The multiplication matrix is stored here. For historical reasons
      * there are actually two matrices, one for "AP" and one for "PA". 
@@ -125,8 +126,8 @@ typedef struct multArgs {
 } multArgs;
 
 /* Here are the standard fetch funcs */
-void stdFetchFuncFF(struct multArgs *self); 
-void stdFetchFuncSF(struct multArgs *self); 
+void stdFetchFuncFF(struct multArgs *self, int coeff); 
+void stdFetchFuncSF(struct multArgs *self, int coeff); 
 
 /* An implementation of a stdSummandFunc that adds the summand to a polynomial */
 void stdAddSummandToPoly(struct multArgs *self, const exmo *smd);

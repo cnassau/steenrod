@@ -13,6 +13,113 @@
 
 #include "mult.h"
 
+inline xint XINTMULT(xint a, xint b, xint prime) { 
+    int aa = a, bb = b; 
+    xint res = (xint) ((aa * bb) % prime); 
+    /* printf("%2d * %2d => %2d\n",aa,bb,(int)res); */
+    return res;
+}
+
+/*** enumeration of xi fields */
+
+xint firstXdat(Xfield *X, primeInfo *pi) {
+    xint c, aux;
+    X->val = *(X->res) / X->res_weight;
+    X->val /= X->quant; 
+    aux = *(X->oldmsk); aux /= X->quant;
+    while (0 == (c=binomp(pi,X->val+aux,aux))) --(X->val);
+    X->val *= X->quant;     
+    *(X->newmsk) = *(X->oldmsk) + X->val; 
+    *(X->res) -= X->val * X->res_weight; 
+    *(X->sum) -= X->val * X->sum_weight; 
+    return c;
+}
+
+xint nextXdat(Xfield *X, primeInfo *pi) {
+    xint c, nval, aux;
+    if (0 == (nval = X->val)) return 0;
+    nval /= X->quant; 
+    aux = *(X->oldmsk); aux /= X->quant; 
+    while (0 == (c = binomp(pi,--(nval)+aux,aux))) ;
+    nval *= X->quant;
+    *(X->newmsk) = *(X->oldmsk) + nval; 
+    *(X->sum) += (X->val - nval) * X->sum_weight; 
+    *(X->res) += (X->val - nval) * X->res_weight; 
+    X->val = nval;
+    return c;
+}
+
+/*** standard fetch functions */
+
+/* In stdFetchFuncSF our business is this:
+ *
+ *  1) go through all summands of the second factor
+ *  2) check if one gets a summand of the product for this summand 
+ *     and the current multiplication matrix
+ *  3) if yes then invoke the stdSummandFunc for this summand. */
+
+void stdFetchFuncSF(struct multArgs *ma, int coeff) {
+    const exmo *sfx; int idx, i; cint c; 
+    int prime = ma->pi->prime; 
+    primeInfo *pi = ma->pi;
+    for (idx = 0; SUCCESS == ((ma->getExmoSF)(ma->sfdat, &sfx,idx)); idx++) {
+        exmo res;
+        c = coeff;
+        /* first check exterior part */
+        if (ma->esum[1] != (sfx->ext & ma->esum[1])) continue;
+        if (0 != ((sfx->ext ^ ma->esum[1]) & ma->emsk[1])) continue;
+        res.ext = (sfx->ext ^ ma->esum[1]) | ma->emsk[1];
+        if (0 != (1 & (SIGNFUNC(ma->emsk[1], sfx->ext ^ ma->esum[1])
+                       + SIGNFUNC(ma->esum[1], sfx->ext ^ ma->esum[1]))))
+            c = prime - c;
+        /* now check reduced part */
+        for (i=NALG;c && i--;) {
+            xint aux, aux2;
+            aux  = sfx->dat[i] + ma->sum[0][i+1];
+            aux2 = ma->msk[1][i];
+            if ((0 > (res.dat[i] = aux + aux2)) && ma->sfIsPos) {
+                c = 0;
+            } else {
+                c = XINTMULT(c, binomp(pi, res.dat[i], aux), prime);
+            }
+        }
+        if (0 == c) continue;
+        res.coeff = XINTMULT(c, sfx->coeff, prime);
+        res.gen   = sfx->gen; /* should this be done in the callback function ? */
+        /* invoke callback */
+        (ma->stdSummandFunc)(ma, &res);
+    }
+}
+
+/* The same in the AP case */
+
+void stdFetchFuncFF(struct multArgs *ma, int coeff) {
+    const exmo *ffx; int idx, i; cint c; 
+    int prime = ma->pi->prime; 
+    primeInfo *pi = ma->pi;
+    for (idx = 0; SUCCESS == ((ma->getExmoFF)(ma->ffdat, &ffx,idx)); idx++) {
+        exmo res;
+        c = coeff;
+        /* first check exterior part */
+        if (0 != (ma->emsk[1] & ffx->ext)) continue;
+        if (0 != (1 & SIGNFUNC(ffx->ext, ma->emsk[1]))) c = prime-c;
+        /* check reduced component */
+        for (i=NALG;c && i--;) {
+            xint aux, aux2;
+            aux  = ffx->dat[i] + ma->sum[i+1][0];
+            aux2 = ma->msk[i][1];
+            res.dat[i] = aux + aux2;
+            c = XINTMULT(c, binomp(pi, res.dat[i], aux), prime);
+        }
+        if (0 == c) continue;
+        res.coeff = XINTMULT(c, ffx->coeff, prime);
+        res.ext = ffx->ext | ma->emsk[1];
+        /* WRONG: really take gen id from first summand ??? */
+        res.gen = ffx->gen; /* should this be done in the callback function ? */
+        (ma->stdSummandFunc)(ma, &res);
+    }
+}
+
 #if 0
 
 /* old stuff follows below */
@@ -59,13 +166,6 @@ void multPoly(primeInfo *pi, poly *f, poly *s,
     }
 }
 
-inline xint XINTMULT(xint a, xint b, xint prime) { 
-    int aa = a, bb = b; 
-    xint res = (xint) ((aa * bb) % prime); 
-    /* printf("%2d * %2d => %2d\n",aa,bb,(int)res); */
-    return res;
-}
-
 /* A Xfield represents a xi-box in the multiplication matrix. It 
  *
  *  1)  holds a value (val)
@@ -88,33 +188,6 @@ typedef struct {
     int sum_weight, res_weight;
     int estat; 
 } Xfield;
-
-xint firstXdat(Xfield *X) {
-    primeInfo *pi = X->pi; xint c, aux;
-    X->val = *(X->res) / X->res_weight;
-    X->val /= X->quant; 
-    aux = *(X->oldmsk); aux /= X->quant;
-    while (0 == (c=binomp(pi,X->val+aux,aux))) --(X->val);
-    X->val *= X->quant;     
-    *(X->newmsk) = *(X->oldmsk) + X->val; 
-    *(X->res) -= X->val * X->res_weight; 
-    *(X->sum) -= X->val * X->sum_weight; 
-    return c;
-}
-
-xint nextXdat(Xfield *X) {
-    primeInfo *pi = X->pi; xint c, nval, aux;;
-    if (0 == (nval = X->val)) return 0;
-    nval /= X->quant; 
-    aux = *(X->oldmsk); aux /= X->quant; 
-    while (0 == (c = binomp(pi,--(nval)+aux,aux))) ;
-    nval *= X->quant;
-    *(X->newmsk) = *(X->oldmsk) + nval; 
-    *(X->sum) += (X->val - nval) * X->sum_weight; 
-    *(X->res) += (X->val - nval) * X->res_weight; 
-    X->val = nval;
-    return c;
-}
 
 Xfield xfPA[NALG+1][NALG+1], xfAP[NALG+1][NALG+1];
 xint msk[NALG+1][NALG+1], sum[NALG+1][NALG+1];
