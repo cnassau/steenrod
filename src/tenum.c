@@ -15,6 +15,8 @@
 #include <string.h>
 #include "tprime.h"
 #include "tpoly.h"
+#include "tlin.h"
+#include "linwrp.h"
 #include "poly.h"
 #include "tenum.h"
 #include "enum.h"
@@ -445,16 +447,91 @@ int Tcl_EnumSiglistCmd(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
+int Tcl_EnumDecodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
+    tclEnum *te = (tclEnum *) cd;   
+    vectorType *vt; void *vdat;
+    void *pdat;
+    int vdim, edim, idx, val;
+
+    if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
+
+    if (!Tcl_ObjIsVector(obj))
+        assert(NULL == "Tcl_EnumDecodeCmd expects vector argument");
+
+    vt   = vectorTypeFromTclObj(obj);
+    vdat = vectorFromTclObj(obj);
+    vdim = vt->getLength(vdat);
+
+    edim = DimensionFromEnum(te->enm);
+
+    if (vdim != edim) {
+        char err[100];
+        sprintf(err,"dimension mismatch: %d (vector) != %d (enumerator)", 
+                vdim, edim);
+        RETERR(err);
+    }
+
+    if (NULL == (pdat = PLcreate(stdpoly))) RETERR("PLcreate failed");
+
+    idx = 0;
+    if (firstRedmon(te->enm)) 
+        do {
+            if (SUCCESS != (vt->getEntry(vdat, idx, &val))) {
+                PLfree(stdpoly, pdat);
+                if (idx > edim) {
+                    char err[200];
+                    sprintf(err, "internal error in Tcl_EnumDecodeCmd (%d > %d)",
+                            idx, edim);
+                    RETERR(err);
+                }
+                RETERR("internal error in Tcl_EnumDecodeCmd: vt->getEntry failed");
+            }
+
+            if (val) { 
+                te->enm->theex.coeff = val;
+                if (SUCCESS != PLappendExmo(stdpoly, pdat, &(te->enm->theex))) {
+                    PLfree(stdpoly, pdat);
+                    RETERR("internal error in Tcl_EnumDecodeCmd: "
+                           "PLappendExmo failed"); 
+                }
+            }
+
+            idx++;
+        } while (nextRedmon(te->enm));
+
+    Tcl_SetObjResult(ip, Tcl_NewPolyObj(stdpoly, pdat));
+
+    return TCL_OK;
+}
+
+int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
+    tclEnum *te = (tclEnum *) cd;   
+    vectorType *vt; void *vdat;
+    polyType   *pt; void *pdat;
+
+    if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
+
+    if (!Tcl_ObjIsPoly(obj))
+        assert(NULL == "Tcl_EnumEncodeCmd expects polynomial argument");
+
+    pt   = polyTypeFromTclObj(obj);
+    pdat = polyFromTclObj(obj);
+
+    return TCL_OK;
+}
+
+
 typedef enum { CGET, CONFIGURE, BASIS, SEQNO, DIMENSION,
-               SIGRESET, SIGNEXT, SIGLIST } enumcmdcode;
+               SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE } enumcmdcode;
 
 static CONST char *cmdNames[] = { "cget", "configure", 
                                   "basis", "seqno", "dimension", 
                                   "sigreset", "signext", "siglist",
+                                  "decode", "encode",
                                   (char *) NULL };
 
 static enumcmdcode cmdmap[] = { CGET, CONFIGURE, BASIS, SEQNO, DIMENSION,
-                                SIGRESET, SIGNEXT, SIGLIST };
+                                SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE };
 
 int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip, 
                       int objc, Tcl_Obj * const objv[]) {
@@ -499,6 +576,22 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             return TCL_OK;
         case SIGLIST:
             return Tcl_EnumSiglistCmd(cd, ip, objc, objv);
+        case DECODE:
+            if (objc != 3) {
+                Tcl_WrongNumArgs(ip, 2, objv, "<vector>");
+                return TCL_ERROR;
+            }
+            if (TCL_OK != Tcl_ConvertToVector(ip, objv[2])) 
+                return TCL_ERROR;
+            return Tcl_EnumDecodeCmd(cd, ip, objv[2]);
+        case ENCODE:
+            if (objc!=3) {
+                Tcl_WrongNumArgs(ip, 2, objv, "<polynomial>");
+                return TCL_ERROR;
+            }
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2])) 
+                return TCL_ERROR;
+            return Tcl_EnumEncodeCmd(cd, ip, objv[2]);
     }
 
     Tcl_SetResult(ip, "internal error in Tcl_EnumWidgetCmd", TCL_STATIC);
