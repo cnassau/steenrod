@@ -167,7 +167,11 @@ proc maxUpperProfile {prime algebra s ideg edeg} {
 proc maxLowerProfile {prime algebra s ideg edeg} { 
     incr s 1
 
-    if {$algebra=={}} { set algebra {0 -1 {666 666 666 666 666 666 666} 0} }
+    if {$algebra=={}} { 
+        set aux {}
+        foreach dg [prime::reddegs $prime] { lappend aux 666 }
+        set algebra [list 0 -1 $aux 0]
+    }
     
     set ae [lindex $algebra 1]
     set ar [lindex $algebra 2]
@@ -178,7 +182,9 @@ proc maxLowerProfile {prime algebra s ideg edeg} {
 
     # ext and red describe the profile of the used subalgebra B
     set ext 0
-    set red {0 0 0 0 0 0 0}
+    set red {}
+    foreach dg [prime::reddegs $prime] { lappend red 0 }
+
 
     # dB is the maximal slope, tB the maximal dimension of B
     set dB 0
