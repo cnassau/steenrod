@@ -26,7 +26,7 @@
 
 typedef enum { TEST, MAXPOW, TPMO, N, PRIMPOWS, RDEGS, EDEGS, INVERSE, BINOM } ecmdcode;
 
-static CONST char *eCmdNames[] = { "test", "maxpower", "tpmo", "N", "powers",
+static CONST char *eCmdNames[] = { "test", "maxpower", "tpmo", "NALG", "powers",
                                    "rdegrees", "edegrees", "inverse", "binom",
                                    (char *) NULL };
 
