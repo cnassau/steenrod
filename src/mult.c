@@ -50,6 +50,8 @@ xint nextXdat(Xfield *X, const primeInfo *pi) {
     return c;
 }
 
+void zeroXdat(Xfield *X) { X->val = 0; *(X->newmsk) = *(X->oldmsk); } 
+
 /*** standard fetch functions */
 
 /* In stdFetchFuncSF our business is this:
@@ -237,7 +239,15 @@ void handleAPcol(multArgs *ma, int col, xint coeff);
 void handleAPBox(multArgs *ma, int row, int col, xint coeff) {
     xint c;
     int emval = 2 << (row - 1);  /* mask version of esval */
-    int sgn;
+    int sgn = 0;
+    while (row > ma->ffMaxLength) { 
+        zeroXdat(&(ma->xfAP[row][col]));
+        if (row <= 1) {
+            handleAPcol(ma, col-1, coeff);
+            return;
+        }
+        row--;
+    }
     if ((0 != ma->xfAP[row][col].estat) && 
         (0 != (1 & ma->emsk[col])) &&
         (0 == (emval & ma->emsk[col]))) { 
@@ -269,7 +279,7 @@ void handleAPcol(multArgs *ma, int col, xint coeff) {
     if (0 != col) {
         ma->emsk[col] = (ma->emsk[col+1] << 1) 
             | (1 & (ma->esum[0] >> (col - 1))); 
-        handleAPBox(ma, NALG-col, col, coeff);
+        handleAPBox(ma, MIN(NALG-col, NALG) , col, coeff);
     } else 
         (ma->fetchFuncFF)(ma,coeff);
 }
@@ -298,7 +308,7 @@ void workAPchain(multArgs *ma) {
         /* initialize oldmsk, sum, res*/
         for (i=NALG;i--;) { ma->sum[i+1][0]=0; ma->msk[0][i+1]=m->dat[i]; }
         ma->emsk[NALG] = 0; ma->esum[0] = m->ext;
-        handleAPcol(ma, NALG-1, m->coeff);
+        handleAPcol(ma, 1 + ma->sfMaxLength, m->coeff);
     }
 }
 
@@ -317,6 +327,9 @@ int stdAddProductToPoly(polyType *rtp, void *res,
 
     ma->ffIsPos = fIsPos;
     ma->sfIsPos = sIsPos;
+
+    ma->ffMaxLength = PLgetMaxLength(ftp, ff);
+    ma->sfMaxLength = PLgetMaxLength(stp, sf);
 
     ma->ffdat = ftp; ma->ffdat2 = ff; 
     ma->getExmoFF = &stdGetExmoFunc;
@@ -337,48 +350,3 @@ int stdAddProductToPoly(polyType *rtp, void *res,
 
     return SUCCESS;
 }
-
-#if 0
-
-/* old stuff follows below */
-
-/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-
-void multAnyPos(multArgs *MA, mono *s) ;
-void multPosAny(multArgs *MA, mono *f) ;
-
-void multPoly(primeInfo *pi, poly *f, poly *s, 
-              void *clientData, multCBfunc multCB) {
-    int k; multArgs MA; xint msk[NALG+1], sum[NALG+1];
-    MA.clientData = clientData;
-    MA.multCB = multCB;
-    MA.f = f; MA.s = s; 
-    MA.pi = pi;
-    if (0 == f->num) return;
-    if (0 == s->num) return;
-    MA.fIsPos = (f->dat[0].dat[0] >= 0);
-    MA.sIsPos = (s->dat[0].dat[0] >= 0);
-    MA.profile = NULL; 
-    for (k=NALG+1;k--;) msk[k] = sum[k] = 0;
-    if (!MA.fIsPos) {
-        for (k=0;k<s->num;k++) 
-            multAnyPos(&MA, &(s->dat[k]));
-    } else {
-        for (k=0;k<f->num;k++) 
-            multPosAny(&MA, &(f->dat[k]));
-    }
-}
-
-void multPosAny(multArgs *MA, mono *f) {
-    initxfPA(MA);
-    workPAchain(MA, f);
-}
-
-/* same again: this time for any times pos */
-
-void multAnyPos(multArgs *MA, mono *s) {
-    initxfAP(MA);
-    workAPchain(MA, s);
-}
-
-#endif

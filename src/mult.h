@@ -91,13 +91,13 @@ typedef struct multArgs {
     
     /* first factor data & callbacks */
     void *ffdat, *ffdat2;
-    int   ffIsPos;
+    int   ffIsPos, ffMaxLength;
     int (*getExmoFF)(struct multArgs *self, int factor, const exmo **ex, int idx);
     void (*fetchFuncFF)(struct multArgs *self, int coeff); 
     
     /* second factor data & callbacks */
     void *sfdat, *sfdat2;
-    int   sfIsPos; 
+    int   sfIsPos, sfMaxLength; 
     int (*getExmoSF)(struct multArgs *self, int factor, const exmo **ex, int idx);
     void (*fetchFuncSF)(struct multArgs *self, int coeff); 
 
