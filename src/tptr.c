@@ -97,6 +97,9 @@ void ILDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
 }
 
 /*::: Implementation of the TPtr object type :::::::::::::::::::::::::::::::::*/
+
+Tcl_ObjType TPtr;
+
 #define TCLRETERR(ip, msg) \
 { if (NULL!=ip) Tcl_SetResult(ip, msg, TCL_VOLATILE); return TCL_ERROR; }
 

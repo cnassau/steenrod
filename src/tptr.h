@@ -30,8 +30,7 @@ int Tcl_ConvertToIntList(Tcl_Interp *ip, Tcl_Obj *obj);
  *   type:      numerical type id  
  *   pointer:   an arbitrary (void *) 
  */
-Tcl_ObjType TPtr;
- 
+
 /* Initialize this library */
 int Tptr_Init(Tcl_Interp *ip);
 
