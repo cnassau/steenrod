@@ -15,6 +15,7 @@ catch { namespace import itcl::* }
 load libtlin.so
 
 namespace eval linalg {
+
     proc printVector {vec {maxcol 75}} {
 	set dim [::linalg::getVectorDim $vec]
 	set max $dim
@@ -24,7 +25,6 @@ namespace eval linalg {
 	}
 	if {$max!=$dim} { puts "..." } else { puts "" }
     }
-
 
     proc printMatrix {mat {maxrows 20} {maxcols 75}} {
 	set dims [::linalg::getMatrixDim $mat]
