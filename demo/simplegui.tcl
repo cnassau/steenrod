@@ -27,6 +27,10 @@ pack [label $tpf.adv \
           -text "Settings: prime = $options(-prime), algebra = \{$algname\}"] \
     -side left -expand 0 -fill x -anchor w
 
+pack [label $tpf.plab -text "  profile ="] -side left -expand 0 -fill x -anchor w
+pack [label $tpf.prof -textvariable ::theprofile] \
+    -side left -expand 0 -fill x -anchor w
+
 # now create frame for canvas and scrollbars:
 
 set cvf [frame .cvf]
@@ -43,14 +47,14 @@ pack $cvs -side top -expand 1 -fill both
 pack $tpf -side top -expand 0 -fill both 
 pack $cvf -side top -expand 1 -fill both
 
-wm geometry . 800x600
+wm geometry . 1240x900
 
-set scale 8
+set scale 4
 
 proc tocoord x { return [expr $x*$::scale]m }
 
 set maxX 10
-set maxY 10
+set maxY 100
 
 proc updateScrollRegion {} {
     global cvs maxY maxX
@@ -82,24 +86,26 @@ proc addDot {x y edeg id s} {
                             -foreground $col -bitmap @dot]
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 # finally, here are our "callbacks":
 
+set wpl {}
+
 proc degchange {name1 name2 op} {
-    foreach {i e s} $::tridegree break
+    global wpl cvs
+    foreach {s i e} $::tridegree break
     # $::statlab configure -text "Current tridegree (s,t,e) = ($s,$i,$e)"
+    
+    if {$wpl != {}} { $cvs delete $wpl } 
+    set x [expr $i - $s]
+    set y [expr -$s]
+
+    set wpl [$cvs create polygon \
+                 [::tocoord [expr $x-.4]] [::tocoord [expr $y-.4]] \
+                 [::tocoord [expr $x+.4]] [::tocoord [expr $y-.4]] \
+                 [::tocoord [expr $x+.4]] [::tocoord [expr $y+.4]] \
+                 [::tocoord [expr $x-.4]] [::tocoord [expr $y+.4]] \
+                 -fill red -outline black ]
+
     update
 }
 
