@@ -306,14 +306,14 @@ Tcl_Obj *Tcl_PolyObjScaleMod(Tcl_Obj *obj, int scale, int mod) {
     return obj;
 }
 
-Tcl_Obj *Tcl_PolyObjAppend(Tcl_Obj *obj, Tcl_Obj *pol2) {
+Tcl_Obj *Tcl_PolyObjAppend(Tcl_Obj *obj, Tcl_Obj *pol2, int scale, int mod) {
     Tcl_IncrRefCount(obj);
     if (Tcl_IsShared(obj)) {    
         Tcl_DecrRefCount(obj);
         obj = Tcl_DuplicateObj(obj);    
         Tcl_IncrRefCount(obj);
     }
-    if (SUCCESS != PLappendPoly(PTR1(obj),PTR2(obj),PTR1(pol2),PTR2(pol2),NULL,0,1,0))
+    if (SUCCESS != PLappendPoly(PTR1(obj),PTR2(obj),PTR1(pol2),PTR2(pol2),NULL,0,scale,mod))
         return NULL;
     Tcl_InvalidateStringRep(obj);
     return obj;
@@ -650,7 +650,7 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
             return TCL_OK;
         case TPAPPEND:
             ENSUREARGS2(TP_POLY,TP_POLY);
-            if (NULL == (obj1 = Tcl_PolyObjAppend(objv[1], objv[2])))
+            if (NULL == (obj1 = Tcl_PolyObjAppend(objv[1], objv[2], 1, 0)))
                 RETERR("PLappendPoly failed");
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;
@@ -798,6 +798,462 @@ int tPolyCombiCmd(ClientData cd, Tcl_Interp *ip,
     RETERR("tPolyCombiCmd: internal error");
 }
 
+/* ---------- */
+
+/* "TakePolyFromVar" treats its argument as the name of a variable which
+ * is expected to contain a polynomial. This polynomial object is read,
+ * an unshared copy is made whose refcount is incremented, the variable is
+ * cleared, and the polynomial returned. If an error occurs a message is left
+ * in the interpreter. */
+
+Tcl_Obj *TakePolyFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
+    Tcl_Obj *res;
+
+    if (NULL == (res = Tcl_ObjGetVar2(ip, varname, NULL, TCL_LEAVE_ERR_MSG)))
+        return NULL;
+
+    if (TCL_OK != Tcl_ConvertToPoly(ip, res)) {
+        Tcl_SetObjResult(ip, varname);
+        Tcl_AppendResult(ip, " does not contain a valid polynomial");
+        return NULL;
+    }
+
+    Tcl_IncrRefCount(res);
+    if (NULL == Tcl_ObjSetVar2(ip, varname, NULL, Tcl_NewObj(), TCL_LEAVE_ERR_MSG)) {
+        Tcl_DecrRefCount(res);
+        return NULL;
+    }
+
+    if (Tcl_IsShared(res)) {
+        Tcl_DecrRefCount(res);
+        res = Tcl_DuplicateObj(res);
+        Tcl_IncrRefCount(res);
+    }
+
+    return res;
+}
+
+#define EXPECTARGS(bas,min,max,msg) {                 \
+  if ((objc<((bas)+(min))) || (objc>((bas)+(max)))) { \
+       Tcl_WrongNumArgs(ip, (bas), objv, msg);        \
+       return TCL_ERROR; } }
+
+/**** Implementation of the poly combi-command ********************************/
+
+typedef enum { TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT, 
+               STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT, 
+               COMPARE, SPLIT, VARSPLIT, COEFF } pcmdcode;
+
+static CONST char *pCmdNames[] = { "test", "info", "append", "cancel", "add", 
+                                   "posmult", "negmult", "steenmult",
+                                   "varappend", "varcancel", "shift", "reflect",
+                                   "compare", "split", "varsplit", "coeff",
+                                   (char *) NULL };
+
+static pcmdcode pCmdmap[] = { TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT, 
+                              STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT, 
+                              COMPARE, SPLIT, VARSPLIT, COEFF };
+
+int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+    int result, index, scale, modval;
+    primeInfo *pi;
+    exmo *ex;
+    Tcl_Obj *(varp[5]), *obj1, *obj;
+    
+    if (objc < 2) {
+        Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
+        return TCL_ERROR;
+    }
+    
+    result = Tcl_GetIndexFromObj(ip, objv[1], pCmdNames, "subcommand", 0, &index);
+    if (result != TCL_OK) return result;
+
+    switch (pCmdmap[index]) {
+        case TEST:
+            EXPECTARGS(2, 1, 1, "<polynomial candidate>");
+
+            Tcl_ConvertToPoly(ip, objv[2]);
+            return TCL_OK;
+
+        case INFO:
+            EXPECTARGS(2, 1, 1, "<polynomial>");
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, Tcl_PolyObjGetInfo(objv[2]));
+            return TCL_OK;
+
+        case APPEND:
+            EXPECTARGS(2, 2, 4, "<polynomial> <polynomial> ?<scale>? ?<mod>?"); 
+
+            scale = 1; modval = 0;
+            if (objc > 4)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &scale))
+                    return TCL_ERROR;
+
+            if (objc > 5)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &modval))
+                    return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                return TCL_ERROR;
+
+            if (NULL == (obj1 = Tcl_PolyObjAppend(objv[2], objv[3], scale, modval)))
+                RETERR("PLappendPoly failed");
+
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;
+            
+        case CANCEL:
+            EXPECTARGS(2, 2, 2, "<integer> <polynomial>"); 
+
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2], &modval))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, Tcl_PolyObjCancel(objv[3], modval));
+            return TCL_OK;
+
+        case ADD:
+            EXPECTARGS(2, 2, 4, "<polynomial> <polynomial> ?<scale>? ?<mod>?"); 
+
+            scale = 1; modval = 0;
+            if (objc > 4)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &scale))
+                    return TCL_ERROR;
+
+            if (objc > 5)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &modval))
+                    return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                return TCL_ERROR;
+
+            if (NULL == (obj1 = Tcl_PolyObjAppend(objv[2], objv[3], scale, modval)))
+                RETERR("PLappendPoly failed");
+
+            Tcl_SetObjResult(ip, Tcl_PolyObjCancel(obj1, modval));
+            return TCL_OK;  
+             
+        case POSMULT:
+            EXPECTARGS(2, 2, 3, "<polynomial> <polynomial> ?<mod>?"); 
+
+            modval = 0;
+            if (objc > 4)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &modval))
+                    return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                return TCL_ERROR;
+
+            if (NULL == (obj1 = Tcl_PolyObjPosProduct(objv[2], objv[3], modval)))
+                RETERR("Tcl_PolyObjPosProduct failed");
+
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;  
+
+        case NEGMULT:
+            EXPECTARGS(2, 2, 3, "<polynomial> <polynomial> ?<mod>?"); 
+
+            modval = 0;
+            if (objc > 4)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &modval))
+                    return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                return TCL_ERROR;
+
+            if (NULL == (obj1 = Tcl_PolyObjNegProduct(objv[2], objv[3], modval)))
+                RETERR("Tcl_PolyObjNegProduct failed");
+
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;  
+
+        case STEENMULT:
+            EXPECTARGS(2, 3, 3, "<polynomial> <polynomial> <prime>"); 
+
+            if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[4], &pi))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                return TCL_ERROR;
+
+            if (NULL == (obj1 = Tcl_PolyObjSteenrodProduct(objv[2], objv[3], pi)))
+                RETERR("Tcl_PolyObjSteenrodProduct failed");
+
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;  
+
+        case VARAPPEND:
+            EXPECTARGS(2, 2, 4, "<variable> <polynomial> ?<scale>? ?<mod>?"); 
+
+            scale = 1; modval = 0;
+            if (objc > 4)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &scale))
+                    return TCL_ERROR;
+
+            if (objc > 5)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &modval))
+                    return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                return TCL_ERROR;
+
+            if (NULL == (varp[1] = TakePolyFromVar(ip, objv[2])))
+                return TCL_ERROR;
+
+            if (NULL == (obj1 = Tcl_PolyObjAppend(varp[1], objv[3], scale, modval)))
+                RETERR("PLappendPoly failed");
+
+            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
+                Tcl_DecrRefCount(varp[1]);
+                return TCL_ERROR;
+            }
+            
+            Tcl_DecrRefCount(varp[1]);
+            return TCL_OK;
+            
+        case VARCANCEL:
+            EXPECTARGS(2, 2, 2, "<integer> <variable>"); 
+
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2], &modval))
+                return TCL_ERROR;
+
+            if (NULL == (varp[1] = TakePolyFromVar(ip, objv[3])))
+                return TCL_ERROR;
+
+            obj1 = Tcl_PolyObjCancel(varp[1], modval);
+            
+            /* since varp[1] is unshared, we should have obj1 == varp[1] */
+
+            assert(obj1 == varp[1]);
+
+            if (NULL == Tcl_ObjSetVar2(ip, objv[3], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
+                Tcl_DecrRefCount(varp[1]);
+                return TCL_ERROR;
+            }
+            
+            Tcl_DecrRefCount(varp[1]);
+            return TCL_OK;
+
+        case SPLIT:
+            EXPECTARGS(2, 2, 666, "<polynomial> <filter proc> ?var0? ?var1? ..."); 
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_PolySplitProc(ip, objc-4, objv[2],
+                                            objv[3], objv+4, &obj1))
+                return TCL_ERROR;
+            
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;
+            
+        case VARSPLIT:
+            EXPECTARGS(2, 2, 666, "<variable> <filter proc> ?var0? ?var1? ..."); 
+
+            if (NULL == (varp[1] = TakePolyFromVar(ip, objv[2])))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_PolySplitProc(ip, objc-4, varp[1],
+                                            objv[3], objv+4, &obj1)) {
+                Tcl_DecrRefCount(varp[1]);
+                return TCL_ERROR;
+            }
+
+            if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
+                Tcl_DecrRefCount(varp[1]);
+                return TCL_ERROR;
+            }
+ 
+            Tcl_DecrRefCount(varp[1]);
+            return TCL_OK;
+           
+        case SHIFT:
+            EXPECTARGS(2, 2, 3, "<polynomial> <monomial> ?<boolean: with signs>?");
+
+            modval = 0;
+            
+            if (objc > 4)
+                if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &modval))
+                    return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
+                return TCL_ERROR;
+
+            ex = exmoFromTclObj(objv[3]);
+
+            obj = objv[1];
+
+            Tcl_IncrRefCount(obj);
+            if (Tcl_IsShared(obj)) {
+                Tcl_DecrRefCount(obj);
+                obj = Tcl_DuplicateObj(obj);
+                Tcl_IncrRefCount(obj);
+            }
+
+            Tcl_SetObjResult(ip, Tcl_PolyObjShift(obj, ex, modval));
+            
+            Tcl_DecrRefCount(obj);
+            return TCL_OK;
+
+        case REFLECT:
+            EXPECTARGS(2, 1, 1, "<polynomial>");
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+            
+            Tcl_SetObjResult(ip, Tcl_PolyObjReflect(objv[2]));
+            return TCL_OK;
+
+        case COMPARE:
+            EXPECTARGS(2, 2, 2, "<polynomial> <polynomial>");
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+            
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                return TCL_ERROR;
+            
+            if (NULL == (obj1 = Tcl_PolyObjCompare(objv[2],objv[3])))
+                RETERR("comparison not possible");
+            
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;
+
+        case COEFF:
+            EXPECTARGS(2, 2, 2, "<polynomial> <monomial>");
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+            
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
+                return TCL_ERROR;
+            
+            if (NULL == (obj1 = Tcl_PolyObjGetCoeff(objv[2], objv[3], 0)))
+                RETERR("PLcollectCoeff failed");
+
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;
+    }
+    
+    Tcl_SetResult(ip, "internal error in PolyCombiCmd", TCL_STATIC);
+    return TCL_ERROR;
+}
+
+/**** Implementation of the mono combi-command ********************************/
+
+typedef enum { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING } mcmdcode;
+
+static CONST char *mCmdNames[] = { "test", "isabove", "isbelow", 
+                                   "length", "rlength", "padding",
+                                   (char *) NULL };
+
+static mcmdcode mCmdmap[] = { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING };
+
+int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+    int result, index;
+
+    if (objc < 2) {
+        Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
+        return TCL_ERROR;
+    }
+
+    result = Tcl_GetIndexFromObj(ip, objv[1], mCmdNames, "subcommand", 0, &index);
+    if (result != TCL_OK) return result;
+
+    switch (mCmdmap[index]) {
+        case MTEST:
+            EXPECTARGS(2, 1, 1, "<monomial candidate>");
+
+            Tcl_ConvertToExmo(ip, objv[2]);
+            return TCL_OK;
+
+        case ISABOVE:
+            EXPECTARGS(2, 2, 2, "<monomial> <monomial>");
+            
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 exmoIsAbove(exmoFromTclObj(objv[2]),
+                                             exmoFromTclObj(objv[3]))));
+            return TCL_OK;
+
+        case ISBELOW:
+            EXPECTARGS(2, 2, 2, "<monomial> <monomial>");
+            
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 exmoIsBelow(exmoFromTclObj(objv[2]),
+                                             exmoFromTclObj(objv[3]))));
+            return TCL_OK;
+
+        case LENGTH:
+            EXPECTARGS(2, 1, 1, "<monomial>");
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 exmoGetLen(exmoFromTclObj(objv[2]))));
+            return TCL_OK;
+
+        case RLENGTH:
+            EXPECTARGS(2, 1, 1, "<monomial>");
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 exmoGetRedLen(exmoFromTclObj(objv[2]))));
+            return TCL_OK;
+
+        case PADDING:
+            EXPECTARGS(2, 1, 1, "<monomial>");
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 exmoGetPad(exmoFromTclObj(objv[2]))));
+            return TCL_OK;
+    }
+    
+    Tcl_SetResult(ip, "internal error in MonoCombiCmd", TCL_STATIC);
+    return TCL_ERROR;
+}
+
+
 #define CREATECMD(name, id) \
   Tcl_CreateObjCommand(ip, name, tPolyCombiCmd, \
                        (ClientData) id, NULL)
@@ -832,6 +1288,9 @@ int Tpoly_Init(Tcl_Interp *ip) {
         
         Tpoly_HaveTypes = 1;
     }
+
+    Tcl_CreateObjCommand(ip, POLYNSP "poly", PolyCombiCmd, (ClientData) 0, NULL);
+    Tcl_CreateObjCommand(ip, POLYNSP "mono", MonoCombiCmd, (ClientData) 0, NULL);
 
     CREATECMD(POLYNSP "unshare",     TPUNSHARE);
 
