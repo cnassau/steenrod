@@ -340,6 +340,8 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp,
     pro.progvar = progvar;
     pro.pmsk = pmsk;
 
+    if (ker==inp) assert(NULL == "quot not fully implemented");
+
     Tcl_InvalidateStringRep(ker);
     (mt->quotFunc)(pi, PTR2(ker), PTR2(inp), (NULL != progvar) ? &pro : NULL);
 
@@ -364,6 +366,7 @@ Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp,
     pro.progvar = progvar;
     pro.pmsk = pmsk;
 
+    /* shouldn't reduce be implicitly done in the orthofunc... ? */
     if (NULL != mt->reduce) (mt->reduce)(PTR2(inp), pi->prime);
 
     res = (mt->orthoFunc)(pi, PTR2(inp), (NULL != progvar) ? &pro : NULL);
@@ -375,12 +378,10 @@ Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp,
     return Tcl_NewMatrixObj(mt, res);
 }
 
-
-
-#define NSP "linalg::"
-
 typedef enum {
-    LIN_INVSRP, LIN_INVMAT, LIN_ORTHO, LIN_QUOT, LIN_LIFT, LIN_DIMS
+    LIN_INVSRP, LIN_INVMAT, 
+    LIN_ISMAT, LIN_ISVEC, 
+    LIN_ORTHO, LIN_QUOT, LIN_LIFT, LIN_DIMS
 } LinalgCmdCode;
 
 #undef RETERR
@@ -402,6 +403,22 @@ int tLinCombiCmd(ClientData cd, Tcl_Interp *ip,
     if (NULL == ip) return TCL_ERROR; 
 
     switch (cdi) {
+        case LIN_ISMAT:
+            ENSUREARGS1(TP_ANY);
+            if (TCL_OK == Tcl_ConvertToMatrix(ip, objv[1]))
+                r = 1;
+            else
+                r = 0;
+            Tcl_SetObjResult(ip, Tcl_NewBooleanObj(r));
+            return TCL_OK;
+        case LIN_ISVEC:
+            ENSUREARGS1(TP_ANY);
+            if (TCL_OK == Tcl_ConvertToVector(ip, objv[1]))
+                r = 1;
+            else
+                r = 0;
+            Tcl_SetObjResult(ip, Tcl_NewBooleanObj(r));
+            return TCL_OK;
         case LIN_INVSRP: 
             ENSUREARGS1(TP_VECTOR);
             Tcl_InvalidateStringRep(objv[1]);
@@ -628,10 +645,15 @@ Tcl_CreateObjCommand(ip,NSP name,tLinCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND("invMat", LIN_INVMAT);
 #endif
 
+    CREATECOMMAND("ismatrix", LIN_ISMAT);
+    CREATECOMMAND("isvector", LIN_ISVEC);
+
     CREATECOMMAND("getdims", LIN_DIMS);
     CREATECOMMAND("ortho",   LIN_ORTHO);
     CREATECOMMAND("lift",    LIN_LIFT);
     CREATECOMMAND("quot",    LIN_QUOT);
+
+    Tcl_Eval(ip, "namespace eval " NSP " { namespace export * }");
 
     return TCL_OK;
 }
