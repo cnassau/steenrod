@@ -23,7 +23,7 @@
 #define stringify(s) #s
 
 typedef enum {
-    CORE_SET, CORE_GETEXT, CORE_GETRED,
+    CORE_SET, CORE_GETEXT, CORE_GETRED, CORE_GETREDDEG,
     PR_CREATE, PR_DESTROY, PR_GETCORE, 
     ENV_CREATE, ENV_DISPOSE, 
     SQN_CREATE, SQN_DESTROY, SQN_GETDIM, SQN_GETSEQNO, 
@@ -72,6 +72,12 @@ int tProfileCombiCmd(ClientData cd, Tcl_Interp *ip,
             ENSUREARGS1(TP_PROCORE);
             core = (procore *) TPtr_GetPtr(objv[1]); 
             Tcl_SetObjResult(ip, Tcl_ListFromArray(NPRO, core->rdat));
+            return TCL_OK;
+        case CORE_GETREDDEG:
+            ENSUREARGS2(TP_PROCORE,TP_PRINFO);
+            core = (procore *) TPtr_GetPtr(objv[1]);
+            pi   = (primeInfo *) TPtr_GetPtr(objv[2]);
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(reddegProcore(core, pi)));
             return TCL_OK;
         case PR_CREATE:
             ENSUREARGS0;
@@ -215,6 +221,7 @@ Tcl_CreateObjCommand(ip,name,tProfileCombiCmd,(ClientData) code, NULL);
     CREATECOMMAND(NSC "set", CORE_SET); 
     CREATECOMMAND(NSC "getExt", CORE_GETEXT); 
     CREATECOMMAND(NSC "getRed", CORE_GETRED); 
+    CREATECOMMAND(NSC "getReddeg", CORE_GETREDDEG); 
     CREATECOMMAND(NSP "create", PR_CREATE); 
     CREATECOMMAND(NSP "destroy", PR_DESTROY); 
     CREATECOMMAND(NSP "getCore", PR_GETCORE); 
