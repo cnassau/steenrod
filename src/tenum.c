@@ -508,14 +508,52 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
     tclEnum *te = (tclEnum *) cd;   
     vectorType *vt; void *vdat;
     polyType   *pt; void *pdat;
+    int edim, pdim, idx, sqn, prime;
+    exmo ex;
 
     if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
+
+    prime = te->enm->pi->prime;
 
     if (!Tcl_ObjIsPoly(obj))
         assert(NULL == "Tcl_EnumEncodeCmd expects polynomial argument");
 
     pt   = polyTypeFromTclObj(obj);
     pdat = polyFromTclObj(obj);
+
+    edim = DimensionFromEnum(te->enm);
+    pdim = PLgetNumsum(pt, pdat);
+
+    vt = stdvector;
+    if (NULL == (vdat = vt->createVector(edim)))
+        RETERR("out of memory");
+
+    for (idx=0; idx<pdim; idx++) {
+        if (SUCCESS != PLgetExmo(pt, pdat, &ex, idx)) {
+            vt->destroyVector(vdat);
+            RETERR("internal error in Tcl_EnumEncodeCmd: PLgetExmo failed");
+        }
+        
+        sqn = SeqnoFromEnum(te->enm, &ex);
+        
+        if ((sqn<0) || (sqn>=edim)) {
+            Tcl_Obj *aux;
+            char err[200];
+            vt->destroyVector(vdat);
+            aux = Tcl_NewExmoCopyObj(&ex);
+            sprintf(err,"could not find {%s} in basis (found seqno = %d)",
+                    Tcl_GetString(aux), sqn);
+            Tcl_DecrRefCount(aux);
+            RETERR(err);
+        }
+        
+        if (SUCCESS != vt->setEntry(vdat, sqn, ex.coeff % prime)) {
+            vt->destroyVector(vdat);
+            RETERR("internal error in Tcl_EnumEncodeCmd: vt->setEntry failed");
+        }
+    }
+
+    Tcl_SetObjResult(ip, Tcl_NewVectorObj(vt, vdat));
 
     return TCL_OK;
 }
