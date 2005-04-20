@@ -788,7 +788,6 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
     rcs = (7 + ncols * blocksize) / 8;  /* the number of bytes per row */
     rcs *= 2;                           /* now the number of hex digits per row */
     len += nrows * rcs;
-    //len++;                              /* trailing zero */
 
     if (NULL == (enc = Tcl_AttemptAlloc(len))) {
         Tcl_SetResult(ip, "out of memory", TCL_STATIC);
@@ -839,7 +838,7 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
     res[2] = Tcl_NewIntObj( nrows );
     res[3] = Tcl_NewIntObj( ncols );
     res[4] = Tcl_NewObj();
-    res[4]->length = len;
+    res[4]->length = len-1;
     res[4]->bytes = enc;
 
     Tcl_SetObjResult(ip, Tcl_NewListObj(5, res));
