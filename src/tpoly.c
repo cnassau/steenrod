@@ -997,17 +997,21 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
 /**** Implementation of the mono combi-command ********************************/
 
-typedef enum { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING, GEN, MCOEFF, MEXT, MEXP } mcmdcode;
+typedef enum { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING, 
+               GEN, MCOEFF, MEXT, MEXP, MDEG, MRDEG, MEDEG } mcmdcode;
 
 static CONST char *mCmdNames[] = { "test", "isabove", "isbelow", 
                                    "length", "rlength", "padding",
 				   "gen", "coeff", "exterior", "exponent",
+                                   "degree", "rdegree", "edegree",
                                    (char *) NULL };
 
-static mcmdcode mCmdmap[] = { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING, GEN, MCOEFF, MEXT, MEXP };
+static mcmdcode mCmdmap[] = { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING, 
+                              GEN, MCOEFF, MEXT, MEXP, MDEG, MRDEG, MEDEG };
 
 int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index;
+    primeInfo *pi;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
@@ -1049,6 +1053,39 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 		return TCL_ERROR;
 	    
 	    Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->ext));
+            return TCL_OK;
+
+        case MEDEG:
+            EXPECTARGS(2, 1, 1, "<monomial>");
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+		return TCL_ERROR;
+	    
+	    Tcl_SetObjResult(ip, Tcl_NewIntObj(BITCOUNT(exmoFromTclObj(objv[2])->ext)));
+            return TCL_OK;
+
+        case MDEG:
+            EXPECTARGS(2, 2, 2, "<prime> <monomial>");
+
+            if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
+                return TCL_ERROR;
+            
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
+		return TCL_ERROR;
+	    
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoIdeg(pi,exmoFromTclObj(objv[3]))));
+            return TCL_OK;
+
+        case MRDEG:
+            EXPECTARGS(2, 2, 2, "<prime> <monomial>");
+
+            if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
+                return TCL_ERROR;
+            
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
+		return TCL_ERROR;
+	    
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoRdeg(pi,exmoFromTclObj(objv[3]))));
             return TCL_OK;
 
         case MEXP:
