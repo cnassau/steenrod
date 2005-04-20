@@ -55,6 +55,7 @@ void shiftExmo2(exmo *e, const exmo *shft, int scale, int flags);
 
 /* compute internal degree with respect to pi */
 int exmoIdeg(primeInfo *pi, const exmo *ex);
+int exmoRdeg(primeInfo *pi, const exmo *ex);
 
 /* set dst to the maximal/minimal algebra profile */
 void exmoSetMaxAlg(primeInfo *pi, exmo *dst);

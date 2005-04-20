@@ -151,11 +151,17 @@ void copyExpExmo(primeInfo *pi, exmo *dst, const exmo *src) {
     }
 }
 
-int exmoIdeg(primeInfo *pi, const exmo *ex) {
+int exmoRdeg(primeInfo *pi, const exmo *ex) {
     int res, i;
     for (res=i=0; i<NALG; i++) {
         res += ex->dat[i] * pi->reddegs[i];
-    }
+    } 
+    return res;
+}
+
+int exmoIdeg(primeInfo *pi, const exmo *ex) {
+    int res;
+    res = exmoRdeg(pi, ex);
     res *= pi->tpmo; 
     return res + extdeg(pi, ex->ext);
 }
