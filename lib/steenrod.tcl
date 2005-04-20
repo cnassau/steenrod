@@ -19,4 +19,4 @@ if {![file isdirectory $libdir]} {
 
 load [file join $libdir libsteenrod[info sharedlibextension]]
 
-package provide Steenrod 1.0
+package provide Steenrod 0.75
