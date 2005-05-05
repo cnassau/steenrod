@@ -19,8 +19,8 @@ proc preformat {data} {
     foreach {kw text} {
         %crossrefs% "enumerator linalg matrix vector mono monomap poly prime"
         %keywords%  "Mathematics {Steenrod algebra} {Tcl package}"
-        %copyright% "{2004 Christian Nassau}"
-        %homepage%  "http://www.nullhomotopie.de/steenrod"
+        %copyright% "{2005 Christian Nassau}"
+        %homepage%  "http://www.nullhomotopie.de/"
     } {
         set data [regsub -all $kw $data $text]
     }

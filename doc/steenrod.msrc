@@ -1,4 +1,4 @@
-[manpage_begin Steenrod 3st 1.0]
+[manpage_begin Steenrod 3st 0.75]
 
 [moddesc {Tcl package}]
 
@@ -6,7 +6,7 @@
 
 [copyright %copyright%]
 
-[require Steenrod 1.0]
+[require Steenrod 0.75]
 
 [description]
 

@@ -1,5 +1,5 @@
 <!-- Generated from file 'steenrod.msrc' by tcllib/doctools with format 'tmml' -->
-<manpage id='steenrod' cat='cmd' title='Steenrod' version='1.0' package=''>
+<manpage id='steenrod' cat='cmd' title='Steenrod' version='0.75' package=''>
 <head>
 <info key='copyright' value='Copyright (c) 2004 Christian Nassau'/>
 </head>
@@ -20,7 +20,7 @@
 
 <synopsis>
 <syntax>
-package require <package>Steenrod</package> 1.0
+package require <package>Steenrod</package> 0.75
 </syntax>
 </synopsis>
 <section>
@@ -40,7 +40,7 @@ The package consists...
 <p> 
 
 The most recent version of the package should be available from 
-the program homepage at <url>http://www.nullhomotopie.de/steenrod</url>.
+the program homepage at <url>http://www.nullhomotopie.de/</url>.
 
 
 
