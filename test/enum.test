@@ -16,7 +16,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
     namespace import -force ::tcltest::*
 }
 
-package require Steenrod 1.0
+package require Steenrod 0.75
 
 namespace import steenrod::*
 

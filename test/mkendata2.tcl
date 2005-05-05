@@ -11,7 +11,7 @@
 # published by the Free Software Foundation.
 #
 
-package require Steenrod 1.0
+package require Steenrod 0.75
 
 set DATA {}
 
