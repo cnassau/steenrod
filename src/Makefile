@@ -24,8 +24,8 @@ else
   CC     = gcc -fPIC
   CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS
 
-  TCLINCDIR = /home/cn/selfmade-tcl/include/
-  TCLLIBDIR = /home/cn/selfmade-tcl/lib/
+  TCLINCDIR = /usr/include/
+  TCLLIBDIR = /usr/lib/
   TCLSTUBLIB = tclstub8.4
   STUBLINK = gcc -shared -L$(TCLLIBDIR)
 endif
