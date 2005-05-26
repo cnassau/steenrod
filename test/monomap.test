@@ -16,6 +16,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
     namespace import -force ::tcltest::*
 }
 
+lappend auto_path ../lib
 package require Steenrod 0.75
 
 namespace import ::steenrod::*
