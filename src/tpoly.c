@@ -611,13 +611,14 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
  * is expected to contain a polynomial. This polynomial object is read,
  * an unshared copy is made whose refcount is incremented, the variable is
  * cleared, and the polynomial returned. If an error occurs a message is left
- * in the interpreter. */
+ * in the interpreter. If the variable doesn't exist it is automatically
+ * created. */
 
 Tcl_Obj *TakePolyFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
     Tcl_Obj *res;
 
     if (NULL == (res = Tcl_ObjGetVar2(ip, varname, NULL, TCL_LEAVE_ERR_MSG)))
-        return NULL;
+        res = Tcl_NewPolyObj(stdpoly, PLcreate(stdpoly));
 
     if (TCL_OK != Tcl_ConvertToPoly(ip, res)) {
         Tcl_SetObjResult(ip, varname);
