@@ -108,7 +108,7 @@ void matrix_unit(matrix *mat) {
     int i, off; cint *aux;
     matrix_clear(mat);
 #if 0
-    assert (mat->rows == mat->cols);
+    ASSERT (mat->rows == mat->cols);
 #endif
     off = mat->nomcols + 1;
     for (aux=mat->data,i=0;i<mat->rows;i++,aux+=off) *aux = 1;

@@ -239,7 +239,7 @@ int MatrixSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     }
 
     if (NULL == mat) {
-        assert(0 == rows);
+        ASSERT(0 == rows);
         mat = (stdmatrix->createMatrix)(0,0);
     }
             
@@ -321,13 +321,13 @@ Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft,
 
     /* since we cannibalize lft, it must not be shared */
     if (Tcl_IsShared(lft))
-        assert(NULL == "lft must not be shared in Tcl_OrthoCmd!");
+        ASSERT(NULL == "lft must not be shared in Tcl_OrthoCmd!");
 
     if ((NULL == (mt->liftFunc)) || (mt != mt2)) 
-        assert(NULL == "lift computation not fully implemented");
+        ASSERT(NULL == "lift computation not fully implemented");
 
     if (PTR2(inp) == PTR2(lft))
-        assert(NULL == "lifting matrix through itself not yet supported");
+        ASSERT(NULL == "lifting matrix through itself not yet supported");
 
     /* Note: a matrix with 0 rows does not have a well defined number 
      * of columns, since the string representation is always {}. So
@@ -361,10 +361,10 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp,
 
     /* since we cannibalize ker, it must not be shared */
     if (Tcl_IsShared(ker))
-        assert(NULL == "ker must not be shared in Tcl_QuotCmd!");
+        ASSERT(NULL == "ker must not be shared in Tcl_QuotCmd!");
 
     if ((NULL == (mt->quotFunc)) || (mt != mt2)) 
-        assert(NULL == "quotient computation not fully implemented");
+        ASSERT(NULL == "quotient computation not fully implemented");
 
     /* Note: a matrix with 0 rows does not have a well defined number 
      * of columns, since the string representation is always {}. So
@@ -382,7 +382,7 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp,
     pro.progvar = progvar;
     pro.pmsk = pmsk;
 
-    if (ker==inp) assert(NULL == "quot not fully implemented");
+    if (ker==inp) ASSERT(NULL == "quot not fully implemented");
 
     Tcl_InvalidateStringRep(ker);
     (mt->quotFunc)(pi, PTR2(ker), PTR2(inp), (NULL != progvar) ? &pro : NULL);
@@ -398,10 +398,10 @@ Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp,
 
     /* since we cannibalize inp, it must not be shared */
     if (Tcl_IsShared(inp))
-        assert(NULL == "inp must not be shared in Tcl_OrthoCmd!");
+        ASSERT(NULL == "inp must not be shared in Tcl_OrthoCmd!");
 
     if (NULL == (mt->orthoFunc)) {
-        assert(NULL == "orthonormalization not fully implemented");
+        ASSERT(NULL == "orthonormalization not fully implemented");
     }
 
     pro.ip = ip;
@@ -432,7 +432,7 @@ int VAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale, int modval)
     int d1, d2;
 
     if (Tcl_IsShared(obj1)) 
-        assert(NULL == "obj1 must not be shared in VAddCmd");
+        ASSERT(NULL == "obj1 must not be shared in VAddCmd");
 
     vt1 = vectorTypeFromTclObj(obj1);
     vt2 = vectorTypeFromTclObj(obj2);
@@ -465,7 +465,7 @@ int MAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale, int modval)
     int r1, r2, c1, c2;
 
     if (Tcl_IsShared(obj1)) 
-        assert(NULL == "obj1 must not be shared in MAddCmd");
+        ASSERT(NULL == "obj1 must not be shared in MAddCmd");
 
     mt1 = matrixTypeFromTclObj(obj1);
     mt2 = matrixTypeFromTclObj(obj2);
@@ -702,9 +702,9 @@ int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
         Tcl_Obj *rowPtr;
         char *row;
         if (TCL_OK != Tcl_ListObjIndex(ip, objv[4], i, &rowPtr)) 
-            assert( NULL == "unexpected error in TclDecodeCmd (I)" );
+            ASSERT( NULL == "unexpected error in TclDecodeCmd (I)" );
         if (NULL == rowPtr) 
-            assert( NULL == "unexpected error in TclDecodeCmd (II)" );
+            ASSERT( NULL == "unexpected error in TclDecodeCmd (II)" );
         row = Tcl_GetString(rowPtr);
         
         for (j=0;j<ncols;) {

@@ -301,7 +301,7 @@ void Tcl_PolyObjConvert(Tcl_Obj *obj, polyType *newtype) {
     DBGPOLY printf("Tcl_PolyObjConvert obj = %p\n", obj);
     if (PTR1(obj) == newtype) return;
     if (Tcl_IsShared(obj))
-        assert(NULL == "Tcl_PolyObjConvert called for shared object");
+        ASSERT(NULL == "Tcl_PolyObjConvert called for shared object");
     aux = PLcreateCopy(newtype,PTR1(obj),PTR2(obj));
     PLfree(PTR1(obj),PTR2(obj));
     PTR2(obj) = aux; 
@@ -341,7 +341,7 @@ Tcl_Obj *Tcl_PolyObjScaleMod(Tcl_Obj *obj, int scale, int mod) {
 
 Tcl_Obj *Tcl_PolyObjAppend(Tcl_Obj *obj, Tcl_Obj *pol2, int scale, int mod) {
     if (Tcl_IsShared(obj)) 
-        assert(NULL == "obj must not be shared in Tcl_PolyObjAppend");
+        ASSERT(NULL == "obj must not be shared in Tcl_PolyObjAppend");
 
     if (SUCCESS != PLappendPoly(PTR1(obj),PTR2(obj),PTR1(pol2),PTR2(pol2),NULL,0,scale,mod))
         return NULL;
@@ -725,7 +725,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             if (NULL == (obj1 = Tcl_PolyObjAppend(obj, objv[3], scale, modval)))
                 RETERR("PLappendPoly failed");
 
-            assert(obj == obj1);
+            ASSERT(obj == obj1);
 
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;
@@ -769,7 +769,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             if (NULL == (obj1 = Tcl_PolyObjAppend(obj, objv[3], scale, modval)))
                 RETERR("PLappendPoly failed");
 
-            assert(obj == obj1);
+            ASSERT(obj == obj1);
 
             Tcl_SetObjResult(ip, Tcl_PolyObjCancel(obj1, modval));
             return TCL_OK;  
@@ -853,7 +853,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             if (NULL == (obj1 = Tcl_PolyObjAppend(varp[1], objv[3], scale, modval)))
                 RETERR("PLappendPoly failed");
 
-            assert(obj1 == varp[1]);
+            ASSERT(obj1 == varp[1]);
 
             if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, obj1, TCL_LEAVE_ERR_MSG)) {
                 DECREFCNT(varp[1]);
@@ -878,7 +878,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             
             /* since varp[1] is unshared, we should have obj1 == varp[1] */
 
-            assert(obj1 == varp[1]);
+            ASSERT(obj1 == varp[1]);
 
             if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, varp[1], TCL_LEAVE_ERR_MSG)) {
                 DECREFCNT(varp[1]);

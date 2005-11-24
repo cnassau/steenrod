@@ -270,7 +270,7 @@ int LAVadd(vectorType **vt1, void **vdat1,
     if ((vt2 == *vt1) && (NULL != vt2->add)) 
         return vt2->add(*vdat1, vdat2, scale, mod);
     
-    assert(NULL == "LAVadd needs to be enhanced");
+    ASSERT(NULL == "LAVadd needs to be enhanced");
 
     return FAIL;
 }
@@ -281,7 +281,7 @@ int LAMadd(matrixType **vt1, void **vdat1,
     if ((vt2 == *vt1) && (NULL != vt2->add)) 
         return vt2->add(*vdat1, vdat2, scale, mod);
     
-    assert(NULL == "LAMadd needs to be enhanced");
+    ASSERT(NULL == "LAMadd needs to be enhanced");
 
     return FAIL;
 }

@@ -14,7 +14,15 @@
 #ifndef COMMON_DEF
 #define COMMON_DEF
 
-#include <assert.h>
+/* undef HAVE_ASSERT if you're seeing "eprintf" related problems with gcc */
+#define HAVE_ASSERT
+
+#ifdef HAVE_ASSERT
+#  include <assert.h>
+#  define ASSERT(x) assert(x) 
+#else
+#  define ASSERT(x) { /* do nothing */ }
+#endif
 
 /* namespaces */
 #define POLYNSP "steenrod::"

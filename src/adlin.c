@@ -209,7 +209,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
     v1.num = v2.num = cols;
 
 #if 0
-    assert(im->cols == ker->cols);
+    ASSERT(im->cols == ker->cols);
 #endif
 
     spr = im->nomcols; /* sints per row */
@@ -224,7 +224,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
         /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
             if (0 != *aux) break;
-        if (0 == j) {  /* row is zero */ assert(0=="row shouldn't be zero!"); }
+        if (0 == j) {  /* row is zero */ ASSERT(0=="row shouldn't be zero!"); }
 
         else {
             pos = aux - v1.data;

@@ -111,8 +111,8 @@ cint binomp(const primeInfo *pi, int l, int m) {
         int lquot = l / prime, lrem = l % prime;
         int mquot = m / prime, mrem = m % prime;
 #if 0
-        assert(l == prime*lquot + lrem);
-        assert(m == prime*mquot + mrem);
+        ASSERT(l == prime*lquot + lrem);
+        ASSERT(m == prime*mquot + mrem);
 #endif
         if (lrem<0) { lrem += prime; lquot--; }
         if (mrem<0) { mrem += prime; mquot--; }

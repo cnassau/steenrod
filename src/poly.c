@@ -294,7 +294,7 @@ int PLcollectCoeffs(polyType *type, void *self, const exmo *ex,
     if (NULL != type->collectCoeffs)
         return (type->collectCoeffs)(self, ex, rval, mod, flags);
     
-    assert(NULL == "collectCoeff not fully implemented");
+    ASSERT(NULL == "collectCoeff not fully implemented");
     return SUCCESS;
 }
 
@@ -721,7 +721,7 @@ int stdpolySortWithValues(void *poly, void **values) {
     qsort(sit, s->num, sizeof(sortitem), compSortItem);
     stdSort(s);
 
-    if (SLOG) assert(snum == s->num); 
+    if (SLOG) ASSERT(snum == s->num); 
 
     if (SLOG) printf("\nResult:");
 

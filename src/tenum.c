@@ -513,7 +513,7 @@ int Tcl_EnumDecodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj, int scale) {
     if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
     
     if (!Tcl_ObjIsVector(obj))
-        assert(NULL == "Tcl_EnumDecodeCmd expects vector argument");
+        ASSERT(NULL == "Tcl_EnumDecodeCmd expects vector argument");
 
     prime = te->enm->pi->prime;
     scale %= prime;
@@ -580,7 +580,7 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
     prime = te->enm->pi->prime;
 
     if (!Tcl_ObjIsPoly(obj))
-        assert(NULL == "Tcl_EnumEncodeCmd expects polynomial argument");
+        ASSERT(NULL == "Tcl_EnumEncodeCmd expects polynomial argument");
 
     pt   = polyTypeFromTclObj(obj);
     pdat = polyFromTclObj(obj);
