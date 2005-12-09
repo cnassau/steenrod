@@ -29,7 +29,7 @@ test linalg-1.4 {matrix test, empty input} { matrix test {} } {}
 test linalg-1.5 {matrix test, simple list 4x1} { matrix test {1 0 2 1} } {}
 test linalg-1.6 {matrix test, simple list 1x4} { matrix test {{1} {0} {2} {1}} } {}
 test linalg-1.7 {matrix test, 1x1} { matrix test {{1}} } {}
-test linalg-1.7 {matrix test, 1x1} { matrix test {{1}} } {}    
+test linalg-1.8 {matrix test, accept values up to 127} { matrix test 127 } {}    
 
 test linalg-1.9 {matrix test, shared entries} { 
     set i 5 
