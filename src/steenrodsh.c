@@ -25,10 +25,11 @@ int Tcl_SteenAppInit(Tcl_Interp *interp)
         return TCL_ERROR;
     }
 
-    Tcl_Eval(interp, "puts [format {"
+    Tcl_Eval(interp, "if $::tcl_interactive {"
+             "puts [format {"
              "Tcl shell with Steenrod algebra support (version %s, "
              "built " __DATE__ " " __TIME__ ")"
-             "} [package require Steenrod]]");
+             "} [package require Steenrod]]}");
     
     return TCL_OK;
 }
