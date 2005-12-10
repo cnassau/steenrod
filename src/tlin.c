@@ -721,9 +721,9 @@ int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
         Tcl_Obj *rowPtr;
         char *row;
         if (TCL_OK != Tcl_ListObjIndex(ip, objv[4], i, &rowPtr)) 
-            ASSERT( NULL == "unexpected error in TclDecodeCmd (I)" );
+            ASSERT(NULL == "unexpected error in TclDecodeCmd (I)");
         if (NULL == rowPtr) 
-            ASSERT( NULL == "unexpected error in TclDecodeCmd (II)" );
+            ASSERT(NULL == "unexpected error in TclDecodeCmd (II)");
         row = Tcl_GetString(rowPtr);
         
         for (j=0;j<ncols;) {
@@ -841,9 +841,9 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
                     break;       
             }
           
-            l = TOHEX( (c & 0xf) );
+            l = TOHEX((c & 0xf));
             c >>= 4;
-            h = TOHEX( (c & 0xf) );
+            h = TOHEX((c & 0xf));
 
             *wrk++ = h; 
             *wrk++ = l;
@@ -852,10 +852,10 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
 
     *wrk++ = 0;
     
-    res[0] = Tcl_NewStringObj( "hex", 3 );
-    res[1] = Tcl_NewIntObj( blocksize );
-    res[2] = Tcl_NewIntObj( nrows );
-    res[3] = Tcl_NewIntObj( ncols );
+    res[0] = Tcl_NewStringObj("hex", 3);
+    res[1] = Tcl_NewIntObj(blocksize);
+    res[2] = Tcl_NewIntObj(nrows);
+    res[3] = Tcl_NewIntObj(ncols);
     res[4] = Tcl_NewObj();
     res[4]->length = len-1;
     res[4]->bytes = enc;

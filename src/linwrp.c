@@ -275,7 +275,7 @@ int LAVadd(vectorType **vt1, void **vdat1,
     return FAIL;
 }
 
-int MatrixAddNaive( matrixType *mt1, void *mdat1,
+int MatrixAddNaive(matrixType *mt1, void *mdat1,
                     matrixType *mt2, void *mdat2, int scale, int mod) {
     int rows, cols, i, j;
     mt1->getDimensions(mdat1,&rows,&cols);

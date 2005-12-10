@@ -55,7 +55,7 @@ void *stdVCreateVector2(int cols) {
     if (NULL != v) {
         v->size = cols;
         v->ints = IPROCO(cols);
-        if (NULL == (v->data = callox(v->ints,sizeof(int) ))) {
+        if (NULL == (v->data = callox(v->ints,sizeof(int)))) {
             freex(v);
             return NULL;
         }
@@ -286,7 +286,7 @@ matrixType stdMatrixType2 = {
 void matrix_collect2(mat2 *m, int i) {
     int off1 = m->rows * m->ipr;
     int off2 = i * m->ipr;
-    memcpy( m->data + off1, m->data + off2, sizeof(int) * m->ipr );
+    memcpy(m->data + off1, m->data + off2, sizeof(int) * m->ipr);
     m->rows++;
 }
 

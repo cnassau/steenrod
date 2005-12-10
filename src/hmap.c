@@ -206,7 +206,7 @@ void copyTensor(hmap_tensor *dst, hmap_tensor *src, int numMono, int numInt) {
 void multTensor(hmap_tensor *dst, hmap_tensor *src, int scale, int numMono, int numInt, int modval) {
     int i,j,sign=0;
     int ddeg=0, sdeg=0;
-    LOG( printTensor(dst,numMono,numInt); printf(" *= "); printTensor(src,numMono,numInt); );
+    LOG(printTensor(dst,numMono,numInt); printf(" *= "); printTensor(src,numMono,numInt););
     //dst->coeff = 1;
     for (i=0;i<numMono;i++) {
         ddeg += BITCOUNT(dst->edat[i].ext);
@@ -227,7 +227,7 @@ void multTensor(hmap_tensor *dst, hmap_tensor *src, int scale, int numMono, int 
     for (i=0;i<numInt;i++) {
         dst->idat[i] += src->idat[i] * scale;
     }    
-    LOG( printf(" = "); printTensor(dst,numMono,numInt); printf("\n"); );
+    LOG(printf(" = "); printTensor(dst,numMono,numInt); printf("\n"););
 }
 
 int compareTensor(hmap_tensor *a, hmap_tensor *b, hmap_tensor *res, int numMono, int numInt) {

@@ -32,7 +32,7 @@ unsigned int momaHashProc(Tcl_HashTable *table, void *key) {
     
     res = ex->gen + 17*(ex->ext);
     for (cnt=0; cnt<NALG; cnt++) 
-	res += (ex->dat[cnt]) << (3*cnt);
+    res += (ex->dat[cnt]) << (3*cnt);
     
     return res;
 }
@@ -51,8 +51,8 @@ momap *momapCreate(void) {
     if (NULL == res) return NULL;
 
     if (NULL == (res->tab = mallox(sizeof(Tcl_HashTable)))) {
-	freex(res);
-	return NULL;
+    freex(res);
+    return NULL;
     }
 
     Tcl_InitCustomHashTable(res->tab, TCL_CUSTOM_PTR_KEYS, &MomaHashType);    
@@ -63,10 +63,10 @@ void freeValues(momap *mo) {
     Tcl_HashSearch src;
     Tcl_HashEntry *ent = Tcl_FirstHashEntry(mo->tab, &src);
     while (NULL != ent) {
-	Tcl_Obj *obj = (Tcl_Obj *) Tcl_GetHashValue(ent);
-	DECREFCNT(obj);
-	DECREFCNT(keyFromHE(ent));
-	ent = Tcl_NextHashEntry(&src);
+    Tcl_Obj *obj = (Tcl_Obj *) Tcl_GetHashValue(ent);
+    DECREFCNT(obj);
+    DECREFCNT(keyFromHE(ent));
+    ent = Tcl_NextHashEntry(&src);
     }
     Tcl_DeleteHashTable(mo->tab);
 }
@@ -91,7 +91,7 @@ int momapRemoveValue(momap *mo, Tcl_Obj *key) {
     Tcl_HashEntry *ent;
     Tcl_Obj *val;
     if (NULL == (ent = Tcl_FindHashEntry(mo->tab, (void *) key))) 
-	return SUCCESS;
+    return SUCCESS;
     val = Tcl_GetHashValue(ent);
     if (NULL != val) DECREFCNT(val);
     /* NOTE: "keyFromHE(ent)" and "key" can be different Tcl_Obj'ects (!) */
@@ -105,10 +105,10 @@ int momapSetValPtr(momap *mo, Tcl_Obj *key, Tcl_Obj *val) {
     Tcl_HashEntry *ent = Tcl_CreateHashEntry(mo->tab, (void *) key, &newFlag);
     
     if (!newFlag) {
-	Tcl_Obj *aux = Tcl_GetHashValue(ent);
-	if (NULL != aux) DECREFCNT(aux);
+    Tcl_Obj *aux = Tcl_GetHashValue(ent);
+    if (NULL != aux) DECREFCNT(aux);
     } else {
-	INCREFCNT(key);
+    INCREFCNT(key);
     }
     
     Tcl_SetHashValue(ent, (ClientData) val);

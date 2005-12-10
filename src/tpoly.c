@@ -1003,7 +1003,7 @@ typedef enum { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING,
 
 static CONST char *mCmdNames[] = { "test", "isabove", "isbelow", 
                                    "length", "rlength", "padding",
-				   "gen", "coeff", "exterior", "exponent",
+                   "gen", "coeff", "exterior", "exponent",
                                    "degree", "rdegree", "edegree",
                                    (char *) NULL };
 
@@ -1033,36 +1033,36 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             EXPECTARGS(2, 1, 1, "<monomial>");
 
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
-		return TCL_ERROR;
-	    
-	    Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->gen));
+        return TCL_ERROR;
+        
+        Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->gen));
             return TCL_OK;
 
         case MCOEFF:
             EXPECTARGS(2, 1, 1, "<monomial>");
 
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
-		return TCL_ERROR;
-	    
-	    Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->coeff));
+        return TCL_ERROR;
+        
+        Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->coeff));
             return TCL_OK;
 
         case MEXT:
             EXPECTARGS(2, 1, 1, "<monomial>");
 
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
-		return TCL_ERROR;
-	    
-	    Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->ext));
+        return TCL_ERROR;
+        
+        Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->ext));
             return TCL_OK;
 
         case MEDEG:
             EXPECTARGS(2, 1, 1, "<monomial>");
 
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
-		return TCL_ERROR;
-	    
-	    Tcl_SetObjResult(ip, Tcl_NewIntObj(BITCOUNT(exmoFromTclObj(objv[2])->ext)));
+        return TCL_ERROR;
+        
+        Tcl_SetObjResult(ip, Tcl_NewIntObj(BITCOUNT(exmoFromTclObj(objv[2])->ext)));
             return TCL_OK;
 
         case MDEG:
@@ -1072,8 +1072,8 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 return TCL_ERROR;
             
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
-		return TCL_ERROR;
-	    
+        return TCL_ERROR;
+        
             Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoIdeg(pi,exmoFromTclObj(objv[3]))));
             return TCL_OK;
 
@@ -1084,8 +1084,8 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 return TCL_ERROR;
             
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
-		return TCL_ERROR;
-	    
+        return TCL_ERROR;
+        
             Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoRdeg(pi,exmoFromTclObj(objv[3]))));
             return TCL_OK;
 
@@ -1093,23 +1093,23 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             EXPECTARGS(2, 2, 2, "<monomial> <index>");
 
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
-		return TCL_ERROR;
-	    
-	    if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &index))
-		return TCL_ERROR;
-	    
-	    if (index < 0) {
-		Tcl_SetResult(ip, "index must be nonnegative", TCL_STATIC);
-		return TCL_ERROR;
-	    }
+        return TCL_ERROR;
+        
+        if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &index))
+        return TCL_ERROR;
+        
+        if (index < 0) {
+        Tcl_SetResult(ip, "index must be nonnegative", TCL_STATIC);
+        return TCL_ERROR;
+        }
 
-	    if (index >= NALG) {
-		result = exmoGetPad(exmoFromTclObj(objv[2]));
-	    } else {
-		result = exmoFromTclObj(objv[2])->dat[index];
-	    }
-	    
-	    Tcl_SetObjResult(ip, Tcl_NewIntObj(result));
+        if (index >= NALG) {
+        result = exmoGetPad(exmoFromTclObj(objv[2]));
+        } else {
+        result = exmoFromTclObj(objv[2])->dat[index];
+        }
+        
+        Tcl_SetObjResult(ip, Tcl_NewIntObj(result));
             return TCL_OK;
 
         case ISABOVE:

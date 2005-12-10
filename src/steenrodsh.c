@@ -18,7 +18,7 @@ extern int Steenrod_Init(Tcl_Interp *ip);
 int Tcl_SteenAppInit(Tcl_Interp *interp) 
 {
     if (Tcl_Init(interp) == TCL_ERROR) {
-	return TCL_ERROR;
+    return TCL_ERROR;
     }
 
     if (Steenrod_Init(interp) ==  TCL_ERROR) {

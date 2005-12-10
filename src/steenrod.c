@@ -162,8 +162,8 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     *mat = (*mtp)->createMatrix(srcdim, dstdim);
 
     if (NULL == *mat) {
-	RELEASEGOBJ;
-	RETERR("out of memory");
+        RELEASEGOBJ;
+        RETERR("out of memory");
     }
 
     (*mtp)->clearMatrix(*mat);
@@ -219,7 +219,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                     sprintf(err,"target of generator #%d not of polynomial type", 
                             theG.gen);
                     PROGVARDONE;
-		    RELEASEGOBJ;
+                    RELEASEGOBJ;
                     RETERR(err);
                 }
 
@@ -234,7 +234,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                         sprintf(err,"target of generator #%d not positive (?)", 
                                 theG.gen);
                         PROGVARDONE;
-			RELEASEGOBJ;
+                        RELEASEGOBJ;
                         RETERR(err);
                     }
                 } else {
@@ -244,7 +244,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                         sprintf(err,"target of generator #%d not negative (?)", 
                                 theG.gen);
                         PROGVARDONE;
-			RELEASEGOBJ;
+                        RELEASEGOBJ;
                         RETERR(err);
                     }
                 }
@@ -277,7 +277,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                     Tcl_AddObjErrorInfo(ip, err, strlen(err));
                 }
                 PROGVARDONE;
-		RELEASEGOBJ;
+                RELEASEGOBJ;
                 return FAIL;
             }
 
@@ -328,7 +328,7 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
 }
 
 int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
-                      int objc, Tcl_Obj * CONST objv[]) {
+                       int objc, Tcl_Obj * CONST objv[]) {
 
     enumerator *src, *dst;
     momap *map; 
@@ -581,10 +581,10 @@ int StealStringRep(ClientData cd, Tcl_Interp *ip,
 }
 
 int GetRefCount(ClientData cd, Tcl_Interp *ip,
-                   int objc, Tcl_Obj * CONST objv[]) {
+                int objc, Tcl_Obj * CONST objv[]) {
     if (objc != 2) {
         Tcl_SetResult(ip, "usage: ", TCL_STATIC);
-	Tcl_AppendResult(ip, Tcl_GetString(objv[0]), " <argument>", NULL);
+        Tcl_AppendResult(ip, Tcl_GetString(objv[0]), " <argument>", NULL);
         return TCL_ERROR;
     }
     
