@@ -8,6 +8,8 @@
 # it under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
 
+STEENROD_VERSION=0.7631
+
 SYSTEM = Unix
 
 TCLSH = tclsh
@@ -19,18 +21,24 @@ ifeq ($(SYSTEM),Windows)
   TCLINCDIR = c:/MinGW/include/
   TCLLIBDIR = c:/MinGW/lib/
   TCLSTUBLIB = tclstub84
+  TCLLIB = tcl84
   STUBLINK = gcc -mdll -mno-cygwin -L$(TCLLIBDIR) -lmsvcrt
 else
   CC     = gcc -fPIC
-  CFLAGS = -O2 -g -Wall -I. -DUSE_TCL_STUBS
+  CFLAGS =  -O2 -g -Wall -I. -DUSE_TCL_STUBS
 
   TCLINCDIR = /usr/include/
   TCLLIBDIR = /usr/lib/
   TCLSTUBLIB = tclstub8.4
-  STUBLINK = gcc -shared -L$(TCLLIBDIR)
+  TCLLIB = tcl8.4
+  STUBLINK = gcc -shared $(CFLAGS) -L$(TCLLIBDIR)
 endif
 
-CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT
+CFLAGS += -DSTEENROD_VERSION=\"$(STEENROD_VERSION)\"
+
+CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT 
+#CFLAGS += -fprofile-arcs -ftest-coverage -pg
+#CFLAGS += -DUSE_VERB_ALLOC=1
 
 NOTANGLE = notangle
 NOWEAVE  = noweave
@@ -38,7 +46,8 @@ NOWEAVE  = noweave
 NOWEBFILES = mult.nw
 
 SRCS = adlin.c linalg.c linwrp.c tlin.c prime.c tprime.c tptr.c \
-       poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c common.c hmap.c
+       poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c common.c \
+       hmap.c linwrp2.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -52,8 +61,11 @@ objects: $(OBJS)
 
 libraries: $(LIBS)
 
-install: libraries
+install: libraries steenrodsh
 	$(TCLSH) instlib.tcl $(LIBS)
+	(cd ../lib; echo "pkg_mkIndex ." | $(TCLSH))
+	mkdirhier ../bin
+	cp steenrodsh ../bin
 
 %.c : %.nw
 	$(NOTANGLE) -L -R$*.c $(NOWEBFILES) > $*.c
@@ -80,6 +92,9 @@ depend:
 
 libsteenrod.so : $(OBJS)
 	$(STUBLINK) -o libsteenrod.so $(OBJS) -l$(TCLSTUBLIB)
+
+steenrodsh : $(OBJS) steenrodsh.c
+	$(CC) -o steenrodsh $(CFLAGS) -I$(TCLINCDIR) $(OBJS) steenrodsh.c -l$(TCLLIB)
 
 clean:
 	$(RM) $(OBJS) $(LIBS) 2> /dev/null
@@ -112,5 +127,7 @@ tenum.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h linwrp.h
 tenum.o: tenum.h enum.h
 momap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h momap.h
 steenrod.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h linwrp.h
-steenrod.o: steenrod.h momap.h tenum.h enum.h mult.h
+steenrod.o: steenrod.h momap.h tenum.h enum.h mult.h hmap.h
 common.o: common.h
+hmap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h hmap.h
+linwrp2.o: linwrp.h prime.h common.h

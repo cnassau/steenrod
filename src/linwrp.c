@@ -275,15 +275,46 @@ int LAVadd(vectorType **vt1, void **vdat1,
     return FAIL;
 }
 
+int MatrixAddNaive( matrixType *mt1, void *mdat1,
+                    matrixType *mt2, void *mdat2, int scale, int mod) {
+    int rows, cols, i, j;
+    mt1->getDimensions(mdat1,&rows,&cols);
+    mt2->getDimensions(mdat2,&i,&j);
+    if ((rows != i) || (cols != j)) 
+        return FAILIMPOSSIBLE;
+    for (i=0;i<rows;i++)
+        for (j=0;j<cols;j++) {
+            int val;
+            mt2->getEntry(mdat2,i,j,&val);
+            mt1->addToEntry(mdat1,i,j,val*scale,mod);
+        }
+    return SUCCESS;
+}
+  
 int LAMadd(matrixType **vt1, void **vdat1,
            matrixType *vt2, void *vdat2, int scale, int mod) {
 
+    /* make sure that we only use mod 2 arithmetic if mod == 2 */
+    if (2 == mod) {
+        if (0 == (0x1 & scale)) return SUCCESS;
+        if ((stdmatrix2 == vt2) && (stdmatrix2 == *vt1)) {
+            return stdmatrix2->add(*vdat1, vdat2, scale, mod);
+        } 
+        return MatrixAddNaive(*vt1, *vdat1, vt2, vdat2, scale, mod);
+    }
+
+    if (stdmatrix != *vt1) {
+        void *newdat = createStdMatrixCopy(*vt1,*vdat1);
+        if (NULL == newdat) return FAILMEM;
+        (*vt1)->destroyMatrix(*vdat1);
+        *vt1 = stdmatrix;
+        *vdat1 = newdat;
+    }
+
     if ((vt2 == *vt1) && (NULL != vt2->add)) 
         return vt2->add(*vdat1, vdat2, scale, mod);
-    
-    ASSERT(NULL == "LAMadd needs to be enhanced");
 
-    return FAIL;
+    return MatrixAddNaive(*vt1, *vdat1, vt2, vdat2, scale, mod);
 }
 
 int vectorIsZero(vectorType *vt, void *vdat) {

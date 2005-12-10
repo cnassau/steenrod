@@ -153,15 +153,20 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     srcdim = mc->srcdim;
     dstdim = DimensionFromEnum(dst);
 
-    *mtp = stdmatrix;
-    *mat = stdmatrix->createMatrix(srcdim, dstdim);
+    if (2 == dst->pi->prime) {
+        *mtp = stdmatrix2;
+    } else {
+        *mtp = stdmatrix;
+    }
+
+    *mat = (*mtp)->createMatrix(srcdim, dstdim);
 
     if (NULL == *mat) {
 	RELEASEGOBJ;
 	RETERR("out of memory");
     }
 
-    stdmatrix->clearMatrix(*mat);
+    (*mtp)->clearMatrix(*mat);
 
     memset(&theG, 0, sizeof(exmo));
     theG.gen = -653421; /* invalid (=highly unusual) generator id */
@@ -372,7 +377,6 @@ int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
     }
   
     Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mtp, mat));
-
     return TCL_OK;
 }
 
@@ -627,11 +631,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_Eval(ip, "namespace eval " POLYNSP " { namespace export -clear \\[a-zA-Z\\]* }");
 
-#if 0
-    /* We need to use a Tcl wrapper for platform specific library
-     * loading, so "package provide" should be done in that wrapper. */
-    Tcl_PkgProvide(ip, "Steenrod", "1.0");
-#endif
+    Tcl_PkgProvide(ip, "Steenrod", STEENROD_VERSION);
 
     return TCL_OK;
 }

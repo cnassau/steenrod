@@ -363,6 +363,22 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp,
     if (Tcl_IsShared(ker))
         ASSERT(NULL == "ker must not be shared in Tcl_QuotCmd!");
 
+    if (mt != mt2) {
+        /* replace both by std copies */
+        if (mt2 != stdmatrix) {
+            void *newker = createStdMatrixCopy(mt2, PTR2(ker));
+            mt2->destroyMatrix(PTR2(ker));
+            PTR1(ker) = stdmatrix; PTR2(ker) = newker;
+            mt2 = stdmatrix;
+        }
+        if (mt != stdmatrix) {
+            void *newim = createStdMatrixCopy(mt, PTR2(inp));
+            mt->destroyMatrix(PTR2(inp));
+            PTR1(inp) = stdmatrix; PTR2(inp) = newim;
+            mt = stdmatrix;
+        }
+    }
+    
     if ((NULL == (mt->quotFunc)) || (mt != mt2)) 
         ASSERT(NULL == "quotient computation not fully implemented");
 
@@ -534,11 +550,9 @@ int ExtractRowsCmd(Tcl_Interp *ip, Tcl_Obj *mat, int *ind, int num) {
 
     if (NULL != mt1->shrinkRows) {
         mt2   = mt1;
-        mdat2 = mt1->createCopy(mdat1); 
-        
-        if (NULL == mdat2) RETERR("out of memory");
+        mdat2 = mt1->shrinkRows(mdat1, ind, num);
 
-        mt1->shrinkRows(mdat2, ind, num);
+        if (NULL == mdat2) RETERR("out of memory");
 
         Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt2, mdat2));
         return TCL_OK;     
@@ -688,7 +702,12 @@ int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
         return TCL_ERROR;
     }
 
-    mt = stdmatrix;
+    if (1 == blocksize) {
+        mt = stdmatrix2;
+    } else {
+        mt = stdmatrix;
+    }
+
     mdat = mt->createMatrix(nrows, ncols);
     
     if (NULL == mdat) RETERR("out of memory");
@@ -845,21 +864,63 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
     return TCL_OK;
 }
 
+int Tcl_Convert2Cmd(Tcl_Interp *ip, Tcl_Obj *inmat) {
+    void *res, *mdat;
+    matrixType *mt;
+    int i,j,rows,cols;
+
+    if (TCL_OK != Tcl_ConvertToMatrix(ip, inmat)) 
+        return TCL_ERROR;
+    
+    mt   = matrixTypeFromTclObj(inmat);
+    mdat = matrixFromTclObj(inmat);
+
+    mt->getDimensions(mdat,&rows,&cols);
+
+    res = stdmatrix2->createMatrix(rows,cols);
+
+    if (NULL == res) {
+        Tcl_SetResult(ip, "Out of memory", TCL_STATIC);
+        return TCL_ERROR;
+    }
+
+    for (i=rows;i--;) {
+        for (j=cols;j--;) {
+            int val;
+            mt->getEntry(mdat,i,j,&val);
+            if ((val != 0) && (val != 1)) {
+                char errmsg[80];
+                sprintf(errmsg, "all entries must be 0 or 1 (found %d)", val);
+                stdmatrix2->destroyMatrix(res);
+                Tcl_SetResult(ip, errmsg, TCL_VOLATILE);
+                return TCL_ERROR;
+            }
+            stdmatrix2->setEntry(res,i,j,val);
+        }
+    }
+
+    Tcl_SetObjResult(ip, Tcl_NewMatrixObj(stdmatrix2, res));
+    return TCL_OK;
+}
+
 /**** Implementation of the matrix combi-command ***********************************/
 
 static CONST char *rcnames[] = { "rows", "cols", NULL };
 
 typedef enum { ORTHO, LIFT, QUOT, DIMS, CREATE, ADDTO, 
-               ISZERO, TEST, EXTRACT, ENCODE64, DECODE } matcmdcode;
+               ISZERO, TEST, EXTRACT, ENCODE64, DECODE, 
+               TYPE, CONVERT2 } matcmdcode;
 
 static CONST char *mCmdNames[] = { "orthonormalize", "lift", 
                                    "quotient", "extract", "dimensions", 
                                    "create", "addto", "iszero", 
                                    "test", "encode64", "decode", 
+                                   "type", "convert2",
                                    (char *) NULL };
 
 static matcmdcode mCmdmap[] = { ORTHO, LIFT, QUOT, EXTRACT, 
-                                DIMS, CREATE, ADDTO, ISZERO, TEST, ENCODE64, DECODE };
+                                DIMS, CREATE, ADDTO, ISZERO, TEST, ENCODE64, DECODE, 
+                                TYPE, CONVERT2 };
 
 int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index, scale, modval, rows, cols;
@@ -881,6 +942,20 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
        return TCL_ERROR; } }
 
     switch (mCmdmap[index]) {
+        case TYPE:
+            EXPECTARGS(2, 1, 1, "<matrix>");
+            
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[2])) 
+                return TCL_ERROR;
+  
+            Tcl_SetResult(ip, (char *) matrixTypeFromTclObj(objv[2])->name, TCL_VOLATILE);
+            return TCL_OK;
+
+        case CONVERT2:
+            EXPECTARGS(2, 1, 1, "<matrix>");
+
+            return Tcl_Convert2Cmd(ip, objv[2]);
+
         case ENCODE64: 
             EXPECTARGS(2, 2, 2, "<base> <matrix>");
             
