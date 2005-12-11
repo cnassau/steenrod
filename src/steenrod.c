@@ -22,6 +22,10 @@
 #include "mult.h"
 #include "hmap.h"
 
+#ifdef USESSE2
+#  include <xmmintrin.h>
+#endif
+
 char *theprogvar; /* ckalloc'ed name of the progress variable */
 int   theprogmsk; /* progress reporting granularity */
 
@@ -593,9 +597,44 @@ int GetRefCount(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
+int VersionCmd(ClientData cd, Tcl_Interp *ip,
+               int objc, Tcl_Obj * CONST objv[]) {
+    Tcl_SetResult(ip, STEENROD_VERSION
+#ifdef USESSE2
+                  "-sse2"
+#endif
+                 ,TCL_STATIC);
+    return TCL_OK;
+}
+
 EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_InitStubs(ip, "8.0", 0);
+
+#ifdef USESSE2
+    {
+        /* check whether SSE2 instructions seem to work */
+        int sse2ok = 1;
+        __m128i var = _mm_set_epi16(7,6,5,4,3,2,1,0);
+#define TESTENT(i) { if (i != _mm_extract_epi16(var,i)) sse2ok = 0; }
+        TESTENT(0);
+        TESTENT(1);
+        TESTENT(2);
+        TESTENT(3);
+        TESTENT(4);
+        TESTENT(5);
+        TESTENT(6);
+        TESTENT(7);
+        if(!sse2ok) {
+            Tcl_SetResult(ip, 
+                          "this library was compiled for sse2"
+                          " capable processors"
+                          " - please recompile without -DUSESSE2", 
+                          TCL_STATIC);
+            return TCL_ERROR;
+        }
+    }
+#endif
 
     Tptr_Init(ip);
     Tprime_Init(ip);
@@ -616,6 +655,9 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_CreateObjCommand(ip, POLYNSP "_refcount",
                          GetRefCount, (ClientData) 0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "Version",
+                         VersionCmd, (ClientData) 0, NULL);
 
     /* create links for progress reporting */
     Tcl_UnlinkVar(ip, POLYNSP "_progvarname");
