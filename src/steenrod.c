@@ -626,10 +626,9 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
         TESTENT(6);
         TESTENT(7);
         if(!sse2ok) {
-            Tcl_SetResult(ip, 
-                          "this library was compiled for sse2"
-                          " capable processors"
-                          " - please recompile without -DUSESSE2", 
+            Tcl_SetResult(ip, "library requires sse2"
+                          " capable processor"
+                          " (recompile without -DUSESSE2)", 
                           TCL_STATIC);
             return TCL_ERROR;
         }
