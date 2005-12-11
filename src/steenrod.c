@@ -655,7 +655,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_CreateObjCommand(ip, POLYNSP "_refcount",
                          GetRefCount, (ClientData) 0, NULL);
 
-    Tcl_CreateObjCommand(ip, POLYNSP "Version",
+    Tcl_CreateObjCommand(ip, POLYNSP "_version",
                          VersionCmd, (ClientData) 0, NULL);
 
     /* create links for progress reporting */
@@ -670,7 +670,8 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_UnlinkVar(ip, POLYNSP "_objCount");
     Tcl_LinkVar(ip, POLYNSP "_objCount", (char *) &objCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
-    Tcl_Eval(ip, "namespace eval " POLYNSP " { namespace export -clear \\[a-zA-Z\\]* }");
+    Tcl_Eval(ip, "namespace eval " POLYNSP 
+             " { namespace export -clear \\[a-zA-Z\\]* }");
 
     Tcl_PkgProvide(ip, "Steenrod", STEENROD_VERSION);
 
