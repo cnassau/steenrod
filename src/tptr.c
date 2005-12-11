@@ -29,8 +29,8 @@
  * Currently, only the ordinary precision case is implemented. 
  */
 
-int  ILisXXL(Tcl_Obj *obj)     { return ((int) PTR1(obj)) & 1; }
-int  ILgetLength(Tcl_Obj *obj) { return ((int) PTR1(obj)) >> 1; }
+int  ILisXXL(Tcl_Obj *obj)     { return (USGNFROMVPTR(PTR1(obj))) & 1; }
+int  ILgetLength(Tcl_Obj *obj) { return (USGNFROMVPTR(PTR1(obj))) >> 1; }
 int *ILgetIntPtr(Tcl_Obj *obj) { return (int *) PTR2(obj); }
 
 static Tcl_ObjType IntList;
@@ -58,7 +58,7 @@ int ILSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         }
     /* Now we have a copy of the data. Free list representation. */
     objPtr->typePtr->freeIntRepProc(objPtr);
-    PTR1(objPtr) = (void *) (objc << 1);
+    PTR1(objPtr) = VPTRFROMUSGN(objc << 1);
     PTR2(objPtr) = dat;
     objPtr->typePtr = &IntList;
     return TCL_OK;
@@ -92,7 +92,7 @@ void ILDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     int *dat = ILgetIntPtr(srcPtr);
     int *ndat = (int *) ckalloc(sizeof(int) * len);
     memcpy(ndat,dat,sizeof(int) * len);
-    PTR1(dupPtr) = (void *) (len << 1);
+    PTR1(dupPtr) = VPTRFROMUSGN(len << 1);
     PTR2(dupPtr) = ndat;
 }
 
@@ -107,7 +107,7 @@ Tcl_ObjType TPtr;
 
 void make_TPtr(Tcl_Obj *objPtr, int type, void *ptr) {
     objPtr->typePtr = &TPtr;
-    objPtr->internalRep.twoPtrValue.ptr1 = (void *) type;
+    objPtr->internalRep.twoPtrValue.ptr1 = VPTRFROMUSGN(type);
     objPtr->internalRep.twoPtrValue.ptr2 = ptr;
     Tcl_InvalidateStringRep(objPtr);
 }
@@ -117,7 +117,7 @@ void *TPtr_GetPtr(Tcl_Obj *obj) {
 } 
 
 int   TPtr_GetType(Tcl_Obj *obj) { 
-    return (int) obj->internalRep.twoPtrValue.ptr1; 
+    return USGNFROMVPTR(obj->internalRep.twoPtrValue.ptr1); 
 } 
 
 /* try to turn objPtr into a TPtr */
@@ -131,7 +131,7 @@ int TPtr_SetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
     if (NULL != objPtr->typePtr)
         if (NULL != objPtr->typePtr->freeIntRepProc) 
             objPtr->typePtr->freeIntRepProc(objPtr);
-    make_TPtr(objPtr, (int) d1, d2); 
+    make_TPtr(objPtr, USGNFROMVPTR(d1), d2); 
     return TCL_OK;
 }
 
@@ -147,7 +147,7 @@ void TPtr_UpdateStringProc(Tcl_Obj *objPtr) {
 /* create copy */
 void TPtr_DupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     make_TPtr(dupPtr, 
-              (int) srcPtr->internalRep.twoPtrValue.ptr1, 
+              USGNFROMVPTR(srcPtr->internalRep.twoPtrValue.ptr1), 
               srcPtr->internalRep.twoPtrValue.ptr2);
 }
 

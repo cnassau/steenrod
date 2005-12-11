@@ -64,6 +64,9 @@ if (_res) memset(_res, 0,_sz); (void *) _res; })
 #  endif
 #endif
 
+/* (void *) <=> unsigned conversion */
+#define USGNFROMVPTR(vptr)   ((unsigned) ((char *) (vptr) - (char *) 0))
+#define VPTRFROMUSGN(usgn)   ((void *) (((char *) 0) + (usgn)))
 
 /* verbatim memory management - used for debugging */
 #define _MEMLOG(sym,addr,oad,siz,file,line) \

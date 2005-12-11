@@ -39,7 +39,7 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
     matrixType *mtp = (matrixType *) ma->cd1;
     void *mat = ma->cd2;
     enumerator *dst = (enumerator *) ma->cd3;
-    int row = (int) ma->cd5;
+    unsigned row = USGNFROMVPTR(ma->cd5);
     int idx;
     int rcode;
     Tcl_Interp *ip = (Tcl_Interp *) ma->TclInterp;
@@ -58,7 +58,7 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
     if (SUCCESS == rcode)
         return;
    
-    ma->cd4 = (void *) rcode;
+    ma->cd4 = VPTRFROMUSGN(rcode);
    
  error:
  
@@ -194,7 +194,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
     if (mc->firstSource(mc)) 
         do {
-            ma->cd5 = (void *) mc->currow; /* row indicator */
+            ma->cd5 = VPTRFROMUSGN(mc->currow); /* row indicator */
 
             if ((0 == (mc->currow & theprogmsk)) && (NULL != THEPROGVAR)) {
                 perc = mc->currow; perc /= srcdim; 
@@ -267,7 +267,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
             multCount += dgnumsum;
 
-            if (SUCCESS != (int) ma->cd4) {
+            if (SUCCESS != USGNFROMVPTR(ma->cd4)) {
                 if (NULL != ip) {
                     char err[500];
                     Tcl_Obj *aux = Tcl_NewExmoCopyObj(mc->srcx);

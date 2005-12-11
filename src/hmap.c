@@ -131,7 +131,7 @@ int HMSSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     if (num < 0) return TCL_ERROR;
 
     PTR1(objPtr) = (void *) st;
-    PTR2(objPtr) = (void *) num;
+    PTR2(objPtr) = VPTRFROMUSGN(num);
     objPtr->typePtr = &tclHMS;
 
     return TCL_ERROR;
