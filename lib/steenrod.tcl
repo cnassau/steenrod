@@ -11,12 +11,11 @@
 # published by the Free Software Foundation.
 #
 
-set libdir [file join [file dirname [info script]] $tcl_platform(os)]
+set libdir [file join [file dirname [info script]] \
+                $tcl_platform(os)_$tcl_platform(machine)]
 
 if {![file isdirectory $libdir]} {
     error "Did not find Steenrod library for platform '$tcl_platform(os)'"
 }
 
 load [file join $libdir libsteenrod[info sharedlibextension]]
-
-package provide Steenrod 0.75

@@ -11,7 +11,7 @@
 # published by the Free Software Foundation.
 #
 
-set targdir [file join .. lib $tcl_platform(os)]
+set targdir [file join .. lib $tcl_platform(os)_$tcl_platform(machine)]
 
 if {[llength $argv] < 1} {
     puts "use \"$argv0 <file1> <file2> ... \" to copy files into $targdir"

@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded Steenrod 0.75 [list source [file join $dir steenrod.tcl]]
+package ifneeded Steenrod 0.7631 [list source [file join $dir steenrod.tcl]]
