@@ -28,17 +28,17 @@ else
   CFLAGS =  -O2 -g -Wall -I. -DUSE_TCL_STUBS
 
   TCLINCDIR = /usr/include/
-  TCLLIBDIR = /usr/lib/
+  TCLLIBDIR = /usr/lib64 /usr/lib
   TCLSTUBLIB = tclstub8.4
   TCLLIB = tcl8.4
-  STUBLINK = gcc -shared $(CFLAGS) -L$(TCLLIBDIR)
+  STUBLINK = gcc -shared $(CFLAGS) $(foreach i,$(TCLLIBDIR),-L$(i))
 endif
 
 CFLAGS += -DSTEENROD_VERSION=\"$(STEENROD_VERSION)\"
-
 CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT 
 #CFLAGS += -fprofile-arcs -ftest-coverage -pg
 #CFLAGS += -DUSE_VERB_ALLOC=1
+CFLAGS += -msse2 -DUSESSE2
 
 NOTANGLE = notangle
 NOWEAVE  = noweave
@@ -108,6 +108,12 @@ reformat:
 .PHONY: refmt
 
 refmt: reformat
+
+test: steenrodsh install
+	../bin/steenrodsh ../test/all.tcl
+
+bigtest: steenrodsh install
+	$(SH) (export TCLTEST_OPTIONS="-constraints BIGTEST"; ../bin/steenrodsh ../test/all.tcl)
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 
