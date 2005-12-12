@@ -22,10 +22,6 @@
 #include "mult.h"
 #include "hmap.h"
 
-#ifdef USESSE2
-#  include <xmmintrin.h>
-#endif
-
 char *theprogvar; /* ckalloc'ed name of the progress variable */
 int   theprogmsk; /* progress reporting granularity */
 
@@ -655,7 +651,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_CreateObjCommand(ip, POLYNSP "_refcount",
                          GetRefCount, (ClientData) 0, NULL);
 
-    Tcl_CreateObjCommand(ip, POLYNSP "_version",
+    Tcl_CreateObjCommand(ip, POLYNSP "Version",
                          VersionCmd, (ClientData) 0, NULL);
 
     /* create links for progress reporting */
@@ -671,7 +667,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_LinkVar(ip, POLYNSP "_objCount", (char *) &objCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
     Tcl_Eval(ip, "namespace eval " POLYNSP 
-             " { namespace export -clear \\[a-zA-Z\\]* }");
+             " { namespace export -clear \\[a-z\\]* }");
 
     Tcl_PkgProvide(ip, "Steenrod", STEENROD_VERSION);
 

@@ -14,6 +14,10 @@
 #ifndef COMMON_DEF
 #define COMMON_DEF
 
+#ifdef USESSE2
+#  include <emmintrin.h>
+#endif
+
 /* undef HAVE_ASSERT if you're seeing "eprintf" related problems with gcc */
 #define HAVE_ASSERT
 
