@@ -74,7 +74,7 @@ if (_res) memset(_res, 0,_sz); (void *) _res; })
 
 /* verbatim memory management - used for debugging */
 #define _MEMLOG(sym,addr,oad,siz,file,line) \
-{ fprintf(stderr,"MDBG %s %p %p %d %s %d\n",sym,addr,oad,siz,file,line); }
+{ fprintf(stderr,"MDBG %s %p %p %d %s %d\n",sym,addr,oad,(int)siz,file,line); }
 
 #define vbmalloc(siz,file,line) \
 ({ size_t _sz = siz; void *_res = malloc(_sz); _MEMLOG("M",_res,NULL,_sz,file,line); _res;}) 
