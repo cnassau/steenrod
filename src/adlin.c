@@ -13,6 +13,10 @@
 
 #include "adlin.h"
 
+#ifdef USESSE2
+#  include "adlin-sse2.c"
+#else
+
 #define  PROGVARINIT     \
     double perc = 0;     \
     if (NULL != progvar) Tcl_LinkVar(ip, progvar, (char *) &perc, TCL_LINK_DOUBLE);
@@ -274,3 +278,4 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
     return SUCCESS;
 }
 
+#endif /* USESSE2 */

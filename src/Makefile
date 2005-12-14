@@ -109,11 +109,11 @@ reformat:
 
 refmt: reformat
 
-test: steenrodsh install
-	../bin/steenrodsh ../test/all.tcl
+test: steenrodsh
+	./steenrodsh ../test/all.tcl
 
-bigtest: steenrodsh install
-	$(SH) (export TCLTEST_OPTIONS="-constraints BIGTEST"; ../bin/steenrodsh ../test/all.tcl)
+bigtest: steenrodsh
+	$(SH) (export TCLTEST_OPTIONS="-constraints BIGTEST"; ./steenrodsh ../test/all.tcl)
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 

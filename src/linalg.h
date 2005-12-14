@@ -18,9 +18,17 @@
 
 /* we use two types: vectors and matrices */
 
+#ifdef USESSE2
+#  define BLOCKTYPE __m128i
+#  define BLOCKS_REQUIRED(columns) (((columns)+15)/16)
+#else
+#  define BLOCKTYPE cint
+#  define BLOCKS_REQUIRED(columns) (columns)
+#endif
+
 typedef struct {
-    int num;
-    cint *data;
+    int num, blocks;
+    BLOCKTYPE *data;
 } vector;
 
 /* nomcols stands for "nominal columns"; allows to allocate space 
@@ -28,8 +36,8 @@ typedef struct {
  * useful for ...?) */
 typedef struct {
     int rows, cols; 
-    int nomcols;    
-    cint *data;
+    int nomcols;
+    BLOCKTYPE *data;
 } matrix;
 
 vector * vector_create(int size);
@@ -42,6 +50,7 @@ void vector_add_entry(vector *dst, int off, cint dat, cint prime);
 cint vector_get_entry(vector *src, int off);
 void vector_set_entry(vector *src, int off, cint val);
 void vector_randomize(vector *v, cint prime);
+void vector_reduce(vector *vec, cint prime);
 
 matrix *matrix_create(int rows, int cols);
 matrix *matrix_copy(matrix *mat);
@@ -53,6 +62,7 @@ void matrix_randomize(matrix *m, cint prime);
 cint matrix_get_entry(matrix *m, int r, int c);
 void matrix_set_entry(matrix *m, int r, int c, cint val);
 void matrix_add(matrix *dst, matrix *src, cint coeff, cint prime);
+void matrix_reduce(matrix *m, cint prime);
 
 /* matrix_collect is used whenever we want to throw away some
  * of the rows; for this we first set m->rows = 0, then call 

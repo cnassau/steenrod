@@ -78,14 +78,8 @@ void stdUnitMatrix(void *mat) {
 }
 
 int stdReduceMatrix(void *mat, int prime) {
-    int i, j;
     matrix *m = (matrix *) mat;
-    cint *rowptr;
-    for (j=m->rows;j--;) {
-        rowptr = m->data + j* m->nomcols;
-        for (i=m->cols;i--;)
-            rowptr[i] %= prime;
-    }
+    matrix_reduce(m,prime);
     return SUCCESS;
 }
 
@@ -194,10 +188,8 @@ void stdVDestroyVector(void *vec) {
 }
 
 int stdVReduce(void *vec, int prime) {
-    int i;
     vector *v = (vector *) vec;
-    for (i=v->num;i--;)
-        v->data[i] %= prime;
+    vector_reduce(v,prime);
     return SUCCESS;
 }
 
