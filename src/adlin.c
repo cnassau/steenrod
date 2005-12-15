@@ -30,6 +30,16 @@
 
 #define LINALG_INTERRUPT_VARIABLE 0
 
+#if 0
+#  define DBGPRINT1(fmt) { printf(fmt "\n"); }
+#  define DBGPRINT2(fmt,val) { printf(fmt "\n",val); }
+#  define DBGPRINT3(fmt,v1,v2) { printf(fmt "\n",v1,v2); }
+#else
+#  define DBGPRINT1(fmt) {}
+#  define DBGPRINT2(fmt,val) {}
+#  define DBGPRINT3(fmt,v1,v2) {}
+#endif
+
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 /* orthonormalize the input matrix, return basis of kernel */
@@ -45,13 +55,16 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp,
     matrix *un ;
 
     PROGVARINIT ;
-
     un = matrix_create(inp->rows, inp->rows);
     if (NULL == un) return NULL;
     matrix_unit(un);
 
     cols = inp->cols;
-    v1.num = v2.num = cols; v3.num = v4.num = un->cols;
+
+    make_matrix_row(&v1,inp,0);
+    make_matrix_row(&v2,inp,0);
+    make_matrix_row(&v3,un,0);
+    make_matrix_row(&v4,un,0);
 
     spr = inp->nomcols; /* cints per row */
     uspr = un->nomcols;
@@ -74,9 +87,11 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp,
         for (aux=v1.data, j=cols; j; aux++, j--)
             if (0 != *aux) break;
         if (0 == j) {
+            DBGPRINT1("KERNEL VECTOR");
             /* row is zero */
             matrix_collect(&m2, i); /* collect kernel vector */
         } else {
+            DBGPRINT1("IMAGE VECTOR");
             matrix_collect(&m1, i); /* collect image vector */
             coeff = pi->inverse[(unsigned) *aux]; 
             coeff = prime-coeff; coeff %= prime;
@@ -84,8 +99,11 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp,
             v2.data = v1.data + spr; aux += spr;
             v3.data = un->data + i * uspr;
             v4.data = v3.data + uspr;
-            for (j=i+1; j<inp->rows; j++, v2.data+=spr, v4.data+=uspr, aux+=spr)
+            for (j=i+1; j<inp->rows; 
+                 j++, v2.data+=spr, v4.data+=uspr, aux+=spr)
                 if (0 != *aux) {
+                    DBGPRINT3("v4(data=%p) / v3(data=%p)",v4.data,v3.data);
+                    DBGPRINT3("v2(data=%p) / v1(data=%p)",v2.data,v1.data);
                     vector_add(&v4, &v3, CINTMULT(*aux,coeff,prime), prime);
                     vector_add(&v2, &v1, CINTMULT(*aux,coeff,prime), prime);
                 }
@@ -134,7 +152,10 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
     matrix_clear(res);
 
     cols = inp->cols;
-    v1.num = v2.num = cols; v3.num = v4.num = un->cols;
+    make_matrix_row(&v1,inp,0);
+    make_matrix_row(&v2,inp,0);
+    make_matrix_row(&v3,un,0);
+    make_matrix_row(&v4,un,0);
 
     spr = inp->nomcols; /* cints per row */
     uspr = un->nomcols;
@@ -211,6 +232,8 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
 
     cols = im->cols;
     v1.num = v2.num = cols;
+    make_matrix_row(&v1,im,0);
+    make_matrix_row(&v2,im,0);
 
 #if 0
     ASSERT(im->cols == ker->cols);

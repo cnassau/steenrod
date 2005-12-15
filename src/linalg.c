@@ -17,62 +17,8 @@
 #include <string.h>
 
 #ifdef USESSE2
-void print_epi8(const char *name, __m128i reg) {
-    int i; const char *c;
-    union {
-        __m128i aux;
-        unsigned char dat[16];
-    } x;
-    x.aux = reg;
-    printf("%10s",name);
-    for(i=0,c=" = ";i<16;i++,c=", ") 
-        printf("%s%d",c,x.dat[i]);
-    printf("\n");
-}
-
-void print_epi16(const char *name, __m128i reg) {
-    int i; const char *c;
-    union {
-        __m128i aux;
-        unsigned short dat[8];
-    } x;
-    x.aux = reg;
-    printf("%10s",name);
-    for(i=0,c=" = ";i<8;i++,c=", ") 
-        printf("%s%d",c,x.dat[i]);
-    printf("\n");
-}
-
-#if 0
-#  define PRINTMSG(text)      { printf(text "\n"); }
-#  define PRINTEPI8(varname)  { print_epi8(#varname,varname);  }
-#  define PRINTEPI16(varname) { print_epi16(#varname,varname); }
-#else
-#  define PRINTMSG(text)      { ; }
-#  define PRINTEPI8(varname)  { ; }
-#  define PRINTEPI16(varname) { ; }
+#  include "ssedefs.h"
 #endif
-
-inline void set_entry(__m128i *var, int idx, char newval) {
-    union {
-        __m128i aux;
-        char chs[16];
-    } x;
-    x.aux = *var;
-    x.chs[idx & 15]=newval;
-    *var = x.aux;
-}
-
-inline char extract_entry(__m128i var, int idx) {
-    union {
-        __m128i aux;
-        char chs[16];
-    } x;
-    x.aux = var;
-    return x.chs[idx & 15];
-}
-#endif
-
 
 vector * vector_create(int size) {
     vector *v = mallox(sizeof(vector));
@@ -109,55 +55,9 @@ void vector_copy(vector *v, vector *w) {
     for (k=v->blocks, dat=v->data, sdat=w->data; k--;) *dat++ = *sdat++;
 }
 
-#ifdef USESSE2
-void add_blocks(__m128i *src,__m128i *dst, int nblocks, 
-                int coeff, int p) {
-    PRINTMSG("======== add_blocks ==========");
-    if (p) { coeff %= p; if (coeff<0) coeff += p; }
-    __m128i scale = _mm_set1_epi16(coeff);
-    __m128i prime = _mm_set1_epi16(p << 5);
-    PRINTEPI16(scale);PRINTEPI16(prime);
-    while (nblocks--) {
-        PRINTMSG("      === new block ===");
-        __m128i srcl = *src, srch = _mm_xor_si128(srcl,srcl);
-        srcl = _mm_unpacklo_epi8(srcl,srch);
-        srch = _mm_unpackhi_epi8(*src,srch);
-        PRINTEPI8(*src); PRINTEPI16(srcl); PRINTEPI16(srch);
-        {
-            __m128i dstl = _mm_unpacklo_epi8(*dst,_mm_setzero_si128());
-            srcl = _mm_add_epi16(dstl,_mm_mullo_epi16(scale,srcl));
-        }
-        {
-            __m128i dsth = _mm_unpackhi_epi8(*dst,_mm_setzero_si128());
-            srch = _mm_add_epi16(dsth,_mm_mullo_epi16(scale,srch));
-        }
-#define REDUCTIONBLOCK(dummy)                                         \
-        {                                                             \
-            PRINTEPI16(prime); PRINTEPI16(srcl); PRINTEPI16(srch);    \
-            __m128i maskl =  _mm_cmpgt_epi16(prime,srcl);             \
-            __m128i maskh =  _mm_cmpgt_epi16(prime,srch);             \
-            PRINTEPI16(maskl); PRINTEPI16(maskh);                     \
-            srcl = _mm_sub_epi16(srcl,_mm_andnot_si128(maskl,prime)); \
-            srch = _mm_sub_epi16(srch,_mm_andnot_si128(maskh,prime)); \
-            PRINTEPI16(srcl); PRINTEPI16(srch);                       \
-        }
-        REDUCTIONBLOCK(p<<5); prime = _mm_srli_epi16(prime,1);
-        REDUCTIONBLOCK(p<<4); prime = _mm_srli_epi16(prime,1);
-        REDUCTIONBLOCK(p<<3); prime = _mm_srli_epi16(prime,1);
-        REDUCTIONBLOCK(p<<2); prime = _mm_srli_epi16(prime,1);
-        REDUCTIONBLOCK(p<<1); prime = _mm_srli_epi16(prime,1);
-        REDUCTIONBLOCK(p);
-        prime = _mm_slli_epi16(prime,4);
-        *dst = _mm_packs_epi16(srcl,srch);
-        PRINTEPI8(*dst); PRINTEPI16(srcl); PRINTEPI16(srch);
-        dst++,src++;
-    }
-}
-#endif
-
 void vector_add(vector *dst, vector *src, cint coeff, cint prime) {
 #ifdef USESSE2
-    add_blocks(src->data,dst->data,dst->blocks,coeff,prime);
+    add_blocks(dst->data,add->data,dst->blocks,coeff,prime);
 #else
     int k; BLOCKTYPE *ddat, *sdat;
     for (k=dst->blocks, ddat=dst->data, sdat=src->data; k--; ddat++, sdat++) {
@@ -193,30 +93,6 @@ void vector_set_entry(vector *src, int off, cint val) {
     src->data[off] = val;
 #endif
 }
-
-#ifdef USESSE2
-void reduce_blocks(__m128i *dt, int numblocks, int prime) {
-    __m128i p16 = _mm_set1_epi8(prime<<4);
-    __m128i p8  = _mm_set1_epi8(prime<<3);
-    __m128i p4  = _mm_set1_epi8(prime<<2);
-    __m128i p2  = _mm_set1_epi8(prime<<1);
-    __m128i p1  = _mm_set1_epi8(prime);
-    for(;numblocks--;) {
-        __m128i val = *dt, mask;
-        mask = _mm_cmpgt_epi8(val,p16);
-        val = _mm_sub_epi8(val,_mm_and_si128(mask,p16));
-        mask = _mm_cmpgt_epi8(val,p8);
-        val = _mm_sub_epi8(val,_mm_and_si128(mask,p8));
-        mask = _mm_cmpgt_epi8(val,p4);
-        val = _mm_sub_epi8(val,_mm_and_si128(mask,p4));
-        mask = _mm_cmpgt_epi8(val,p2);
-        val = _mm_sub_epi8(val,_mm_and_si128(mask,p2));
-        mask = _mm_cmpgt_epi8(val,p1);
-        *dt = _mm_sub_epi8(val,_mm_and_si128(mask,p1));
-    }
-}
-#endif 
-
 void vector_reduce(vector *v, cint prime) {
 #ifdef USESSE2
     reduce_blocks(v->data,v->blocks,prime);
@@ -335,7 +211,7 @@ void matrix_set_entry(matrix *m, int r, int c, cint val) {
 void matrix_add(matrix *dst, matrix *src, cint coeff, cint prime) {
 #ifdef USESSE2
     if ((dst->rows != src->rows) || (dst->cols != src->cols)) return;
-    add_blocks(src->data,dst->data,dst->nomcols * dst->rows,coeff,prime);
+    add_blocks(dst->data,src->data,dst->nomcols * dst->rows,coeff,prime);
 #else
     int i;
     vector v1, v2;
@@ -349,14 +225,12 @@ void matrix_add(matrix *dst, matrix *src, cint coeff, cint prime) {
 }
 
 void matrix_collect(matrix *m, int r) {
-    vector dst, src;
-
-    dst.data = m->data + m->nomcols * m->rows;
-    src.data = m->data + m->nomcols * r;
-
-    dst.num = src.num = m->cols;
-
-    if (dst.data != src.data) vector_copy(&dst, &src);
+    if (r != m->rows) {
+        vector dst, src;
+        make_matrix_row(&dst, m, m->rows);
+        make_matrix_row(&src, m, r);
+        vector_copy(&dst, &src);
+    }
 
     m->rows++;
 }
