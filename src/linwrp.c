@@ -55,6 +55,11 @@ void stdGetDimensions(void *m, int *row, int *col) {
     *row = mat->rows; *col = mat->cols;
 }
 
+void stdMatrixIsZero(void *m) {
+    matrix *mat = (matrix *) m;
+    return matrix_iszero(mat);
+}
+
 void *stdCreateMatrix(int row, int col) {
     matrix *mat = matrix_create(row, col);
     if (NULL != mat) matrix_clear(mat);
@@ -141,7 +146,8 @@ matrixType stdMatrixType = {
     .add           = stdMAdd,
     .orthoFunc     = stdOrthoFunc,
     .liftFunc      = stdLiftFunc,
-    .quotFunc      = stdQuotFunc
+    .quotFunc      = stdQuotFunc,
+    .iszero        = stdMatrixIsZero
 };
 
 int stdVGetEntry(void *vec, int idx, int *val) {

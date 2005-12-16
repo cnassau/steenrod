@@ -36,18 +36,39 @@ void vector_clear(vector *v) {
     memset(v->data,0,v->blocks * sizeof(BLOCKTYPE));
 }
 
-int vector_iszero(vector *v) {
-    int k; BLOCKTYPE *dat;
 #ifdef USESSE2
-    __m128i zero = _mm_setzero_si128();
-    for (k=v->blocks, dat=v->data; k--;) 
-        if(_mm_movemask_epi8(_mm_cmpeq_epi8(*dat++, zero )))
-            return 0;
+#  define COMPAREBLOCKS(x,y) \
+    (_mm_movemask_epi8(_mm_cmpgt_epi8((x),(y))))
+int COMPAREBLOCKSDBG(__m128i x,__m128i y) {
+    __m128i u = _mm_cmpgt_epi8(x,y);
+    int r = _mm_movemask_epi8(u);
+    PRINTEPI8(x);PRINTEPI8(y);PRINTEPI8(u); printf("movemask=%x\n",r);
+    return r;
+}
 #else
-    for (k=v->blocks, dat=v->data; k--;)
-        if (*dat++) return 0;
+#  define COMPAREBLOCKS(x,y) ((x) == (y))
 #endif
+
+inline
+int BLOCKSAREZERO(BLOCKTYPE *dat, int numblocks) {
+#ifdef USESSE2
+    const __m128i zero = _mm_setzero_si128();
+#else
+    const BLOCKTYPE zero = 0;
+#endif
+    while (numblocks--) 
+        if(COMPAREBLOCKS(*dat++,zero))
+            return 0;
     return 1;
+}
+
+int vector_iszero(vector *v) {
+    return BLOCKSAREZERO(v->data,v->blocks);
+}
+
+
+int matrix_iszero(matrix *m) {
+    return BLOCKSAREZERO(m->data,m->nomcols * m->rows);
 }
 
 void vector_copy(vector *v, vector *w) {

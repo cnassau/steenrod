@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 
+static inline
 void print_epi8(const char *name, __m128i reg) {
     int i; const char *c;
     union {
@@ -38,6 +39,7 @@ void print_epi8(const char *name, __m128i reg) {
     printf("\n");
 }
 
+static inline
 void print_epi16(const char *name, __m128i reg) {
     int i; const char *c;
     union {
@@ -61,7 +63,8 @@ void print_epi16(const char *name, __m128i reg) {
 #  define PRINTEPI16(varname) { ; }
 #endif
 
-inline void set_entry(__m128i *var, unsigned int idx, char newval) {
+static inline 
+void set_entry(__m128i *var, unsigned int idx, char newval) {
     union {
         __m128i aux;
         char chs[16];
@@ -71,7 +74,8 @@ inline void set_entry(__m128i *var, unsigned int idx, char newval) {
     *var = x.aux;
 }
 
-inline char extract_entry(__m128i var, unsigned int idx) {
+static inline 
+char extract_entry(__m128i var, unsigned int idx) {
     union {
         __m128i aux;
         char chs[16];
@@ -80,6 +84,7 @@ inline char extract_entry(__m128i var, unsigned int idx) {
     return x.chs[idx & 15];
 }
 
+static inline 
 void add_blocks(__m128i *dst,__m128i *src, int nblocks, 
                 int coeff, int p) {
     PRINTMSG("======== add_blocks ==========");
@@ -123,7 +128,8 @@ void add_blocks(__m128i *dst,__m128i *src, int nblocks,
     }
 }
 
-inline void reduce_blocks(__m128i *dt, int numblocks, int prime) {
+static inline 
+void reduce_blocks(__m128i *dt, int numblocks, int prime) {
     __m128i p16 = _mm_set1_epi8(prime<<4);
     __m128i p8  = _mm_set1_epi8(prime<<3);
     __m128i p4  = _mm_set1_epi8(prime<<2);

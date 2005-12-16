@@ -63,6 +63,7 @@ cint matrix_get_entry(matrix *m, int r, int c);
 void matrix_set_entry(matrix *m, int r, int c, cint val);
 void matrix_add(matrix *dst, matrix *src, cint coeff, cint prime);
 void matrix_reduce(matrix *m, cint prime);
+int matrix_iszero(matrix *m);
 
 /* use with care: v's data will still be owned by m */
 void make_matrix_row(vector *v, matrix *m, int r);
