@@ -55,7 +55,7 @@ void stdGetDimensions(void *m, int *row, int *col) {
     *row = mat->rows; *col = mat->cols;
 }
 
-void stdMatrixIsZero(void *m) {
+int stdMatrixIsZero(void *m) {
     matrix *mat = (matrix *) m;
     return matrix_iszero(mat);
 }
