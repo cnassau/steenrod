@@ -1,0 +1,163 @@
+# -*- tcl -*-
+#
+# A test suite for the advanced linear algebra routines
+#
+# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+lappend auto_path ../lib
+package require Steenrod
+namespace import steenrod::*
+
+# the list of primes that we test. primes >= 29
+# are too big for or our one-byte enty restriction.  
+set primes {2 3 5 7 11 13 17 23}
+
+# default size for our matrix tests. note that 
+# in the sse version of the library the data
+# is processed in blocks of 16 entries, so N
+# should be >= 16. 
+set N 20
+
+# The optimized matrix code at the prime 2 
+# represents entries by bits of an int, so
+# testmatrices should be >= 64.
+set N2 80
+
+# a test template that checks whether the ortho 
+# subcommand computes the rank correctly
+proc ortho-rank-test {prime cnt inmat rank} {
+    foreach {rows cols} [matrix dimensions $inmat] break
+    set kerdim [expr {$rows - $rank}]
+    lappend bdy [list set mat $inmat]
+    lappend bdy "matrix ortho $prime mat ker"
+    lappend bdy {set res {}}
+    lappend bdy {lappend res [lindex [matrix dimensions $mat] 0]}
+    lappend bdy {lappend res [lindex [matrix dimensions $ker] 0]}
+    test ortho-rank-test-$prime-$cnt \
+        "rank test $prime\#$cnt" [join $bdy \n] [list $rank $kerdim]
+}
+
+ortho-rank-test 3 1 {
+    {0 0 2 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0} 
+    {0 0 1 0 1 0 1 0 0 2 0 0 0 0 0 0 0 0 0 0 0 2} 
+    {0 0 0 0 2 0 1 0 0 1 0 0 0 0 0 0 0 0 2 0 0 0} 
+    {0 0 2 0 0 0 0 0 0 2 0 0 0 0 0 0 0 0 0 0 0 1} 
+    {0 0 1 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 2 0 0 0} 
+} 4
+
+proc rint max {expr {int(rand()*$max)}}
+proc rvec {len max} {
+    set res {}
+    while {[incr len -1] >= 0} {
+        lappend res [rint $max]
+    }
+    set res
+}
+proc rmat {rows cols max} {
+    set res {}
+    while {[incr rows -1] >= 0} {
+        lappend res [rvec $cols $max]
+    }
+    set res
+}
+
+proc diagmatrix {size val} {
+    set res [matrix create $size $size]
+    for {set i 0} {$i<$size} {incr i} {
+        lset res $i $i $val
+    }
+    return $res
+}
+
+proc unitmatrix size {diagmatrix $size 1}
+
+if 0 {
+
+foreach p $primes {
+    set idmat [unitmatrix $N]
+    for {set i 0} {$i<$N} {incr i} {
+        ortho-rank-test $p "unit-rank-$i/$N-at-$p" [lrange $idmat 1 $i] $i
+    }
+}
+
+foreach p $primes {
+    set idmat [matrix create $N $N]
+    for {set i 0} {$i<$N} {incr i} {
+        ortho-rank-test $p "zero-rank-$i/$N-at-$p" [lrange $idmat 1 $i] 0
+    }
+}
+
+}
+
+for {set i 0} {$i<10} {incr i} {
+    set randmat [rmat $N $N 100]
+    set bdy {}
+    lappend bdy [list set mat $randmat]
+    lappend bdy [list matrix addto mat $randmat -1]
+    lappend bdy {expr {[matrix iszero $mat] ? "ok" : "oops"}}
+    test "self-annihilation (\#$i)" "A - A == 0" [join $bdy \n] ok
+}
+
+for {set i 0} {$i<3} {incr i} {
+    foreach p $primes {
+        set randmat [rmat [expr {3*$i}] $N $p]
+        set bdy {}
+        lappend bdy [list set mat $randmat]
+        for {set k 1} {$k < $p} {incr k} {
+            lappend bdy [list matrix addto mat $randmat 1 $p]
+        }
+        lappend bdy {expr {[matrix iszero $mat] ? "ok" : $mat}}
+        test "self-annihilation-mod-$p (\#$i)" \
+            "A + ... + A == 0 mod $p" [join $bdy \n] ok
+    }
+}
+
+foreach row [unitmatrix $N] {
+    test "matrix iszero" $row [list matrix iszero [list $row]] 0
+}
+
+foreach row [diagmatrix $N -1] {
+    test "matrix iszero" $row [list matrix iszero [list $row]] 0
+}
+
+set m [matrix create $N $N]
+test "matrix iszero" $m [list matrix iszero $m] 1
+
+proc self-lift-test {mat p} {
+    set m2 $mat
+    # Note: according to the spec, "matrix lift" requires
+    # that its input has been prepared by "matrix ortho"
+    matrix ortho $p m2 ker
+    set bdy [subst -nocommands {
+        set mat {$mat}
+        set lft [matrix lift $p {$m2} mat]
+        lappend res [lindex [matrix dimensions [set lft]] 0] 
+        lappend res [matrix iszero [set mat]]
+        set res
+    }] 
+    foreach {rows cols} [matrix dimensions $mat] break
+    test "self-lift-test" "prime $p" $bdy [list $rows 1]
+}
+
+foreach p $primes {
+    for {set i 0} {$i<10} {incr i} {
+        set rmt [rmat $N $N $p]
+        self-lift-test $rmt $p
+    }
+}
+
+# cleanup
+::tcltest::cleanupTests
+return
