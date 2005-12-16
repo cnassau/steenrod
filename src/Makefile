@@ -38,7 +38,7 @@ CFLAGS += -DSTEENROD_VERSION=\"$(STEENROD_VERSION)\"
 CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT 
 #CFLAGS += -fprofile-arcs -ftest-coverage -pg
 #CFLAGS += -DUSE_VERB_ALLOC=1
-#CFLAGS += -msse2 -DUSESSE2
+CFLAGS += -msse2 -DUSESSE2
 
 NOTANGLE = notangle
 NOWEAVE  = noweave
@@ -117,8 +117,8 @@ bigtest: steenrodsh
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 
-adlin.o: adlin.h linalg.h prime.h common.h
-linalg.o: linalg.h prime.h common.h
+adlin.o: adlin.h linalg.h prime.h common.h adlin-sse2.c
+linalg.o: linalg.h prime.h common.h ssedefs.h
 linwrp.o: linwrp.h prime.h common.h linalg.h adlin.h
 tlin.o: steenrod.h momap.h poly.h common.h prime.h tenum.h enum.h linwrp.h
 tlin.o: tlin.h tptr.h tprime.h

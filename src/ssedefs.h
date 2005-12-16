@@ -116,7 +116,7 @@ void add_blocks(__m128i *dst,__m128i *src, int nblocks,
         REDUCTIONBLOCK(p<<2); prime = _mm_srli_epi16(prime,1);
         REDUCTIONBLOCK(p<<1); prime = _mm_srli_epi16(prime,1);
         REDUCTIONBLOCK(p);
-        prime = _mm_slli_epi16(prime,4);
+        prime = _mm_slli_epi16(prime,5);
         *dst = _mm_packs_epi16(srcl,srch);
         PRINTEPI8(*dst); PRINTEPI16(srcl); PRINTEPI16(srch);
         dst++,src++;

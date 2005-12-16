@@ -57,7 +57,7 @@ void vector_copy(vector *v, vector *w) {
 
 void vector_add(vector *dst, vector *src, cint coeff, cint prime) {
 #ifdef USESSE2
-    add_blocks(dst->data,add->data,dst->blocks,coeff,prime);
+    add_blocks(dst->data,src->data,dst->blocks,coeff,prime);
 #else
     int k; BLOCKTYPE *ddat, *sdat;
     for (k=dst->blocks, ddat=dst->data, sdat=src->data; k--; ddat++, sdat++) {
