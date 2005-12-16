@@ -38,12 +38,12 @@ void vector_clear(vector *v) {
 
 #ifdef USESSE2
 #  define COMPAREBLOCKS(x,y) \
-    (_mm_movemask_epi8(_mm_cmpgt_epi8((x),(y))))
+    (0xffff ^ _mm_movemask_epi8(_mm_cmpeq_epi8((x),(y))))
 int COMPAREBLOCKSDBG(__m128i x,__m128i y) {
-    __m128i u = _mm_cmpgt_epi8(x,y);
+    __m128i u = _mm_cmpeq_epi8(x,y);
     int r = _mm_movemask_epi8(u);
     PRINTEPI8(x);PRINTEPI8(y);PRINTEPI8(u); printf("movemask=%x\n",r);
-    return r;
+    return 0xffff ^ r;
 }
 #else
 #  define COMPAREBLOCKS(x,y) ((x) == (y))
