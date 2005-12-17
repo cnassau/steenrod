@@ -55,10 +55,12 @@ void print_epi16(const char *name, __m128i reg) {
 
 #ifdef DEBUGSSE2
 #  define PRINTMSG(text)      { printf(text "\n"); }
+#  define PRINTFMT2(fmt,x)    { printf(fmt "\n",x); }
 #  define PRINTEPI8(varname)  { print_epi8(#varname,varname);  }
 #  define PRINTEPI16(varname) { print_epi16(#varname,varname); }
 #else
 #  define PRINTMSG(text)      { ; }
+#  define PRINTFMT2(fmt,x)    { ; }
 #  define PRINTEPI8(varname)  { ; }
 #  define PRINTEPI16(varname) { ; }
 #endif
@@ -129,24 +131,29 @@ void add_blocks(__m128i *dst,__m128i *src, int nblocks,
 }
 
 static inline 
-void reduce_blocks(__m128i *dt, int numblocks, int prime) {
-    __m128i p16 = _mm_set1_epi8(prime<<4);
-    __m128i p8  = _mm_set1_epi8(prime<<3);
-    __m128i p4  = _mm_set1_epi8(prime<<2);
-    __m128i p2  = _mm_set1_epi8(prime<<1);
-    __m128i p1  = _mm_set1_epi8(prime);
+void reduce_blocks(__m128i *dt, int numblocks, unsigned int prime) {
+    const __m128i zero = _mm_setzero_si128();
+#define DECLAREPSHFT(varname,val) \
+    const __m128i varname = ((val)<128) ? _mm_set1_epi8(val) : zero;
+    DECLAREPSHFT(p16,prime<<4);
+    DECLAREPSHFT(p8,prime<<3);
+    DECLAREPSHFT(p4,prime<<2);
+    DECLAREPSHFT(p2,prime<<1);
+    DECLAREPSHFT(p1,prime);
     for(;numblocks--;) {
         __m128i val = *dt, mask;
-        mask = _mm_cmpgt_epi8(val,p16);
-        val = _mm_sub_epi8(val,_mm_and_si128(mask,p16));
-        mask = _mm_cmpgt_epi8(val,p8);
-        val = _mm_sub_epi8(val,_mm_and_si128(mask,p8));
-        mask = _mm_cmpgt_epi8(val,p4);
-        val = _mm_sub_epi8(val,_mm_and_si128(mask,p4));
-        mask = _mm_cmpgt_epi8(val,p2);
-        val = _mm_sub_epi8(val,_mm_and_si128(mask,p2));
-        mask = _mm_cmpgt_epi8(val,p1);
-        *dt = _mm_sub_epi8(val,_mm_and_si128(mask,p1));
+        PRINTMSG(" ==== new block ====");
+        PRINTEPI8(val);
+#define REDBLOCK(itm)                                         \
+          mask = _mm_cmpgt_epi8(itm,val);                     \
+          val = _mm_sub_epi8(val,_mm_andnot_si128(mask,itm)); 
+        REDBLOCK(p16);
+        REDBLOCK(p8);
+        REDBLOCK(p4);
+        REDBLOCK(p2);
+        REDBLOCK(p1);
+        PRINTEPI8(val);
+        *dt++ = val;
     }
 }
 

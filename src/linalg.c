@@ -46,7 +46,7 @@ int COMPAREBLOCKSDBG(__m128i x,__m128i y) {
     return 0xffff ^ r;
 }
 #else
-#  define COMPAREBLOCKS(x,y) ((x) == (y))
+#  define COMPAREBLOCKS(x,y) ((x) != (y))
 #endif
 
 inline
@@ -57,7 +57,7 @@ int BLOCKSAREZERO(BLOCKTYPE *dat, int numblocks) {
     const BLOCKTYPE zero = 0;
 #endif
     while (numblocks--) 
-        if(COMPAREBLOCKS(*dat++,zero))
+        if (COMPAREBLOCKS(*dat++,zero))
             return 0;
     return 1;
 }
