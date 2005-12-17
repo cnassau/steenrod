@@ -230,19 +230,6 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
     return res;
 }
 
-#if 1
-
-/* reduce ker modulo im; im is assumed to be the result of matrix_ortho,
- * so we can take the obvious pivots for it; the result is returned in ker,
- * which is shrunken automatically. */
-int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
-                    Tcl_Interp *ip, const char *progvar, int pmsk) {
-    return FAILIMPOSSIBLE;
-}
-
-
-#else
-
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im, 
@@ -251,7 +238,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
     cint prime = pi->prime;
     int failure = 1;
     vector v1,v2;
-    cint *aux;
+    BLOCKTYPE *aux;
     matrix m1;
 
     PROGVARINIT ;
@@ -263,36 +250,50 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
     if (0 == im->rows) im->cols = ker->cols;
 
     cols = im->cols;
-    v1.num = v2.num = cols;
+  
+    make_matrix_row(&v1,im,0);
+    make_matrix_row(&v2,im,0);
 
-#if 0
-    ASSERT(im->cols == ker->cols);
-#endif
-
-    spr = im->nomcols; /* sints per row */
+    spr = im->nomcols; /* blocks per row */
 
     for (v1.data=im->data, i=0; i<im->rows; i++, v1.data+=spr) {
-        cint coeff; int pos;
+        int coeff, bmsk=0;
+        __m128i zero = _mm_setzero_si128();
+        
         if ((NULL != progvar) && (0==(i&pmsk))) {
             perc = i; perc /= im->rows;
             perc = 1-perc; perc *= perc; perc = 1-perc;
             PROGVARSET(perc);
         }
-        /* find pivot for this row */
-        for (aux=v1.data, j=cols; j; aux++, j--)
-            if (0 != *aux) break;
-        if (0 == j) {  /* row is zero */ ASSERT(0=="row shouldn't be zero!"); }
 
-        else {
-            pos = aux - v1.data;
-            coeff = pi->inverse[(unsigned) *aux]; 
-            coeff = prime-coeff; coeff %= prime;
+        /* find pivot for this row */
+        for (aux=v1.data, j=v1.blocks; j; aux++, j--) {
+            bmsk = 0xffff ^ _mm_movemask_epi8(_mm_cmpeq_epi8(*aux, zero));
+            if (bmsk) break;
+        }
+
+        if (0 == bmsk) { 
+            /* row is zero */ 
+            ASSERT(0=="row shouldn't be zero!"); 
+        } else {
+            int idx = 0, pos = aux-v1.data, entry;
+
+            // find index of first non-zero entry
+            while (0 == (bmsk & 1)) { idx++; bmsk >>= 1; }
+            entry = extract_entry(*aux,idx) % prime;
+            if (entry<0) entry += prime;
+            coeff = pi->inverse[entry]; 
+            coeff = prime-coeff;
+
             /* reduce vectors in ker in the usual way */
             v2.data = ker->data; aux = v2.data + pos;
-            for (j=0; j<ker->rows; j++, v2.data+=spr,  aux+=spr)
-                if (0 != *aux) {
-                    vector_add(&v2, &v1, CINTMULT(*aux,coeff,prime), prime);
+            for (j=0; j<ker->rows; j++, v2.data+=spr,  aux+=spr) {
+                unsigned val = extract_entry(*aux,idx) % prime; 
+                if (val) {
+                    int ncoeff = CINTMULT(val,coeff,prime);
+                    vector_add(&v2, &v1, ncoeff, prime);
                 }
+            }
         }
     }
 
@@ -301,23 +302,38 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
     PROGVARSET(-1.0); /* -1 to indicate beginning of last phase */
 
     for (v1.data=ker->data, i=0; i<ker->rows; i++, v1.data+=spr) {
-        cint coeff; int pos;
+        int coeff, bmsk=0;
+        __m128i zero = _mm_setzero_si128();
+
         /* find pivot for this row */
-        for (aux=v1.data, j=cols; j; aux++, j--)
-            if (0 != *aux) break;
-        if (0 == j) {
+        for (aux=v1.data, j=v1.blocks; j; aux++, j--) {
+            bmsk = 0xffff ^ _mm_movemask_epi8(_mm_cmpeq_epi8(*aux, zero));
+            if (bmsk) break;
+        }
+
+        if (0 == bmsk) {
             /* row is zero */
         } else {
-            pos = aux - v1.data;
+            int idx = 0, pos = aux-v1.data, entry;
+           
             matrix_collect(&m1, i); /* collect this row */
-            coeff = pi->inverse[(unsigned) *aux]; 
-            coeff = prime-coeff; coeff %= prime;
+
+            // find index of first non-zero entry
+            while (0 == (bmsk & 1)) { idx++; bmsk >>= 1; }
+            entry = extract_entry(*aux,idx) % prime;
+            if (entry<0) entry += prime;
+            coeff = pi->inverse[entry]; 
+            coeff = prime-coeff;
+
             /* reduce other vectors in ker */
             v2.data = v1.data + spr; aux = v2.data + pos;
-            for (j=i+1; j<ker->rows; j++, v2.data+=spr,  aux+=spr)
-                if (0 != *aux) {
-                    vector_add(&v2, &v1, CINTMULT(*aux,coeff,prime), prime);
+            for (j=i+1; j<ker->rows; j++, v2.data+=spr,  aux+=spr) {
+                unsigned val = extract_entry(*aux,idx) % prime; 
+                if (val) {
+                    int ncoeff = CINTMULT(val,coeff,prime);
+                    vector_add(&v2, &v1, ncoeff, prime);
                 }
+            }
         }
     }
 
@@ -330,4 +346,3 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
 
     return SUCCESS;
 }
-#endif
