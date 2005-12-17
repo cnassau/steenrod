@@ -150,9 +150,9 @@ void clipExmo(exmo *ex, exmo *prof) {
     int i;
     ex->ext &= prof->ext;
     for (i=NALG;i--;) {
-        div_t dr = div(ex->dat[i], prof->dat[i]);
-        if (dr.rem < 0) dr.rem += prof->dat[i];
-        ex->dat[i] = dr.rem;
+        div_t dr = div(ex->r.dat[i], prof->r.dat[i]);
+        if (dr.rem < 0) dr.rem += prof->r.dat[i];
+        ex->r.dat[i] = dr.rem;
     }
 }
 
@@ -272,7 +272,7 @@ int enmSetBasics(enumerator *en, primeInfo *pi,
 
     en->profile.ext &= en->algebra.ext;
     for (i=NALG; i--;)
-        en->profile.dat[i] = MIN(en->profile.dat[i], en->algebra.dat[i]);
+        en->profile.r.dat[i] = MIN(en->profile.r.dat[i], en->algebra.r.dat[i]);
 
     return SUCCESS;
 }
@@ -364,13 +364,13 @@ int enmCreateSeqtab(enumerator *en) {
     /* compute effective degrees */
     for (i=NALG;i--;) {
         double aux = pi->reddegs[i];
-        aux *= pro->dat[i];
+        aux *= pro->r.dat[i];
         if ((i>pi->maxpowerXintI) || (aux > BIGVAL) || (-aux > BIGVAL)) {
             /* we choose a very big fantasy value */
             en->effdeg[i] = 0xeffffff;
         } else { 
             en->effdeg[i] = pi->reddegs[i];
-            en->effdeg[i] *= pro->dat[i]; 
+            en->effdeg[i] *= pro->r.dat[i]; 
         }
     }
     
@@ -378,7 +378,7 @@ int enmCreateSeqtab(enumerator *en) {
 
     /* dimtab[0] is the dimension of k[xi_1] (restricted to A//B) */
     for (j=0;j<reddim;j++)
-        if ((j < alg->dat[0]) && ((j % pro->dat[0]) == 0))
+        if ((j < alg->r.dat[0]) && ((j % pro->r.dat[0]) == 0))
             en->dimtab[0][j] = 1;
         else
             en->dimtab[0][j] = 0;
@@ -388,7 +388,7 @@ int enmCreateSeqtab(enumerator *en) {
         for (j=0;j<reddim;j++) {
             int sum=0, d = pi->reddegs[i];
             for (k=j/d;k>=0;k--)
-                if ((k<alg->dat[i]) && ((k % pro->dat[i]) == 0))
+                if ((k<alg->r.dat[i]) && ((k % pro->r.dat[i]) == 0))
                     sum += en->dimtab[i-1][j-k*d];
             en->dimtab[i][j] = sum;
         }
@@ -468,10 +468,10 @@ int algSeqnoWithRDegree(enumerator *en, exmo *ex, int deg) {
     if (ENLOG) printf("algSeqnoWithRDegree deg = %d, startk = %d\n", deg, startk);
     for (k=startk; k--;) {
         int prd, maxdeg, actdeg, exo;
-        prd = MIN(en->profile.dat[k], en->algebra.dat[k]); 
-        maxdeg = (en->algebra.dat[k] - prd) * en->pi->reddegs[k];
-        exo = en->ispos ? ex->dat[k] : (-1 - ex->dat[k]); 
-        exo /= en->profile.dat[k]; exo *= en->profile.dat[k];
+        prd = MIN(en->profile.r.dat[k], en->algebra.r.dat[k]); 
+        maxdeg = (en->algebra.r.dat[k] - prd) * en->pi->reddegs[k];
+        exo = en->ispos ? ex->r.dat[k] : (-1 - ex->r.dat[k]); 
+        exo /= en->profile.r.dat[k]; exo *= en->profile.r.dat[k];
         actdeg = exo * en->pi->reddegs[k];
         if (deg < maxdeg) maxdeg = deg;
         if ((deg < actdeg) 
@@ -553,14 +553,14 @@ int firstRedmonAlg(enumerator *en, int rdeg) {
     for (i=NALG;i--;) {
         int nval = rdeg / en->pi->reddegs[i];
         /* restrict redpows to the algebra */
-        if (nval > en->algebra.dat[i]-1) 
-            nval = en->algebra.dat[i]-1;
+        if (nval > en->algebra.r.dat[i]-1) 
+            nval = en->algebra.r.dat[i]-1;
         /* remove part forbidden by profile */
-        nval /= en->profile.dat[i]; 
-        nval *= en->profile.dat[i];
-        ex->dat[i] = nval;
-        en->theex.dat[i] = nval + en->signature.dat[i];
-        if (!en->ispos) en->theex.dat[i] = -1 - en->theex.dat[i];
+        nval /= en->profile.r.dat[i]; 
+        nval *= en->profile.r.dat[i];
+        ex->r.dat[i] = nval;
+        en->theex.r.dat[i] = nval + en->signature.r.dat[i];
+        if (!en->ispos) en->theex.r.dat[i] = -1 - en->theex.r.dat[i];
         rdeg -= nval * en->pi->reddegs[i];
     }
     en->errdeg = rdeg;
@@ -573,27 +573,27 @@ int nextRedmonAlg(enumerator *en) {
     int rem, i;
     do {
         int nval;
-        rem = en->errdeg + ex->dat[0];
-        for (i=1;0==ex->dat[i];)
+        rem = en->errdeg + ex->r.dat[0];
+        for (i=1;0==ex->r.dat[i];)
             if (++i >= NALG) return 0;
-        nval = ex->dat[i] - 1;
-        nval /= en->profile.dat[i]; 
-        nval *= en->profile.dat[i];
-        rem += (ex->dat[i] - nval) * en->pi->reddegs[i];
-        ex->dat[i] = nval;
-        en->theex.dat[i] = nval + en->signature.dat[i];
-        if (!en->ispos) en->theex.dat[i] = -1 - en->theex.dat[i];
+        nval = ex->r.dat[i] - 1;
+        nval /= en->profile.r.dat[i]; 
+        nval *= en->profile.r.dat[i];
+        rem += (ex->r.dat[i] - nval) * en->pi->reddegs[i];
+        ex->r.dat[i] = nval;
+        en->theex.r.dat[i] = nval + en->signature.r.dat[i];
+        if (!en->ispos) en->theex.r.dat[i] = -1 - en->theex.r.dat[i];
         for (;i--;) {
             nval = rem / en->pi->reddegs[i];
             /* restrict redpows to the algebra */
-            if (nval>en->algebra.dat[i]-1) 
-                nval=en->algebra.dat[i]-1;
+            if (nval>en->algebra.r.dat[i]-1) 
+                nval=en->algebra.r.dat[i]-1;
             /* remove part forbidden by profile */
-            nval /= en->profile.dat[i]; 
-            nval *= en->profile.dat[i];
-            ex->dat[i] = nval;
-            en->theex.dat[i] = nval + en->signature.dat[i];
-            if (!en->ispos) en->theex.dat[i] = -1 - en->theex.dat[i];
+            nval /= en->profile.r.dat[i]; 
+            nval *= en->profile.r.dat[i];
+            ex->r.dat[i] = nval;
+            en->theex.r.dat[i] = nval + en->signature.r.dat[i];
+            if (!en->ispos) en->theex.r.dat[i] = -1 - en->theex.r.dat[i];
              rem -= nval * en->pi->reddegs[i];
         }
         en->errdeg = rem;
@@ -643,18 +643,18 @@ int nextSignature(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
     remi = maxi - *sideg; /* remaining degree */
     for (i=0;i<NALG;i++) {
         int coldeg = tpmo * en->pi->reddegs[i];
-        int nval = sig->dat[i] + 1;
+        int nval = sig->r.dat[i] + 1;
         int aux;
         /* see if we can advance this entry */
         if ((coldeg <= remi) 
-            && (nval < en->algebra.dat[i]) 
-            && (nval < en->profile.dat[i])) {
-            sig->dat[i]++; *sideg += coldeg; 
+            && (nval < en->algebra.r.dat[i]) 
+            && (nval < en->profile.r.dat[i])) {
+            sig->r.dat[i]++; *sideg += coldeg; 
             return 1;
         }   
         /* reset entry */
         aux = coldeg * (--nval);
-        *sideg -= aux; remi += aux; sig->dat[i] = 0;
+        *sideg -= aux; remi += aux; sig->r.dat[i] = 0;
     }
     /* reduced part has been reset; try to advance exterior component */
     newext = sig->ext;

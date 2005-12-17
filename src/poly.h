@@ -26,7 +26,9 @@
 typedef struct {
     int coeff;
     int ext;
-    int dat[NALG];
+    union {
+        int dat[NALG];
+    } r;
     int gen;
 } exmo;
 

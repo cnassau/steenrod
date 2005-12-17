@@ -124,10 +124,10 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     for (i=0;i<objc2;i++) {
         if (TCL_OK != Tcl_GetIntFromObj(ip,objv2[i],&aux)) 
             FREEEANDRETERR;
-        e->dat[i] = aux;
+        e->r.dat[i] = aux;
     }
     pad = (aux < 0) ? -1 : 0;
-    for (;i<NALG;) e->dat[i++] = pad;
+    for (;i<NALG;) e->r.dat[i++] = pad;
 
     TRYFREEOLDREP(objPtr);
     PTR1(objPtr) = e;
@@ -143,7 +143,7 @@ Tcl_Obj *Tcl_NewListFromExmo(Tcl_Obj *objPtr) {
     Tcl_Obj *res, *(objv[4]), **arr; 
     int i, len = exmoGetRedLen(e);
     arr = (Tcl_Obj **) ckalloc(sizeof(Tcl_Obj *)*len);
-    for (i=0;i<len;i++) arr[i] = Tcl_NewIntObj(e->dat[i]);
+    for (i=0;i<len;i++) arr[i] = Tcl_NewIntObj(e->r.dat[i]);
     objv[0] = Tcl_NewIntObj(e->coeff);
     objv[1] = Tcl_NewIntObj(e->ext);
     objv[3] = Tcl_NewIntObj(e->gen);
@@ -1106,7 +1106,7 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
         if (index >= NALG) {
         result = exmoGetPad(exmoFromTclObj(objv[2]));
         } else {
-        result = exmoFromTclObj(objv[2])->dat[index];
+        result = exmoFromTclObj(objv[2])->r.dat[index];
         }
         
         Tcl_SetObjResult(ip, Tcl_NewIntObj(result));

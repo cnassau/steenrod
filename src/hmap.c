@@ -757,7 +757,7 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
     if (current->gtype == RED) {
         BINT sum, newcoeff;
 
-        sum = current->source.dat[current->idx] + current->value;
+        sum = current->source.r.dat[current->idx] + current->value;
 
         if (sum != (sum & current->goodbits)) {
             next->pardat.coeff = 0;
@@ -778,13 +778,13 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
         copyTensor(&(next->pardat),&(current->pardat),hm->numMono,hm->numInt);
         copyExmo(&(next->source),&(current->source));
 
-        next->source.dat[current->idx] = sum;
+        next->source.r.dat[current->idx] = sum;
         next->pardat.coeff = newcoeff;
 
         multTensor(&(next->pardat),&(current->sumdat),
                    current->value,hm->numMono,hm->numInt,hm->modval);
 
-        next->source.dat[current->idx] = sum;
+        next->source.r.dat[current->idx] = sum;
         next->pardat.coeff = newcoeff;
 
     } else {

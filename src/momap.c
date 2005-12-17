@@ -32,7 +32,7 @@ unsigned int momaHashProc(Tcl_HashTable *table, void *key) {
     
     res = ex->gen + 17*(ex->ext);
     for (cnt=0; cnt<NALG; cnt++) 
-    res += (ex->dat[cnt]) << (3*cnt);
+    res += (ex->r.dat[cnt]) << (3*cnt);
     
     return res;
 }

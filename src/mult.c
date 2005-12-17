@@ -83,17 +83,17 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
         /* now check reduced part */
         for (i=NALG;c && i--;) {
             xint aux, aux2;
-            aux  = sfx->dat[i] + ma->sum[0][i+1];
+            aux  = sfx->r.dat[i] + ma->sum[0][i+1];
             if (NULL != ma->profile)
-                if (0 != (aux % (ma->profile->dat[i]))) {
+                if (0 != (aux % (ma->profile->r.dat[i]))) {
                     c = 0; 
                     break;
                 }
             aux2 = ma->msk[1][i];
-            if ((0 > (res.dat[i] = aux + aux2)) && ma->sfIsPos) {
+            if ((0 > (res.r.dat[i] = aux + aux2)) && ma->sfIsPos) {
                 c = 0;
             } else {
-                c = XINTMULT(c, binomp(pi, res.dat[i], aux), prime);
+                c = XINTMULT(c, binomp(pi, res.r.dat[i], aux), prime);
             }
         }
         if (0 == c) continue;
@@ -121,15 +121,15 @@ void stdFetchFuncFF(struct multArgs *ma, int coeff) {
         /* check reduced component */
         for (i=NALG;c && i--;) {
             xint aux, aux2;
-            aux  = ffx->dat[i] + ma->sum[i+1][0];
+            aux  = ffx->r.dat[i] + ma->sum[i+1][0];
             aux2 = ma->msk[i][1];
             if (NULL != ma->profile)
-                if (0 != ((aux2 + ma->sum[i+1][0]) % ma->profile->dat[i])) {
+                if (0 != ((aux2 + ma->sum[i+1][0]) % ma->profile->r.dat[i])) {
                     c = 0;
                     break;
                 }
-            res.dat[i] = aux + aux2;
-            c = XINTMULT(c, binomp(pi, res.dat[i], aux), prime);
+            res.r.dat[i] = aux + aux2;
+            c = XINTMULT(c, binomp(pi, res.r.dat[i], aux), prime);
         }
         if (0 == c) continue;
         res.coeff = XINTMULT(c, ffx->coeff, prime);
@@ -175,7 +175,7 @@ void initxfPA(multArgs *MA) {
                 xf->quant = 1;
                 xf->estat = 1;
             } else {
-                xf->quant = MA->profile->dat[i+j-1];
+                xf->quant = MA->profile->r.dat[i+j-1];
                 xf->estat = 
                     (0 == (MA->profile->ext & (1 << (i+j-1)))) ? 1 : 0;  
             }
@@ -198,7 +198,7 @@ void initxfAP(multArgs *MA) {
                 xf->quant = 1;
                 xf->estat = 1;
             } else {
-                xf->quant = MA->profile->dat[i+j-1];
+                xf->quant = MA->profile->r.dat[i+j-1];
                 xf->estat = 
                     (0 == (MA->profile->ext & (1 << (i+j-1)))) ? 1 : 0;  
             }
@@ -346,7 +346,7 @@ void workPAchain(multArgs *ma) {
         memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
         ma->ffid = m->gen;
         /* initialize oldmsk, sum, res */
-        for (i=NALG;i--;) { ma->sum[0][i+1]=0; ma->msk[i+1][0]=m->dat[i]; }
+        for (i=NALG;i--;) { ma->sum[0][i+1]=0; ma->msk[i+1][0]=m->r.dat[i]; }
         inirow = 1 + ma->ffMaxLength;
         ma->emsk[inirow + 1] = m->ext; ma->esum[inirow + 1] = 0;
         handlePArow(ma, inirow, m->coeff);
@@ -361,7 +361,7 @@ void workAPchain(multArgs *ma) {
         memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
         ma->sfid = m->gen;
         /* initialize oldmsk, sum, res*/
-        for (i=NALG;i--;) { ma->sum[i+1][0]=0; ma->msk[0][i+1]=m->dat[i]; }
+        for (i=NALG;i--;) { ma->sum[i+1][0]=0; ma->msk[0][i+1]=m->r.dat[i]; }
         inicol = 1 + ma->sfMaxLength;
         ma->emsk[1 + inicol] = 0; ma->esum[0] = m->ext;
         handleAPcol(ma, inicol, m->coeff);

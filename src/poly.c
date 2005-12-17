@@ -28,7 +28,7 @@
 int exmoGetRedLen(exmo *e) {
     int pad = exmoGetPad(e), j;
     for (j=NALG;j--;) 
-        if (e->dat[j] != pad) 
+        if (e->r.dat[j] != pad) 
             return (j+1);
     return 0;
 }
@@ -40,13 +40,13 @@ int exmoGetLen(exmo *e) {
     if ((ex>=0) && (pad<0)) return NALG; 
     for (res=0, ex=e->ext; pad != ex; res++) ex >>= 1; 
     for (j=res;j<NALG;j++) 
-        if (e->dat[j] != pad) 
+        if (e->r.dat[j] != pad) 
             res = j+1;
     return res;
 }
 
 int exmoGetPad(exmo *e) {
-    return (e->dat[NALG-1] < 0) ? -1 : 0;
+    return (e->r.dat[NALG-1] < 0) ? -1 : 0;
 }
 
 void copyExmo(exmo *dest, const exmo *src) {
@@ -66,7 +66,7 @@ void shiftExmo2(exmo *e, const exmo *s, int scale, int flags) {
             e->coeff = 0; return;  /* square of exterior part is zero */
         }
         for (i=NALG;i--;) 
-            e->dat[i] += s->dat[i] + 1;
+            e->r.dat[i] += s->r.dat[i] + 1;
         if (0 != (flags & ADJUSTSIGNS)) {
             if (0 != (ee & se)) e->coeff = 0;
             if (0 != (1 & SIGNFUNC(ee,se))) e->coeff = - e->coeff;
@@ -77,7 +77,7 @@ void shiftExmo2(exmo *e, const exmo *s, int scale, int flags) {
             e->coeff = 0; return;  /* square of exterior part is zero */
         }
         for (i=NALG;i--;) 
-            e->dat[i] += s->dat[i] * scale;
+            e->r.dat[i] += s->r.dat[i] * scale;
         if (0 != (flags & ADJUSTSIGNS)) {
             if (0 != (e->ext & s->ext)) e->coeff = 0;
             if (0 != (1 & SIGNFUNC(e->ext,s->ext))) e->coeff = - e->coeff;
@@ -90,13 +90,13 @@ void shiftExmo(exmo *e, const exmo *s, int flags) { shiftExmo2(e,s,1,flags); }
 
 void reflectExmo(exmo *e) {
     int i;
-    for (i=NALG;i--;) e->dat[i] = -1 - e->dat[i];
+    for (i=NALG;i--;) e->r.dat[i] = -1 - e->r.dat[i];
     e->ext = -1 - e->ext;
 }
 
 void negateExmo(exmo *e) {
     int i;
-    for (i=NALG;i--;) e->dat[i] = - e->dat[i];
+    for (i=NALG;i--;) e->r.dat[i] = - e->r.dat[i];
 }
 
 #define COMPRET(x,y) if (0 != (diff = ((x)-(y)))) return diff;
@@ -107,7 +107,7 @@ int compareExmo(const void *aa, const void *bb) {
     COMPRET(a->gen,b->gen);
     COMPRET(a->ext,b->ext);
     for (i=0;i<NALG;i++)
-        COMPRET(a->dat[i],b->dat[i]);
+        COMPRET(a->r.dat[i],b->r.dat[i]);
     return 0;
 }
 
@@ -115,7 +115,7 @@ int isposExmo(const exmo *e) {
     int i;
     if (e->ext < 0) return 0;
     for (i=0;i<NALG;i++)
-        if (e->dat[i] < 0) 
+        if (e->r.dat[i] < 0) 
             return 0;
     return 1;
 }
@@ -124,7 +124,7 @@ int isnegExmo(const exmo *e) {
     int i;
     if (e->ext >= 0) return 0;
     for (i=0;i<NALG;i++)
-        if (e->dat[i] >= 0) 
+        if (e->r.dat[i] >= 0) 
             return 0;
     return 1;
 }
@@ -132,29 +132,29 @@ int isnegExmo(const exmo *e) {
 void exmoSetMaxAlg(primeInfo *pi, exmo *dst) {
     int i;
     dst->ext = -1;
-    for (i=0;i<NALG;i++) dst->dat[i] = pi->maxpowerXint;
+    for (i=0;i<NALG;i++) dst->r.dat[i] = pi->maxpowerXint;
 }
 
 void exmoSetMinAlg(primeInfo *pi, exmo *dst) {
     int i;
     dst->ext = 0;
-    for (i=0;i<NALG;i++) dst->dat[i] = 1;
+    for (i=0;i<NALG;i++) dst->r.dat[i] = 1;
 }
 
 void copyExpExmo(primeInfo *pi, exmo *dst, const exmo *src) {
     int i;
     dst->ext = src->ext;
     for (i=0;i<NALG;i++) {
-        int log = src->dat[i];
-        dst->dat[i] = (log < pi->maxpowerXintI) ? 
-            ((log>=0) ? pi->primpows[src->dat[i]] : 1) :  pi->maxpowerXint;
+        int log = src->r.dat[i];
+        dst->r.dat[i] = (log < pi->maxpowerXintI) ? 
+            ((log>=0) ? pi->primpows[src->r.dat[i]] : 1) :  pi->maxpowerXint;
     }
 }
 
 int exmoRdeg(primeInfo *pi, const exmo *ex) {
     int res, i;
     for (res=i=0; i<NALG; i++) {
-        res += ex->dat[i] * pi->reddegs[i];
+        res += ex->r.dat[i] * pi->reddegs[i];
     } 
     return res;
 }
@@ -170,7 +170,7 @@ int exmoIsAbove(const exmo *a, const exmo *b) {
     int i;
     if (b->ext != (b->ext & a->ext)) return 0;
     for (i=0;i<NALG;i++)
-        if (a->dat[i] < b->dat[i])
+        if (a->r.dat[i] < b->r.dat[i])
             return 0;
     return 1;
 }
@@ -179,7 +179,7 @@ int exmoIsBelow(const exmo *a, const exmo *b) {
     int i;
     if (a->ext != (b->ext & a->ext)) return 0;
     for (i=0;i<NALG;i++)
-        if (a->dat[i] > b->dat[i])
+        if (a->r.dat[i] > b->r.dat[i])
             return 0;
     return 1;
 }
