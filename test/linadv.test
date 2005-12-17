@@ -23,6 +23,7 @@ namespace import steenrod::*
 # the list of primes that we test. primes >= 29
 # are too big for or our one-byte enty restriction.  
 set primes {2 3 5 7 11 13 17 23}
+#set primes 13
 
 # default size for our matrix tests. note that 
 # in the sse version of the library the data
@@ -42,6 +43,7 @@ proc ortho-rank-test {prime cnt inmat rank} {
     set kerdim [expr {$rows - $rank}]
     lappend bdy [list set mat $inmat]
     lappend bdy "matrix ortho $prime mat ker"
+    #lappend bdy {puts mat=$mat;puts ker=$ker}
     lappend bdy {set res {}}
     lappend bdy {lappend res [lindex [matrix dimensions $mat] 0]}
     lappend bdy {lappend res [lindex [matrix dimensions $ker] 0]}
@@ -83,8 +85,6 @@ proc diagmatrix {size val} {
 
 proc unitmatrix size {diagmatrix $size 1}
 
-if 0 {
-
 foreach p $primes {
     set idmat [unitmatrix $N]
     for {set i 0} {$i<$N} {incr i} {
@@ -99,7 +99,6 @@ foreach p $primes {
     }
 }
 
-}
 
 for {set i 0} {$i<10} {incr i} {
     set randmat [rmat $N $N 100]
@@ -157,6 +156,31 @@ foreach p $primes {
         self-lift-test $rmt $p
     }
 }
+
+proc self-quot-test {mat p} {
+    set m2 $mat
+    # Note: according to the spec, "matrix quot" requires
+    # that its input has been prepared by "matrix ortho"
+    matrix ortho $p m2 ker
+    set bdy [subst -nocommands {
+        set mat {$m2}
+        matrix quot $p mat {$m2}
+        lappend res [lindex [matrix dimensions [set mat]] 0]
+        set mat {$mat}
+        matrix quot $p mat {$m2}
+        lappend res [lindex [matrix dimensions [set mat]] 0] 
+    }] 
+    test "self-quot-test" "prime $p" $bdy [list 0 0]
+}
+
+foreach p $primes {
+    for {set i 0} {$i<10} {incr i} {
+        set rmt [rmat $N $N $p]
+        self-quot-test $rmt $p
+    }
+}
+
+
 
 # cleanup
 ::tcltest::cleanupTests
