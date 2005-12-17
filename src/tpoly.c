@@ -109,10 +109,12 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         RETERR("malformed monomial: wrong number of entries");
     if (NULL == (e = (exmo *) mallox(sizeof(exmo))))
         RETERR("out of memory");
-    if (TCL_OK != Tcl_GetIntFromObj(ip,objv[0],&(e->coeff))) 
+    if (TCL_OK != Tcl_GetIntFromObj(ip,objv[0],&aux)) 
         FREEEANDRETERR;
-    if (TCL_OK != Tcl_GetIntFromObj(ip,objv[1],&(e->ext))) 
+    e->coeff = aux;
+    if (TCL_OK != Tcl_GetIntFromObj(ip,objv[1],&aux)) 
         FREEEANDRETERR;
+    e->ext = aux;
     if (TCL_OK != Tcl_GetIntFromObj(ip,objv[3],&(e->gen))) 
         FREEEANDRETERR;
     if (TCL_OK != Tcl_ListObjGetElements(ip, objv[2], &objc2, &objv2))
@@ -963,6 +965,11 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
         case COMPARE:
             EXPECTARGS(2, 2, 2, "<polynomial> <polynomial>");
+
+            if (objv[2] == objv[3]) {
+                Tcl_SetObjResult(ip, Tcl_NewIntObj(0));
+                return TCL_OK;
+            }
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
                 return TCL_ERROR;

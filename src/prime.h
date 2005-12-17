@@ -16,7 +16,11 @@
 
 #include "common.h"
 
-#define NALG 9
+#ifdef USESSE2
+#  define NALG 8
+#else
+#  define NALG 9
+#endif
 
 #include <stdlib.h>
 #define cmalloc  malloc

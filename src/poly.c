@@ -59,14 +59,24 @@ void clearExmo(exmo *e) {
 }
 
 void shiftExmo2(exmo *e, const exmo *s, int scale, int flags) {
-    int i;
     if (0 != (flags & USENEGSHIFT)) {
         int ee = -1 - e->ext, se = -1 - s->ext;
         if ((scale>1) && (se!=0)) {
             e->coeff = 0; return;  /* square of exterior part is zero */
         }
-        for (i=NALG;i--;) 
-            e->r.dat[i] += s->r.dat[i] + 1;
+#ifdef USESSE2
+        {
+            const __m128i one = _mm_set1_epi16(1);
+            __m128i aux = _mm_add_epi16(e->r.ssedat,s->r.ssedat);
+            e->r.ssedat = _mm_add_epi16(aux,one);
+        }
+#else
+        {
+            int i;
+            for (i=NALG;i--;) 
+                e->r.dat[i] += s->r.dat[i] + 1;
+        }
+#endif
         if (0 != (flags & ADJUSTSIGNS)) {
             if (0 != (ee & se)) e->coeff = 0;
             if (0 != (1 & SIGNFUNC(ee,se))) e->coeff = - e->coeff;
@@ -76,8 +86,18 @@ void shiftExmo2(exmo *e, const exmo *s, int scale, int flags) {
         if ((scale>1) && (s->ext!=0)) {
             e->coeff = 0; return;  /* square of exterior part is zero */
         }
-        for (i=NALG;i--;) 
-            e->r.dat[i] += s->r.dat[i] * scale;
+#ifdef USESSE2
+        {
+            __m128i aux = _mm_mullo_epi16(s->r.ssedat,_mm_set1_epi16(scale));
+            e->r.ssedat = _mm_add_epi16(e->r.ssedat,aux);
+        }
+#else
+        {
+            int i;
+            for (i=NALG;i--;) 
+                e->r.dat[i] += s->r.dat[i] * scale;
+        }
+#endif
         if (0 != (flags & ADJUSTSIGNS)) {
             if (0 != (e->ext & s->ext)) e->coeff = 0;
             if (0 != (1 & SIGNFUNC(e->ext,s->ext))) e->coeff = - e->coeff;
@@ -422,6 +442,7 @@ int stdRemove(void *self, int idx) {
 int stdCompare(void *pol1, void *pol2, int *res, int flags) {
     stp *s1 = (stp *) pol1;
     stp *s2 = (stp *) pol2;
+    int i;
     LOGSTD("Compare");
     if (0 == (flags & PLF_ALLOWMODIFY)) 
         return FAILIMPOSSIBLE;
@@ -431,7 +452,21 @@ int stdCompare(void *pol1, void *pol2, int *res, int flags) {
         *res = s1->num - s2->num;
         return SUCCESS;
     }
-    *res = memcmp(s1->dat,s2->dat,sizeof(exmo) * s1->num);
+    /* we cannot just use memcmp here because there might be undefined 
+     * bytes at the end of our exmo structures, due to alignment issues */
+    for (i=0;i<s1->num;i++) {
+        int diff = compareExmo(&(s1->dat[i]),&(s2->dat[i]));
+        if (diff) {
+            *res = diff;
+            return SUCCESS;
+        }
+        diff = s1->dat[i].coeff - s2->dat[i].coeff;
+        if (diff) {
+            *res = diff;
+            return SUCCESS;
+        }        
+    }
+    *res = 0;
     return SUCCESS;
 }
 
@@ -446,7 +481,7 @@ void stdReflect(void *self) {
 void stdShift(void *self, const exmo *ex, int flags) {
     stp *s = (stp *) self;
     int i;
-    LOGSTD("Reflect");
+    LOGSTD("Shift");
     for (i=0;i<s->num;i++) 
         shiftExmo(&(s->dat[i]), ex, flags);
 }

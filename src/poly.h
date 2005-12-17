@@ -24,10 +24,20 @@
  **/
 
 typedef struct {
+#ifdef USESSE2  /* using shorts here might improve memory usage */
+    short coeff;
+    short ext;
+#else
     int coeff;
     int ext;
+#endif
     union {
+#ifdef USESSE2
+        short dat[NALG]; // (assuming this has 16 bits)
+        __m128i ssedat;
+#else
         int dat[NALG];
+#endif
     } r;
     int gen;
 } exmo;
