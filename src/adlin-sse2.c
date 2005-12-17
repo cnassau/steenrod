@@ -141,18 +141,16 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 
     PROGVARINIT ;
 
-    printf("lift prime = %d\n",pi->prime);
-
     un = matrix_create(inp->rows, inp->rows);
     if (NULL == un) return NULL;
     matrix_unit(un);
 
     res = matrix_create(lft->rows, inp->rows);
     if (NULL == res) {
-        return NULL;
         matrix_destroy(un);
+        return NULL;
     }
-    matrix_clear(res); res.rows = 0;
+    matrix_clear(res);
 
     cols = inp->cols;
 
@@ -185,7 +183,6 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
         } else {
             int idx = 0, entry, pos = aux - v1.data;
             unsigned int negcoeff;
-            matrix_collect(res, i); /* collect image vector */
 
             // find index of first non-zero entry
             while (0 == (bmsk & 1)) { idx++; bmsk >>= 1; }
@@ -194,8 +191,6 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
             negcoeff = coeff = pi->inverse[entry]; 
             coeff = prime-coeff;
 
-            printf("entry=%d, coeff=%d, negcoeff=%d\n",entry,coeff,negcoeff);
-
             /* go through all other rows and normalize */
             v2.data = v1.data + spr; aux += spr;
             v3.data = un->data + i * uspr;
@@ -203,7 +198,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
             for (j=i+1; j<inp->rows; 
                  j++, v2.data+=spr, v4.data+=uspr, aux+=spr) {
                 unsigned val = extract_entry(*aux,idx) % prime; 
-                if (0&&val) {
+                if (val) {
                     vector_add(&v4, &v3, CINTMULT(val,coeff,prime), prime);
                     vector_add(&v2, &v1, CINTMULT(val,coeff,prime), prime);
                 }
@@ -212,7 +207,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
             v2.data = lft->data; v4.data = res->data; aux = v2.data + pos;
             for (j=0; j<lft->rows; j++, v2.data+=spr, v4.data+=uspr, aux+=spr) {
                 unsigned val = extract_entry(*aux,idx) % prime; 
-                if (0&&val) {
+                if (val) {
                     vector_add(&v4, &v3, CINTMULT(val,negcoeff,prime), prime);
                     vector_add(&v2, &v1, CINTMULT(val,coeff,prime), prime);
                 }
@@ -222,8 +217,6 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 
     failure = 0;
  done:
-
-    printf("DONE\n");
 
     PROGVARDONE ;
 
