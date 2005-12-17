@@ -251,9 +251,10 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
         /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
             if (0 != *aux) break;
-        if (0 == j) {  /* row is zero */ ASSERT(0=="row shouldn't be zero!"); }
-
-        else {
+        
+        if (0 == j) {  
+            /* row is zero */ 
+        } else {
             pos = aux - v1.data;
             coeff = pi->inverse[(unsigned) *aux]; 
             coeff = prime-coeff; coeff %= prime;

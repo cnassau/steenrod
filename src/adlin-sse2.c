@@ -274,7 +274,6 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
 
         if (0 == bmsk) { 
             /* row is zero */ 
-            ASSERT(0=="row shouldn't be zero!"); 
         } else {
             int idx = 0, pos = aux-v1.data, entry;
 
@@ -341,6 +340,8 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
 
     failure = 0;
  done:; 
+
+    if (failure) return TCL_ERROR;
 
     if (TCL_OK != matrix_resize(ker, m1.rows)) return TCL_ERROR;
 
