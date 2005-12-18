@@ -117,7 +117,7 @@ bigtest: steenrodsh
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 
-adlin.o: adlin.h linalg.h prime.h common.h adlin-sse2.c
+adlin.o: adlin.h linalg.h prime.h common.h adlin-sse2.c ssedefs.h
 linalg.o: linalg.h prime.h common.h ssedefs.h
 linwrp.o: linwrp.h prime.h common.h linalg.h adlin.h
 tlin.o: steenrod.h momap.h poly.h common.h prime.h tenum.h enum.h linwrp.h
@@ -127,7 +127,7 @@ tprime.o: tprime.h prime.h common.h tptr.h
 tptr.o: tptr.h common.h
 poly.o: poly.h common.h prime.h mult.h
 tpoly.o: tptr.h common.h tpoly.h poly.h prime.h tprime.h mult.h
-mult.o: mult.h common.h prime.h poly.h
+mult.o: mult.h common.h prime.h poly.h ssedefs.h linalg.h
 enum.o: enum.h poly.h common.h prime.h
 tenum.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h linwrp.h
 tenum.o: tenum.h enum.h

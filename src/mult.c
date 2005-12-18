@@ -16,6 +16,10 @@
 #include "mult.h"
 #include <string.h>
 
+#ifdef USESSE2
+#  include "ssedefs.h"
+#endif
+
 inline xint XINTMULT(xint a, xint b, xint prime) { 
     int aa = a, bb = b; 
     xint res = (xint) ((aa * bb) % prime); 
@@ -63,23 +67,21 @@ void zeroXdat(Xfield *X) { X->val = 0; *(X->newmsk) = *(X->oldmsk); }
  *     and the current multiplication matrix
  *  3) if yes then invoke the stdSummandFunc for this summand. */
 
+#ifndef USESSE2
+
 void stdFetchFuncSF(struct multArgs *ma, int coeff) {
     const exmo *sfx; int idx, i; cint c; 
-    int prime = ma->pi->prime; 
-    primeInfo *pi = ma->pi;
-    int proext = (NULL == ma->profile) ? 0 : ma->profile->ext;
+    const int prime = ma->pi->prime; 
+    const primeInfo * const pi = ma->pi;
+    const int proext = (NULL == ma->profile) ? 0 : ma->profile->ext;
     for (idx = 0; SUCCESS == (ma->getExmoSF)(ma,SECOND_FACTOR,&sfx,idx); idx++) {
-        exmo res; int aux;
+        exmo res; int hlp1;
         c = coeff;
         /* first check exterior part */
         if (ma->esum[1] != (sfx->ext & ma->esum[1])) continue;
-        aux = (sfx->ext ^ ma->esum[1]);
-        if (0 != (aux & proext)) continue; 
-        if (0 != (aux & ma->emsk[1])) continue;
-        res.ext = aux | ma->emsk[1];
-        if (0 != (1 & (SIGNFUNC(ma->emsk[1], sfx->ext ^ ma->esum[1])
-                       + SIGNFUNC(ma->esum[1], sfx->ext ^ ma->esum[1]))))
-            c = prime - c;
+        hlp1 = (sfx->ext ^ ma->esum[1]);
+        if (0 != (hlp1 & proext)) continue; 
+        if (0 != (hlp1 & ma->emsk[1])) continue;
         /* now check reduced part */
         for (i=NALG;c && i--;) {
             xint aux, aux2;
@@ -97,12 +99,149 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
             }
         }
         if (0 == c) continue;
+        res.ext = hlp1 | ma->emsk[1];
+        if (0 != (1 & (SIGNFUNC(ma->emsk[1], hlp1)
+                       + SIGNFUNC(ma->esum[1], hlp1))))
+            c = prime - c;
         res.coeff = XINTMULT(c, sfx->coeff, prime);
         res.gen   = sfx->gen; /* should this be done in the callback function ? */
         /* invoke callback */
         (ma->stdSummandFunc)(ma, &res);
     }
 }
+
+#else
+
+/* here comes the sse2 variant */
+
+short inv2(short x) {
+    short res = 1, fac = 1-x, prod = fac;
+    while (prod) {
+        res += prod; prod *= fac;
+    }
+    return res;
+}
+
+void stdFetchFuncSF(struct multArgs *ma, int coeff) {
+    const exmo *sfx; int idx; cint c; 
+    const int prime = ma->pi->prime; 
+    const primeInfo * const pi = ma->pi;
+    const int proext = (NULL == ma->profile) ? 0 : ma->profile->ext;
+
+    const __m128i masum = _mm_setr_epi16(ma->sum[0][1],
+                                        ma->sum[0][2],
+                                        ma->sum[0][3],
+                                        ma->sum[0][4],
+                                        ma->sum[0][5],
+                                        ma->sum[0][6],
+                                        ma->sum[0][7],
+                                        ma->sum[0][8]); 
+
+    const __m128i mamsk = _mm_setr_epi16(ma->msk[1][0],
+                                        ma->msk[1][1],
+                                        ma->msk[1][2],
+                                        ma->msk[1][3],
+                                        ma->msk[1][4],
+                                        ma->msk[1][5],
+                                        ma->msk[1][6],
+                                        ma->msk[1][7]);
+
+    const __m128i zero = _mm_setzero_si128();
+
+    const __m128i prfmsk = (prime & 1) ? 
+        ( /* prime is odd => use 2-adic inverses */
+            (NULL != ma->profile) ? 
+            _mm_setr_epi16(inv2(ma->profile->r.dat[0]),
+                          inv2(ma->profile->r.dat[1]),
+                          inv2(ma->profile->r.dat[2]),
+                          inv2(ma->profile->r.dat[3]),
+                          inv2(ma->profile->r.dat[4]),
+                          inv2(ma->profile->r.dat[5]),
+                          inv2(ma->profile->r.dat[6]),
+                          inv2(ma->profile->r.dat[7])) :
+            _mm_set1_epi16(1) ) :
+        ( /* prime = 2 */
+            (NULL != ma->profile) ? 
+            _mm_setr_epi16(ma->profile->r.dat[0]-1,
+                          ma->profile->r.dat[1]-1,
+                          ma->profile->r.dat[2]-1,
+                          ma->profile->r.dat[3]-1,
+                          ma->profile->r.dat[4]-1,
+                          ma->profile->r.dat[5]-1,
+                          ma->profile->r.dat[6]-1,
+                          ma->profile->r.dat[7]-1) :
+            _mm_set1_epi16(0)
+            );
+
+    PRINTMSG( " ==== stdFetchFuncSF (sse version) ==== " );
+    PRINTEPI16(masum);
+    PRINTEPI16(mamsk);
+    PRINTEPI16(prfmsk);
+    for (idx = 0; SUCCESS == (ma->getExmoSF)(ma,SECOND_FACTOR,&sfx,idx); idx++) {
+        exmo res; int hlp1;
+        PRINTEPI16(sfx->r.ssedat);
+
+        c = coeff;
+        /* first check exterior part */
+        if (ma->esum[1] != (sfx->ext & ma->esum[1])) continue;
+        hlp1 = (sfx->ext ^ ma->esum[1]);
+        if (0 != (hlp1 & proext)) continue; 
+        if (0 != (hlp1 & ma->emsk[1])) continue;
+
+        /* now check reduced part */
+        {
+            __m128i aux = _mm_add_epi16(sfx->r.ssedat,masum);
+            __m128i final;
+
+            PRINTEPI16(aux);
+
+            if ((prime & 1)) {
+                /* the prime is odd: we multiply by 2-adic inverse 
+                 * and check the size of the result */
+                if (ma->sfIsPos) {
+                    __m128i x = _mm_mullo_epi16(aux,prfmsk);
+                    __m128i y = _mm_cmpgt_epi16(x,aux);
+                    __m128i z = _mm_cmpgt_epi16(zero,x);
+                    if (_mm_movemask_epi8(y) || _mm_movemask_epi8(z))
+                        continue;                        
+                } else {
+                    __m128i x = _mm_mullo_epi16(aux,prfmsk);
+                    __m128i y = _mm_cmpgt_epi16(aux,x);
+                    __m128i z = _mm_cmpgt_epi16(x,zero);
+                    if (_mm_movemask_epi8(y) || _mm_movemask_epi8(z))
+                        continue;                                            
+                }
+            } else {
+                __m128i x = _mm_and_si128(prfmsk,aux); /* must be zero */
+                if (0xffff ^ _mm_movemask_epi8(_mm_cmpeq_epi16(zero,x)))
+                    continue;
+            } 
+
+            final = _mm_add_epi16(aux,mamsk);
+            PRINTEPI16(final);
+        
+            if (_mm_movemask_epi8(_mm_cmpgt_epi16(zero,aux)) && ma->sfIsPos)
+                continue;
+
+            c = XINTMULT(c, binompsse(pi, final, aux), prime);
+
+            res.r.ssedat = final;
+        }
+        if (0 == c) continue;
+        res.ext = hlp1 | ma->emsk[1];
+        if (0 != (1 & (SIGNFUNC(ma->emsk[1], hlp1)
+                       + SIGNFUNC(ma->esum[1], hlp1))))
+            c = prime - c;
+        res.coeff = XINTMULT(c, sfx->coeff, prime);
+        res.gen   = sfx->gen; /* should this be done in the callback function ? */
+        /* invoke callback */
+        (ma->stdSummandFunc)(ma, &res);
+    }
+
+    PRINTMSG( " === done === " );
+}
+
+#endif /* USESSE2 */
 
 /* The same in the AP case */
 

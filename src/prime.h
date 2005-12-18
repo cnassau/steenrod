@@ -67,6 +67,10 @@ cint random_cint(cint max);
 /* compute binomial "l over m" mod pi->prime */
 cint binomp(const primeInfo *pi, int l, int m);
 
+#ifdef USESSE2
+cint binompsse(const primeInfo *pi, __m128i l8, __m128i m8);
+#endif
+
 /* return degree of msk with respect to pi->extdegs */
 int extdeg(const primeInfo *pi, int msk);
 

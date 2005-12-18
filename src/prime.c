@@ -127,6 +127,28 @@ cint binomp(const primeInfo *pi, int l, int m) {
     return bin;
 }
 
+#ifdef USESSE2
+cint binompsse(const primeInfo *pi, __m128i l8, __m128i m8) {
+    /* TODO: find a smarter implementation */
+    xint res = 1;
+    union { __m128i li; short l[8]; } ll;
+    union { __m128i mi; short m[8]; } mm;
+    ll.li = l8; mm.mi = m8;
+#define DOIT(k) \
+    res *= binomp(pi,ll.l[k],mm.m[k]); res %= pi->prime; if (!res) return 0;  
+    DOIT(0);
+    DOIT(1);
+    DOIT(2);
+    DOIT(3);
+    DOIT(4);
+    DOIT(5);
+    DOIT(6);
+    DOIT(7);
+#undef DOIT
+    return res;
+}
+#endif
+
 /*::: Control structure ::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 typedef int (*piFunc) (primeInfo *pi);  /* return nonzero on failure */
