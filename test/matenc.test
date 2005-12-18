@@ -58,9 +58,14 @@ mputs $dec
 # carry out the tests 
 for {set base 2} {$base < 45} {incr base} {
     set cnt 0
+    set isbig [expr {$base>5}]
+    set skiptest [expr {$isbig && ![testConstraint BIGTEST]}]
     while {[incr cnt] < 130} {
-        set mat [rmat $base]
-        test matenc-$base-$cnt {} {} [list do-test $base $mat] 1
+        if {!$skiptest} {
+            set mat [rmat $base]
+        }
+        test matenc-$base-$cnt {} [expr {$isbig ? "BIGTEST" : ""}] \
+            [list do-test $base $mat] 1
     }
 }
 
