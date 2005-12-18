@@ -1,0 +1,56 @@
+# -*- tcl -*-
+#
+# This file contains some multiplication routine tests
+#
+# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+lappend auto_path ../lib
+package require Steenrod 0.75
+
+namespace import steenrod::*
+
+set mult-test-counter 0
+proc mult-test {prime f1 f2 res {isbig 0}} {
+    global mult-test-counter
+    lappend bdy [list set f1 $f1]
+    lappend bdy [list set f2 $f2]
+    lappend bdy [list set expected $res]
+    lappend bdy [subst -nocommands \
+                     {set product [poly steenmult [set f1] [set f2] $prime]}]
+    lappend bdy {set rc [poly compare [set product] [set expected]]}
+    lappend bdy {expr {$rc ? $product : "ok"}}
+    lappend cmd test mult-test-[incr mult-test-counter] 
+    lappend cmd "multiplication at $prime"
+    if {$isbig} {lappend cmd BIGTEST}
+    lappend cmd [join $bdy \n] ok
+    eval $cmd
+}
+
+# --------------------------------------------------------------------------
+
+mult-test 3 {{1 0 1 1}} {{1 0 3 0}} {{1 0 4 0}}
+
+# source some external multiplication tests
+
+foreach fname [glob -nocomplain -d [file dirname [info script]] mult*.dat] {
+    source $fname
+}
+
+# --------------------------------------------------------------------------
+
+# cleanup
+::tcltest::cleanupTests
+return
+
