@@ -149,7 +149,7 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
     const __m128i zero = _mm_setzero_si128();
 
     const __m128i prfmsk = (prime & 1) ? 
-        ( /* prime is odd => use 2-adic inverses */
+        (/* prime is odd => use 2-adic inverses */
             (NULL != ma->profile) ? 
             _mm_setr_epi16(inv2(ma->profile->r.dat[0]),
                           inv2(ma->profile->r.dat[1]),
@@ -159,8 +159,8 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
                           inv2(ma->profile->r.dat[5]),
                           inv2(ma->profile->r.dat[6]),
                           inv2(ma->profile->r.dat[7])) :
-            _mm_set1_epi16(1) ) :
-        ( /* prime = 2 */
+            _mm_set1_epi16(1)) :
+        (/* prime = 2 */
             (NULL != ma->profile) ? 
             _mm_setr_epi16(ma->profile->r.dat[0]-1,
                           ma->profile->r.dat[1]-1,
@@ -171,9 +171,9 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
                           ma->profile->r.dat[6]-1,
                           ma->profile->r.dat[7]-1) :
             _mm_set1_epi16(0)
-            );
+           );
 
-    PRINTMSG( " ==== stdFetchFuncSF (sse version) ==== " );
+    PRINTMSG(" ==== stdFetchFuncSF (sse version) ==== ");
     PRINTEPI16(masum);
     PRINTEPI16(mamsk);
     PRINTEPI16(prfmsk);
@@ -238,7 +238,7 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
         (ma->stdSummandFunc)(ma, &res);
     }
 
-    PRINTMSG( " === done === " );
+    PRINTMSG(" === done === ");
 }
 
 #endif /* USESSE2 */
