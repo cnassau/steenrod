@@ -115,11 +115,11 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
 /* here comes the sse2 variant */
 
 short inv2(short x) {
-    short res = 1, fac = 1-x, prod = fac;
-    while (prod) {
-        res += prod; prod *= fac;
+    short fac = 1-x, prod = 1+fac;
+    while (fac) {
+        prod *= 1 + (fac*=fac);
     }
-    return res;
+    return prod;
 }
 
 void stdFetchFuncSF(struct multArgs *ma, int coeff) {
