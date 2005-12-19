@@ -199,8 +199,9 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
                  j++, v2.data+=spr, v4.data+=uspr, aux+=spr) {
                 unsigned val = extract_entry(*aux,idx) % prime; 
                 if (val) {
-                    vector_add(&v4, &v3, CINTMULT(val,coeff,prime), prime);
-                    vector_add(&v2, &v1, CINTMULT(val,coeff,prime), prime);
+                    cint cc = CINTMULT(val,coeff,prime);
+                    vector_add(&v4, &v3, cc, prime);
+                    vector_add(&v2, &v1, cc, prime);
                 }
             }
             /* reduce vectors in lft in the same way */
@@ -208,8 +209,10 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
             for (j=0; j<lft->rows; j++, v2.data+=spr, v4.data+=uspr, aux+=spr) {
                 unsigned val = extract_entry(*aux,idx) % prime; 
                 if (val) {
-                    vector_add(&v4, &v3, CINTMULT(val,negcoeff,prime), prime);
-                    vector_add(&v2, &v1, CINTMULT(val,coeff,prime), prime);
+                    cint cc = CINTMULT(val,coeff,prime);
+                    cint nc = prime-cc;
+                    vector_add(&v4, &v3, nc, prime);
+                    vector_add(&v2, &v1, cc, prime);
                 }
             }
         }
