@@ -808,7 +808,7 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
     rcs *= 2;                           /* now the number of hex digits per row */
     len += nrows * rcs;
 
-    if (NULL == (enc = Tcl_AttemptAlloc(len))) {
+    if (NULL == (enc = Tcl_AttemptAlloc(len+1))) {
         Tcl_SetResult(ip, "out of memory", TCL_STATIC);
         return TCL_ERROR;
     }

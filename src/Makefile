@@ -113,7 +113,7 @@ test: steenrodsh
 	./steenrodsh ../test/all.tcl
 
 bigtest: steenrodsh
-	$(SH) (export TCLTEST_OPTIONS="-constraints BIGTEST"; ./steenrodsh ../test/all.tcl)
+	$(SH) (TCLTEST_OPTIONS="-constraints BIGTEST"; export TCLTEST_OPTIONS; ./steenrodsh ../test/all.tcl)
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 
