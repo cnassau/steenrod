@@ -44,7 +44,10 @@ mult-test 3 {{1 0 1 1}} {{1 0 3 0}} {{1 0 4 0}}
 
 # source some external multiplication tests
 
-foreach fname [glob -nocomplain -d [file dirname [info script]] mult*.dat] {
+set flist [glob -nocomplain -d [file dirname [info script]] mult*.dat] 
+
+foreach fname [lsort -dictionary $flist] {
+    puts "  => [file tail $fname]"
     source $fname
 }
 

@@ -1,0 +1,110 @@
+# -*- tcl -*-
+#
+# A test suite for the linear algebra routines
+#
+# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+lappend auto_path ../lib
+package require Steenrod
+namespace import steenrod::*
+
+proc same-span {p m1 m2} {
+    set m1copy $m1
+    set m2copy $m2
+    matrix ortho $p m1 aux1
+    matrix ortho $p m2 aux2
+    #foreach vnm {m1 m1copy m2 m2copy} {puts $vnm=[set $vnm]}
+    matrix quot $p m1copy $m2
+    matrix quot $p m2copy $m1
+    set q1dim [lindex [matrix dimensions $m1copy] 0]
+    set q2dim [lindex [matrix dimensions $m2copy] 0]
+    #foreach vnm {q1dim m1copy q2dim m2copy} {puts $vnm=[set $vnm]}
+    expr {(($q1dim == 0) && ($q2dim == 0)) ? "1" : "0"}
+}
+
+set sancnt 0
+
+foreach {m1 m2} {
+    {} {} 
+    {1} {1 1}
+    {1} {1 0}
+    {0 1} {1}
+    {1 1} {1}
+    {{1 0}} {{1 0} {1 0}}
+    {{1 0} {0 1}} {{0 1} {1 0}}
+} {
+    foreach p {2 3} {
+	test "same-span" "sanity-test-[incr sancnt]" [list same-span $p $m1 $m2] 1
+    }
+}
+
+set ortho-test-cnt 0
+proc ortho-test-im-ker {p mat img ker {isbig 0}} {
+    lappend bdy [list set p $p]
+    lappend bdy [list set mat $mat]
+    lappend bdy [list set img $img]
+    lappend bdy [list set ker $ker]
+    lappend bdy [list matrix ortho $p mat nker]
+    lappend bdy {lappend res [same-span $p $mat $img]}
+    lappend bdy {lappend res [same-span $p $ker $nker]}
+    #lappend bdy {puts ker=$ker ; puts nker=$nker}
+    lappend bdy {set res}
+    set btst [expr {$isbig ? "BIGTEST" : ""}]
+    test "ortho-test" "im-ker-[incr ::ortho-test-cnt]" $btst [join $bdy \n] [list 1 1]
+}
+
+ortho-test-im-ker 2 {{1 0 0} {1 1 0} {0 1 0}} {{1 0 0} {0 1 0}} {{1 1 1}} 0
+
+set quot-test-cnt 0
+proc quot-test {prime num den quot {isbig 0}} {
+    foreach vname {prime num den quot} {
+	lappend bdy [list set $vname [set $vname]]
+    }
+    lappend bdy {matrix quot $prime num $den}
+
+    lappend bdy "\n# check dimensions"
+    lappend bdy {set qrank1 [lindex [matrix dimensions $quot] 0]}
+    lappend bdy {set qrank2 [lindex [matrix dimensions $num] 0]}
+    lappend bdy {if {$qrank1 != $qrank2} {return "quotient rank wrong (got $qrank2, expected $qrank1)"}}
+
+    lappend bdy "\n# check that (denominator + quotient) has the right span!"
+    lappend bdy {set sum1 $den; eval lappend sum1 $num}
+    lappend bdy {set sum2 $den; eval lappend sum2 $quot}
+    lappend bdy {same-span $prime $sum1 $sum2}
+    set btst [expr {$isbig ? "BIGTEST" : ""}]
+    test "quot-test" "quot-$prime-[incr ::quot-test-cnt]" $btst [join $bdy \n] 1
+}
+		
+quot-test 2 {{1 0 0} {0 1 0}} {{1 1 0}} {{0 1 0}}
+		
+
+# --------------------------------------------------------------------------
+
+# source external tests
+
+set flist [glob -nocomplain -d [file dirname [info script]] lin*.dat]
+
+foreach fname [lsort -dictionary $flist] {
+    puts "  => [file tail $fname]"
+    source $fname
+}
+
+# --------------------------------------------------------------------------
+
+
+# cleanup
+::tcltest::cleanupTests
+return
+
