@@ -25,6 +25,8 @@ int Tcl_SteenAppInit(Tcl_Interp *interp)
         return TCL_ERROR;
     }
 
+    Tcl_Eval(interp, "namespace import steenrod::*");
+
     Tcl_Eval(interp, "if $::tcl_interactive {"
              "puts [format {"
              "Tcl shell with Steenrod algebra support"
