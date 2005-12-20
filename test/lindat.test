@@ -18,7 +18,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 
 lappend auto_path ../lib
 package require Steenrod
-namespace import steenrod::*
+namespace import -force steenrod::*
 
 proc same-span {p m1 m2} {
     set m1copy $m1

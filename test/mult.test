@@ -19,7 +19,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 lappend auto_path ../lib
 package require Steenrod 0.75
 
-namespace import steenrod::*
+namespace import -force steenrod::*
 
 set mult-test-counter 0
 proc mult-test {prime f1 f2 res {isbig 0}} {

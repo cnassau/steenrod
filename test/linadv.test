@@ -18,7 +18,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 
 lappend auto_path ../lib
 package require Steenrod
-namespace import steenrod::*
+namespace import -force steenrod::*
 
 # the list of primes that we test. primes >= 29
 # are too big for or our one-byte enty restriction.  

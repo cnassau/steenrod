@@ -18,7 +18,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 
 lappend auto_path ../lib
 package require Steenrod
-namespace import steenrod::*
+namespace import -force steenrod::*
 
 #test linalg-1.0 {isvector, from list} { isvector {1 10 26 -12 23 } } {1}
 #test linalg-1.1 {isvector, from list} { isvector [list 1 10 26 -12 23 ] } {1}
