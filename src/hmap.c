@@ -206,7 +206,7 @@ void copyTensor(hmap_tensor *dst, hmap_tensor *src, int numMono, int numInt) {
 void multTensor(hmap_tensor *dst, hmap_tensor *src, int scale, int numMono, int numInt, int modval) {
     int i,j,sign=0;
     int ddeg=0, sdeg=0;
-    LOG(printTensor(dst,numMono,numInt); printf(" *= "); printTensor(src,numMono,numInt););
+    LOG(printTensor(dst,numMono,numInt); printf(" *= <scale=%d>",scale); printTensor(src,numMono,numInt););
     //dst->coeff = 1;
     for (i=0;i<numMono;i++) {
         ddeg += BITCOUNT(dst->edat[i].ext);
@@ -217,12 +217,12 @@ void multTensor(hmap_tensor *dst, hmap_tensor *src, int scale, int numMono, int 
         shiftExmo2(&(dst->edat[i]),&(src->edat[i]),scale,ADJUSTSIGNS);
         dst->coeff *= dst->edat[i].coeff;
         dst->edat[i].coeff = 1;
+        sign += BITCOUNT(src->edat[i].ext);
+    }
         for (j=scale;j--;) {
             dst->coeff *= src->coeff; 
             if (modval) dst->coeff %= modval;
         }
-        sign += BITCOUNT(src->edat[i].ext);
-    }
     // if (0 != (1 & sdeg & ddeg)) dst->coeff = - dst->coeff;
     for (i=0;i<numInt;i++) {
         dst->idat[i] += src->idat[i] * scale;
@@ -757,6 +757,11 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
     if (current->gtype == RED) {
         BINT sum, newcoeff;
 
+#if 0
+	printf( "current->pardat.coeff = %d, next->sumdat.coeff=%d\n",
+		current->pardat.coeff,next->sumdat.coeff);
+#endif
+
         sum = current->source.r.dat[current->idx] + current->value;
 
         if (sum != (sum & current->goodbits)) {
@@ -765,7 +770,14 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
         }
 
         newcoeff = current->pardat.coeff * binom(sum, current->value);
-        //printf("newcoeff = %d, sum=%d, value=%d\n",newcoeff,sum,current->value);
+
+	{
+	   int i; 
+	   for (i=current->value;i--;) 
+	      newcoeff *= current->sumdat.coeff;
+	}
+
+	// printf("newcoeff = %d, sum=%d, value=%d\n",newcoeff,sum,current->value);
 
         if (hm->modval) {
             newcoeff %= hm->modval;
