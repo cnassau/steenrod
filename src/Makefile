@@ -47,7 +47,7 @@ NOWEBFILES = mult.nw
 
 SRCS = adlin.c linalg.c linwrp.c tlin.c prime.c tprime.c tptr.c \
        poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c common.c \
-       hmap.c linwrp2.c
+       hmap.c linwrp2.c lepar.c legram.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -115,6 +115,15 @@ test: steenrodsh
 bigtest: steenrodsh
 	$(SH) (TCLTEST_OPTIONS="-constraints BIGTEST"; export TCLTEST_OPTIONS; ./steenrodsh ../test/all.tcl)
 
+lemon: lemon.c 
+	$(CC) -o lemon lemon.c
+
+legram.c: legram.y lemon lempar.c
+	lemon legram.y
+
+legram.h: legram.y lemon lempar.c
+	lemon legram.y
+
 # DO NOT DELETE -- make depend will overwrite the entries below
 
 adlin.o: adlin.h linalg.h prime.h common.h adlin-sse2.c ssedefs.h
@@ -137,3 +146,5 @@ steenrod.o: steenrod.h momap.h tenum.h enum.h mult.h hmap.h
 common.o: common.h
 hmap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h hmap.h
 linwrp2.o: linwrp.h prime.h common.h
+lepar.o: lepar.h legram.h
+legram.o: lepar.h
