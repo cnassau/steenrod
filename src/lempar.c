@@ -676,7 +676,7 @@ void Parse(
           yypParser->yyidx >= 0 &&
           yymx != YYERRORSYMBOL &&
           (yyact = yy_find_shift_action(yypParser,YYERRORSYMBOL)) >= YYNSTATE
-      ){
+   ){
           yy_pop_parser_stack(yypParser);
         }
         if(yypParser->yyidx < 0 || yymajor==0){

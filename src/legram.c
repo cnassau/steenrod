@@ -39,27 +39,27 @@ Tcl_Obj *EvalN(Parser *p, const char *procname, int n) {
 
 #define CheckForError(A) {if (NULL == A) {parser->failed = 1;YYEXCEPTION;}}
    
-   Tcl_Obj *ApplyFunc(Parser *parser, Tcl_Obj *funcname, 
-		      Tcl_Obj *exp, Tcl_Obj *ind, Tcl_Obj *arglist) {
-      Tcl_Obj *res;
-      parser->objv[1]=funcname;
-      parser->objv[2]=arglist;
-      res = EvalN(parser,"apply",2);
-      return res;
-   }
+ Tcl_Obj *ApplyFunc(Parser *parser, Tcl_Obj *funcname, 
+                    Tcl_Obj *exp, Tcl_Obj *ind, Tcl_Obj *arglist) {
+     Tcl_Obj *res;
+     parser->objv[1]=funcname;
+     parser->objv[2]=arglist;
+     res = EvalN(parser,"apply",2);
+     return res;
+ }
 
-   Tcl_Obj *Eval1(Parser *parser, const char *procname,
-		  Tcl_Obj *arg1) {
-      parser->objv[1] = arg1; 
-      return EvalN(parser,procname,1); 
-   }
+ Tcl_Obj *Eval1(Parser *parser, const char *procname,
+                Tcl_Obj *arg1) {
+     parser->objv[1] = arg1; 
+     return EvalN(parser,procname,1); 
+ }
 
-   Tcl_Obj *Eval2(Parser *parser, const char *procname,
-		  Tcl_Obj *arg1, Tcl_Obj *arg2) {
-      parser->objv[1] = arg1; 
-      parser->objv[2] = arg2; 
-      return EvalN(parser,procname,2); 
-   }
+ Tcl_Obj *Eval2(Parser *parser, const char *procname,
+                Tcl_Obj *arg1, Tcl_Obj *arg2) {
+     parser->objv[1] = arg1; 
+     parser->objv[2] = arg2; 
+     return EvalN(parser,procname,2); 
+ }
 
 #define EV2(res,proc,in1,in2) \
 {res=Eval2(parser,#proc,in1,in2);CheckForError(res);}
@@ -125,7 +125,7 @@ typedef union {
 } YYMINORTYPE;
 #define YYSTACKDEPTH 100
 #define LeParARG_SDECL Parser *parser;
-#define LeParARG_PDECL,Parser *parser
+#define LeParARG_PDECL ,Parser *parser
 #define LeParARG_FETCH Parser *parser = yypParser->parser
 #define LeParARG_STORE yypParser->parser = parser
 #define YYNSTATE 41
@@ -999,7 +999,7 @@ void LePar(
           yypParser->yyidx >= 0 &&
           yymx != YYERRORSYMBOL &&
           (yyact = yy_find_shift_action(yypParser,YYERRORSYMBOL)) >= YYNSTATE
-      ){
+   ){
           yy_pop_parser_stack(yypParser);
         }
         if(yypParser->yyidx < 0 || yymajor==0){

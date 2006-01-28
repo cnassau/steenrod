@@ -1058,7 +1058,7 @@ struct symbol *errsym;   /* The error symbol (if defined.  NULL otherwise) */
       apy->type==SH_RESOLVED ||
       apy->type==RD_RESOLVED ||
       apy->type==CONFLICT
-  );
+);
     /* The REDUCE/SHIFT case cannot happen because SHIFTs come before
     ** REDUCEs on the list.  If we reach this point it must be because
     ** the parser conflict had already been resolved. */
@@ -2962,7 +2962,7 @@ int *lineno;
       for(i=0; line[i]; i++){
         if(line[i]=='P' && strncmp(&line[i],"Parse",5)==0
           && (i==0 || !isalpha(line[i-1]))
-      ){
+   ){
           if(i>iStart) fprintf(out,"%.*s",i-iStart,&line[iStart]);
           fprintf(out,"%s",name);
           i += 4;
@@ -3511,7 +3511,7 @@ int mhflag;     /* Output in makeheaders format if true */
     while(i>=1 && isspace(lemp->arg[i-1])) i--;
     while(i>=1 && (isalnum(lemp->arg[i-1]) || lemp->arg[i-1]=='_')) i--;
     fprintf(out,"#define %sARG_SDECL %s;\n",name,lemp->arg);  lineno++;
-    fprintf(out,"#define %sARG_PDECL,%s\n",name,lemp->arg);  lineno++;
+    fprintf(out,"#define %sARG_PDECL " ",%s\n",name,lemp->arg);  lineno++;
     fprintf(out,"#define %sARG_FETCH %s = yypParser->%s\n",
                  name,lemp->arg,&lemp->arg[i]);  lineno++;
     fprintf(out,"#define %sARG_STORE yypParser->%s = %s\n",

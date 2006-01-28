@@ -171,7 +171,7 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
                           ma->profile->r.dat[6]-1,
                           ma->profile->r.dat[7]-1) :
             _mm_set1_epi16(0)
-         );
+      );
 
     PRINTMSG(" ==== stdFetchFuncSF (sse version) ==== ");
     PRINTEPI16(masum);
