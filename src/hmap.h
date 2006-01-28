@@ -1,7 +1,7 @@
 /*
  * Hopf maps - used to implement Hopf algebroid structure maps
  *
- * Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2006 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *

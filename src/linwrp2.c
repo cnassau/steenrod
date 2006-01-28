@@ -1,7 +1,7 @@
 /*
  * Optimized linear algebra stuff for the prime 2
  *
- * Copyright (C) 2005 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2005-2006 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *

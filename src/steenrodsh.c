@@ -1,7 +1,7 @@
 /*
  * Custom Tcl shell with built-in Steenrod library
  *
- * Copyright (C) 2005 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2005-2006 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *

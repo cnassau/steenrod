@@ -1,7 +1,7 @@
 /*
  * All about enumeration and sequence numbers
  *
- * Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2006 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *

@@ -1,7 +1,7 @@
 /*
  * Grammar file for the general purpose parser
  *
- * Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2006 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *

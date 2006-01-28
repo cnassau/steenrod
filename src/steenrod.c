@@ -1,7 +1,7 @@
 /*
  * Main entry point to the Steenrod library
  *
- * Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2006 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *
@@ -21,6 +21,7 @@
 #include "steenrod.h"
 #include "mult.h"
 #include "hmap.h"
+#include "lepar.h"
 
 char *theprogvar; /* ckalloc'ed name of the progress variable */
 int   theprogmsk; /* progress reporting granularity */
@@ -638,6 +639,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     Tenum_Init(ip);
     Tlin_Init(ip);
     Hmap_Init(ip);
+    Lepar_Init(ip);
 
     Tcl_CreateObjCommand(ip, POLYNSP "ComputeMatrix",
                          TMakeMatrixSameSig, (ClientData) 0, NULL);
