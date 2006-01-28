@@ -758,8 +758,8 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
         BINT sum, newcoeff;
 
 #if 0
-	printf( "current->pardat.coeff = %d, next->sumdat.coeff=%d\n",
-		current->pardat.coeff,next->sumdat.coeff);
+    printf("current->pardat.coeff = %d, next->sumdat.coeff=%d\n",
+        current->pardat.coeff,next->sumdat.coeff);
 #endif
 
         sum = current->source.r.dat[current->idx] + current->value;
@@ -771,13 +771,13 @@ void makeNextPartial(hmap *hm, hmap_summand *current, hmap_summand *next) {
 
         newcoeff = current->pardat.coeff * binom(sum, current->value);
 
-	{
-	   int i; 
-	   for (i=current->value;i--;) 
-	      newcoeff *= current->sumdat.coeff;
-	}
+    {
+       int i; 
+       for (i=current->value;i--;) 
+          newcoeff *= current->sumdat.coeff;
+    }
 
-	// printf("newcoeff = %d, sum=%d, value=%d\n",newcoeff,sum,current->value);
+    // printf("newcoeff = %d, sum=%d, value=%d\n",newcoeff,sum,current->value);
 
         if (hm->modval) {
             newcoeff %= hm->modval;

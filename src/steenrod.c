@@ -600,7 +600,7 @@ int VersionCmd(ClientData cd, Tcl_Interp *ip,
 #ifdef USESSE2
                   "-sse2"
 #endif
-                ,TCL_STATIC);
+              ,TCL_STATIC);
     return TCL_OK;
 }
 
