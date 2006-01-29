@@ -123,6 +123,7 @@ legram.c: legram.y lemon lempar.c
 
 legram.h: legram.y lemon lempar.c
 	lemon legram.y
+	touch legram.h
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 
@@ -142,7 +143,7 @@ tenum.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h linwrp.h
 tenum.o: tenum.h enum.h
 momap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h momap.h
 steenrod.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h linwrp.h
-steenrod.o: steenrod.h momap.h tenum.h enum.h mult.h hmap.h
+steenrod.o: steenrod.h momap.h tenum.h enum.h mult.h hmap.h lepar.h
 common.o: common.h
 hmap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h hmap.h
 linwrp2.o: linwrp.h prime.h common.h

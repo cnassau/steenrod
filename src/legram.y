@@ -15,7 +15,7 @@
 %token_prefix    LEPAR_TK_
 
 %left     AND.
-%left     OR.
+%left     OR XOR.
 %nonassoc EQ NE GT GE LT LE.
 %left     PLUS MINUS.
 %left     TIMES DIVIDE MOD.
@@ -103,7 +103,7 @@ Tcl_Obj *EvalN(Parser *p, const char *procname, int n) {
 
 }
 
-result(A) ::= expr(B). { 
+result(A) ::= expr(B) EOF. { 
    A = B;
    Tcl_SetObjResult(parser->ip,A);
    Tcl_DecrRefCount(B);
@@ -114,6 +114,11 @@ expr(A) ::= expr(B) MINUS expr(C).  { EV2(A,minus,B,C); }
 expr(A) ::= expr(B) SUP expr(C).  { EV2(A,power,B,C); }
 expr(A) ::= MINUS expr(B).  [NOT] { EV1(A,negate,B); }
 expr(A) ::= expr(B) TIMES expr(C).  { EV2(A,times,B,C); }
+expr(A) ::= expr(B) DIVIDE expr(C).  { EV2(A,divide,B,C); }
+expr(A) ::= expr(B) MOD expr(C).  { EV2(A,modulo,B,C); }
+expr(A) ::= expr(B) AND expr(C).  { EV2(A,and,B,C); }
+expr(A) ::= expr(B) OR expr(C).  { EV2(A,or,B,C); }
+expr(A) ::= expr(B) XOR expr(C).  { EV2(A,xor,B,C); }
 expr(A) ::= LPAREN expr(B) RPAREN. { 
    A = B; B = NULL; 
    CheckForError(A);

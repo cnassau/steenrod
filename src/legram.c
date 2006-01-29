@@ -116,22 +116,22 @@ Tcl_Obj *EvalN(Parser *p, const char *procname, int n) {
 **                       defined, then do no error processing.
 */
 #define YYCODETYPE unsigned char
-#define YYNOCODE 30
+#define YYNOCODE 32
 #define YYACTIONTYPE unsigned char
 #define LeParTOKENTYPE Tcl_Obj *
 typedef union {
   LeParTOKENTYPE yy0;
-  int yy59;
+  int yy63;
 } YYMINORTYPE;
 #define YYSTACKDEPTH 100
 #define LeParARG_SDECL Parser *parser;
 #define LeParARG_PDECL ,Parser *parser
 #define LeParARG_FETCH Parser *parser = yypParser->parser
 #define LeParARG_STORE yypParser->parser = parser
-#define YYNSTATE 41
-#define YYNRULE 17
-#define YYERRORSYMBOL 23
-#define YYERRSYMDT yy59
+#define YYNSTATE 52
+#define YYNRULE 22
+#define YYERRORSYMBOL 25
+#define YYERRSYMDT yy63
 #define YY_NO_ACTION      (YYNSTATE+YYNRULE+2)
 #define YY_ACCEPT_ACTION  (YYNSTATE+YYNRULE+1)
 #define YY_ERROR_ACTION   (YYNSTATE+YYNRULE)
@@ -184,48 +184,63 @@ typedef union {
 **  yy_default[]       Default action for each state.
 */
 static const YYACTIONTYPE yy_action[] = {
- /*     0 */     5,    6,    8,   23,   29,    7,    5,    6,    8,   34,
- /*    10 */     9,    7,   33,   14,   35,   22,   21,   10,   33,   36,
- /*    20 */     2,   33,   59,   13,   35,    4,   21,   14,   35,   24,
- /*    30 */    21,   14,   35,   25,   21,   14,   35,   26,   21,   16,
- /*    40 */    35,   48,   21,   17,   35,   48,   21,   18,   35,   32,
- /*    50 */    21,   21,   19,   35,   48,   21,   20,   35,   48,   21,
- /*    60 */    12,   35,    7,   21,   15,   35,   31,   21,    8,   33,
- /*    70 */    48,    7,   27,   30,   37,    1,   11,   28,   33,    3,
- /*    80 */    48,   38,   39,   11,   11,   48,   40,   48,   11,
+ /*     0 */    11,   12,   13,    5,    6,    8,    9,   10,    7,    5,
+ /*    10 */     6,    8,    9,   10,    7,   14,   44,   42,   33,   11,
+ /*    20 */    12,   13,   44,   15,   43,   47,   31,   44,    5,    6,
+ /*    30 */     8,    9,   10,    7,   11,   12,   13,   39,   45,   24,
+ /*    40 */    46,   44,   31,    5,    6,    8,    9,   10,    7,   12,
+ /*    50 */    13,   19,   46,   32,   31,    2,   44,    5,    6,    8,
+ /*    60 */     9,   10,    7,    8,    9,   10,    7,   41,   55,    4,
+ /*    70 */    44,   75,   17,   46,   44,   31,   19,   46,   34,   31,
+ /*    80 */    19,   46,   35,   31,   19,   46,   36,   31,   25,   46,
+ /*    90 */    55,   31,   26,   46,   55,   31,   37,   40,   27,   46,
+ /*   100 */     1,   31,   28,   46,    7,   31,   29,   46,   55,   31,
+ /*   110 */    21,   46,   44,   31,   22,   46,   55,   31,   38,   23,
+ /*   120 */    46,    3,   31,   30,   46,   55,   31,   18,   46,   55,
+ /*   130 */    31,   20,   46,   48,   31,   16,   49,   55,   16,   50,
+ /*   140 */    51,   16,   16,
 };
 static const YYCODETYPE yy_lookahead[] = {
- /*     0 */     9,   10,   11,   19,   19,   14,    9,   10,   11,   18,
- /*    10 */    10,   14,   21,   25,   26,   27,   28,   17,   21,   19,
- /*    20 */    17,   21,   24,   25,   26,   17,   28,   25,   26,   27,
- /*    30 */    28,   25,   26,   27,   28,   25,   26,   27,   28,   25,
- /*    40 */    26,   29,   28,   25,   26,   29,   28,   25,   26,   26,
- /*    50 */    28,   28,   25,   26,   29,   28,   25,   26,   29,   28,
- /*    60 */    25,   26,   14,   28,   25,   26,   19,   28,   11,   21,
- /*    70 */    29,   14,   14,   15,   18,   17,   20,   15,   21,   17,
- /*    80 */    29,   18,   18,   20,   20,   29,   18,   29,   20,
+ /*     0 */     1,    2,    3,   10,   11,   12,   13,   14,   15,   10,
+ /*    10 */    11,   12,   13,   14,   15,   11,   23,   18,   21,    1,
+ /*    20 */     2,    3,   23,   19,   28,   21,   30,   23,   10,   11,
+ /*    30 */    12,   13,   14,   15,    1,    2,    3,   21,   20,   27,
+ /*    40 */    28,   23,   30,   10,   11,   12,   13,   14,   15,    2,
+ /*    50 */     3,   27,   28,   29,   30,   19,   23,   10,   11,   12,
+ /*    60 */    13,   14,   15,   12,   13,   14,   15,   21,   31,   19,
+ /*    70 */    23,   26,   27,   28,   23,   30,   27,   28,   29,   30,
+ /*    80 */    27,   28,   29,   30,   27,   28,   29,   30,   27,   28,
+ /*    90 */    31,   30,   27,   28,   31,   30,   15,   16,   27,   28,
+ /*   100 */    19,   30,   27,   28,   15,   30,   27,   28,   31,   30,
+ /*   110 */    27,   28,   23,   30,   27,   28,   31,   30,   16,   27,
+ /*   120 */    28,   19,   30,   27,   28,   31,   30,   27,   28,   31,
+ /*   130 */    30,   27,   28,   20,   30,   22,   20,   31,   22,   20,
+ /*   140 */    20,   22,   22,
 };
-#define YY_SHIFT_USE_DFLT (-17)
-#define YY_SHIFT_MAX 31
+#define YY_SHIFT_USE_DFLT (-8)
+#define YY_SHIFT_MAX 41
 static const signed char yy_shift_ofst[] = {
- /*     0 */     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
- /*    10 */     0,    0,   -9,   -3,   -3,   -3,   57,   57,   48,   48,
- /*    20 */    48,   58,   56,   62,   63,   64,   68,  -16,  -15,    3,
- /*    30 */    47,    8,
+ /*     0 */     4,    4,    4,    4,    4,    4,    4,    4,    4,    4,
+ /*    10 */     4,    4,    4,    4,    4,    4,    4,   -1,   18,   33,
+ /*    20 */    33,   47,   -7,   -7,   51,   51,   89,   89,   89,   89,
+ /*    30 */    89,   81,  113,  102,  116,  119,  120,   -3,   16,   36,
+ /*    40 */    46,   50,
 };
-#define YY_REDUCE_USE_DFLT (-13)
-#define YY_REDUCE_MAX 20
+#define YY_REDUCE_USE_DFLT (-5)
+#define YY_REDUCE_MAX 30
 static const signed char yy_reduce_ofst[] = {
- /*     0 */    -2,  -12,    2,    6,   10,   14,   18,   22,   27,   31,
- /*    10 */    35,   39,   23,   23,   23,   23,   23,   23,   23,   23,
- /*    20 */    23,
+ /*     0 */    45,   24,   49,   53,   57,   12,   61,   65,   71,   75,
+ /*    10 */    79,   83,   87,   92,   96,  100,  104,   -4,   -4,   -4,
+ /*    20 */    -4,   -4,   -4,   -4,   -4,   -4,   -4,   -4,   -4,   -4,
+ /*    30 */    -4,
 };
 static const YYACTIONTYPE yy_default[] = {
- /*     0 */    58,   58,   58,   58,   58,   58,   58,   58,   58,   58,
- /*    10 */    58,   58,   58,   41,   52,   51,   42,   43,   44,   46,
- /*    20 */    45,   58,   58,   58,   58,   58,   58,   58,   58,   58,
- /*    30 */    58,   58,   48,   53,   47,   49,   50,   54,   55,   57,
- /*    40 */    56,
+ /*     0 */    74,   74,   74,   74,   74,   74,   74,   74,   74,   74,
+ /*    10 */    74,   74,   74,   74,   74,   74,   74,   74,   74,   68,
+ /*    20 */    67,   60,   61,   62,   53,   54,   55,   57,   58,   59,
+ /*    30 */    56,   74,   74,   74,   74,   74,   74,   74,   74,   74,
+ /*    40 */    74,   74,   52,   64,   69,   63,   65,   66,   70,   71,
+ /*    50 */    73,   72,
 };
 #define YY_SZ_ACTTAB (sizeof(yy_action)/sizeof(yy_action[0]))
 
@@ -311,14 +326,14 @@ void LeParTrace(FILE *TraceFILE, char *zTracePrompt){
 /* For tracing shifts, the names of all terminals and nonterminals
 ** are required.  The following table supplies these names */
 static const char *const yyTokenName[] = { 
-  "$",             "AND",           "OR",            "EQ",          
-  "NE",            "GT",            "GE",            "LT",          
-  "LE",            "PLUS",          "MINUS",         "TIMES",       
-  "DIVIDE",        "MOD",           "SUP",           "SUB",         
-  "NOT",           "LPAREN",        "RPAREN",        "VALUE",       
-  "COMMA",         "FUNCTION",      "DOLLAR",        "error",       
-  "result",        "expr",          "funcres",       "exprlist",    
-  "funcname",    
+  "$",             "AND",           "OR",            "XOR",         
+  "EQ",            "NE",            "GT",            "GE",          
+  "LT",            "LE",            "PLUS",          "MINUS",       
+  "TIMES",         "DIVIDE",        "MOD",           "SUP",         
+  "SUB",           "NOT",           "EOF",           "LPAREN",      
+  "RPAREN",        "VALUE",         "COMMA",         "FUNCTION",    
+  "DOLLAR",        "error",         "result",        "expr",        
+  "funcres",       "exprlist",      "funcname",    
 };
 #endif /* NDEBUG */
 
@@ -326,23 +341,28 @@ static const char *const yyTokenName[] = {
 /* For tracing reduce actions, the names of all rules are required.
 */
 static const char *const yyRuleName[] = {
- /*   0 */ "result ::= expr",
+ /*   0 */ "result ::= expr EOF",
  /*   1 */ "expr ::= expr PLUS expr",
  /*   2 */ "expr ::= expr MINUS expr",
  /*   3 */ "expr ::= expr SUP expr",
  /*   4 */ "expr ::= MINUS expr",
  /*   5 */ "expr ::= expr TIMES expr",
- /*   6 */ "expr ::= LPAREN expr RPAREN",
- /*   7 */ "expr ::= expr funcres",
- /*   8 */ "expr ::= funcres",
- /*   9 */ "expr ::= VALUE",
- /*  10 */ "exprlist ::= exprlist COMMA expr",
- /*  11 */ "exprlist ::= expr",
- /*  12 */ "funcname ::= FUNCTION",
- /*  13 */ "funcres ::= funcname LPAREN exprlist RPAREN",
- /*  14 */ "funcres ::= funcname SUP VALUE SUB VALUE LPAREN exprlist RPAREN",
- /*  15 */ "funcres ::= funcname SUB VALUE LPAREN exprlist RPAREN",
- /*  16 */ "funcres ::= funcname SUP VALUE LPAREN exprlist RPAREN",
+ /*   6 */ "expr ::= expr DIVIDE expr",
+ /*   7 */ "expr ::= expr MOD expr",
+ /*   8 */ "expr ::= expr AND expr",
+ /*   9 */ "expr ::= expr OR expr",
+ /*  10 */ "expr ::= expr XOR expr",
+ /*  11 */ "expr ::= LPAREN expr RPAREN",
+ /*  12 */ "expr ::= expr funcres",
+ /*  13 */ "expr ::= funcres",
+ /*  14 */ "expr ::= VALUE",
+ /*  15 */ "exprlist ::= exprlist COMMA expr",
+ /*  16 */ "exprlist ::= expr",
+ /*  17 */ "funcname ::= FUNCTION",
+ /*  18 */ "funcres ::= funcname LPAREN exprlist RPAREN",
+ /*  19 */ "funcres ::= funcname SUP VALUE SUB VALUE LPAREN exprlist RPAREN",
+ /*  20 */ "funcres ::= funcname SUB VALUE LPAREN exprlist RPAREN",
+ /*  21 */ "funcres ::= funcname SUP VALUE LPAREN exprlist RPAREN",
 };
 #endif /* NDEBUG */
 
@@ -422,11 +442,13 @@ static void yy_destructor(YYCODETYPE yymajor, YYMINORTYPE *yypminor){
     case 20:
     case 21:
     case 22:
+    case 23:
+    case 24:
 #line 30 "legram.y"
 {
    if ((yypminor->yy0)) Tcl_DecrRefCount((yypminor->yy0));
 }
-#line 431 "legram.c"
+#line 453 "legram.c"
       break;
     default:  break;   /* If no destructor action specified: do nothing */
   }
@@ -600,23 +622,28 @@ static const struct {
   YYCODETYPE lhs;         /* Symbol on the left-hand side of the rule */
   unsigned char nrhs;     /* Number of right-hand side symbols in the rule */
 } yyRuleInfo[] = {
-  { 24, 1 },
-  { 25, 3 },
-  { 25, 3 },
-  { 25, 3 },
-  { 25, 2 },
-  { 25, 3 },
-  { 25, 3 },
-  { 25, 2 },
-  { 25, 1 },
-  { 25, 1 },
+  { 26, 2 },
   { 27, 3 },
+  { 27, 3 },
+  { 27, 3 },
+  { 27, 2 },
+  { 27, 3 },
+  { 27, 3 },
+  { 27, 3 },
+  { 27, 3 },
+  { 27, 3 },
+  { 27, 3 },
+  { 27, 3 },
+  { 27, 2 },
   { 27, 1 },
-  { 28, 1 },
-  { 26, 4 },
-  { 26, 8 },
-  { 26, 6 },
-  { 26, 6 },
+  { 27, 1 },
+  { 29, 3 },
+  { 29, 1 },
+  { 30, 1 },
+  { 28, 4 },
+  { 28, 8 },
+  { 28, 6 },
+  { 28, 6 },
 };
 
 static void yy_accept(yyParser*);  /* Forward Declaration */
@@ -672,136 +699,167 @@ static void yy_reduce(
       case 0:
 #line 106 "legram.y"
 { 
-   yygotominor.yy0 = yymsp[0].minor.yy0;
+   yygotominor.yy0 = yymsp[-1].minor.yy0;
    Tcl_SetObjResult(parser->ip,yygotominor.yy0);
-   Tcl_DecrRefCount(yymsp[0].minor.yy0);
- }
-#line 681 "legram.c"
+   Tcl_DecrRefCount(yymsp[-1].minor.yy0);
+   yy_destructor(18,&yymsp[0].minor);
+}
+#line 709 "legram.c"
         break;
       case 1:
 #line 112 "legram.y"
-{ EV2(yygotominor.yy0,plus,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(9,&yymsp[-1].minor);
+{ EV2(yygotominor.yy0,plus,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(10,&yymsp[-1].minor);
 }
-#line 687 "legram.c"
+#line 715 "legram.c"
         break;
       case 2:
 #line 113 "legram.y"
-{ EV2(yygotominor.yy0,minus,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(10,&yymsp[-1].minor);
-}
-#line 693 "legram.c"
-        break;
-      case 3:
-#line 114 "legram.y"
-{ EV2(yygotominor.yy0,power,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(14,&yymsp[-1].minor);
-}
-#line 699 "legram.c"
-        break;
-      case 4:
-#line 115 "legram.y"
-{ EV1(yygotominor.yy0,negate,yymsp[0].minor.yy0);   yy_destructor(10,&yymsp[-1].minor);
-}
-#line 705 "legram.c"
-        break;
-      case 5:
-#line 116 "legram.y"
-{ EV2(yygotominor.yy0,times,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(11,&yymsp[-1].minor);
-}
-#line 711 "legram.c"
-        break;
-      case 6:
-#line 117 "legram.y"
-{ 
-   yygotominor.yy0 = yymsp[-1].minor.yy0; yymsp[-1].minor.yy0 = NULL; 
-   CheckForError(yygotominor.yy0);
-  yy_destructor(17,&yymsp[-2].minor);
-  yy_destructor(18,&yymsp[0].minor);
+{ EV2(yygotominor.yy0,minus,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(11,&yymsp[-1].minor);
 }
 #line 721 "legram.c"
         break;
+      case 3:
+#line 114 "legram.y"
+{ EV2(yygotominor.yy0,power,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(15,&yymsp[-1].minor);
+}
+#line 727 "legram.c"
+        break;
+      case 4:
+#line 115 "legram.y"
+{ EV1(yygotominor.yy0,negate,yymsp[0].minor.yy0);   yy_destructor(11,&yymsp[-1].minor);
+}
+#line 733 "legram.c"
+        break;
+      case 5:
+#line 116 "legram.y"
+{ EV2(yygotominor.yy0,times,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(12,&yymsp[-1].minor);
+}
+#line 739 "legram.c"
+        break;
+      case 6:
+#line 117 "legram.y"
+{ EV2(yygotominor.yy0,divide,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(13,&yymsp[-1].minor);
+}
+#line 745 "legram.c"
+        break;
       case 7:
-#line 121 "legram.y"
-{ EV2(yygotominor.yy0,times,yymsp[-1].minor.yy0,yymsp[0].minor.yy0); }
-#line 726 "legram.c"
+#line 118 "legram.y"
+{ EV2(yygotominor.yy0,modulo,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(14,&yymsp[-1].minor);
+}
+#line 751 "legram.c"
         break;
       case 8:
-#line 122 "legram.y"
-{ yygotominor.yy0 = yymsp[0].minor.yy0; yymsp[0].minor.yy0 = NULL; }
-#line 731 "legram.c"
+#line 119 "legram.y"
+{ EV2(yygotominor.yy0,and,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(1,&yymsp[-1].minor);
+}
+#line 757 "legram.c"
         break;
       case 9:
-#line 123 "legram.y"
-{ EV1(yygotominor.yy0,value,yymsp[0].minor.yy0); }
-#line 736 "legram.c"
+#line 120 "legram.y"
+{ EV2(yygotominor.yy0,or,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(2,&yymsp[-1].minor);
+}
+#line 763 "legram.c"
         break;
       case 10:
-#line 124 "legram.y"
+#line 121 "legram.y"
+{ EV2(yygotominor.yy0,xor,yymsp[-2].minor.yy0,yymsp[0].minor.yy0);   yy_destructor(3,&yymsp[-1].minor);
+}
+#line 769 "legram.c"
+        break;
+      case 11:
+#line 122 "legram.y"
+{ 
+   yygotominor.yy0 = yymsp[-1].minor.yy0; yymsp[-1].minor.yy0 = NULL; 
+   CheckForError(yygotominor.yy0);
+  yy_destructor(19,&yymsp[-2].minor);
+  yy_destructor(20,&yymsp[0].minor);
+}
+#line 779 "legram.c"
+        break;
+      case 12:
+#line 126 "legram.y"
+{ EV2(yygotominor.yy0,times,yymsp[-1].minor.yy0,yymsp[0].minor.yy0); }
+#line 784 "legram.c"
+        break;
+      case 13:
+#line 127 "legram.y"
+{ yygotominor.yy0 = yymsp[0].minor.yy0; yymsp[0].minor.yy0 = NULL; }
+#line 789 "legram.c"
+        break;
+      case 14:
+#line 128 "legram.y"
+{ EV1(yygotominor.yy0,value,yymsp[0].minor.yy0); }
+#line 794 "legram.c"
+        break;
+      case 15:
+#line 129 "legram.y"
 {
    yygotominor.yy0 = yymsp[-2].minor.yy0; 
    Tcl_ListObjAppendElement(parser->ip,yygotominor.yy0,yymsp[0].minor.yy0); 
    Tcl_DecrRefCount(yymsp[0].minor.yy0);
    // CheckForError(yygotominor.yy0); <-- can't happen
-  yy_destructor(20,&yymsp[-1].minor);
+  yy_destructor(22,&yymsp[-1].minor);
 }
-#line 747 "legram.c"
+#line 805 "legram.c"
         break;
-      case 11:
-#line 130 "legram.y"
+      case 16:
+#line 135 "legram.y"
 {
    yygotominor.yy0 = Tcl_NewListObj(1,&yymsp[0].minor.yy0);
    Tcl_DecrRefCount(yymsp[0].minor.yy0);
    if (yygotominor.yy0) Tcl_IncrRefCount(yygotominor.yy0);
    CheckForError(yygotominor.yy0);
 }
-#line 757 "legram.c"
+#line 815 "legram.c"
         break;
-      case 12:
-#line 136 "legram.y"
+      case 17:
+#line 141 "legram.y"
 { EV1(yygotominor.yy0,function,yymsp[0].minor.yy0); }
-#line 762 "legram.c"
+#line 820 "legram.c"
         break;
-      case 13:
-#line 137 "legram.y"
+      case 18:
+#line 142 "legram.y"
 {
    yygotominor.yy0 = ApplyFunc(parser,yymsp[-3].minor.yy0,NULL,NULL,yymsp[-1].minor.yy0);
    CheckForError(yygotominor.yy0);
-  yy_destructor(17,&yymsp[-2].minor);
-  yy_destructor(18,&yymsp[0].minor);
+  yy_destructor(19,&yymsp[-2].minor);
+  yy_destructor(20,&yymsp[0].minor);
 }
-#line 772 "legram.c"
+#line 830 "legram.c"
         break;
-      case 14:
-#line 141 "legram.y"
+      case 19:
+#line 146 "legram.y"
 {
    yygotominor.yy0 = ApplyFunc(parser,yymsp[-7].minor.yy0,yymsp[-5].minor.yy0,yymsp[-3].minor.yy0,yymsp[-1].minor.yy0);
    CheckForError(yygotominor.yy0);
-  yy_destructor(14,&yymsp[-6].minor);
-  yy_destructor(15,&yymsp[-4].minor);
-  yy_destructor(17,&yymsp[-2].minor);
-  yy_destructor(18,&yymsp[0].minor);
+  yy_destructor(15,&yymsp[-6].minor);
+  yy_destructor(16,&yymsp[-4].minor);
+  yy_destructor(19,&yymsp[-2].minor);
+  yy_destructor(20,&yymsp[0].minor);
 }
-#line 784 "legram.c"
+#line 842 "legram.c"
         break;
-      case 15:
-#line 145 "legram.y"
+      case 20:
+#line 150 "legram.y"
 {
    yygotominor.yy0 = ApplyFunc(parser,yymsp[-5].minor.yy0,NULL,yymsp[-3].minor.yy0,yymsp[-1].minor.yy0);
    CheckForError(yygotominor.yy0);
-  yy_destructor(15,&yymsp[-4].minor);
-  yy_destructor(17,&yymsp[-2].minor);
-  yy_destructor(18,&yymsp[0].minor);
+  yy_destructor(16,&yymsp[-4].minor);
+  yy_destructor(19,&yymsp[-2].minor);
+  yy_destructor(20,&yymsp[0].minor);
 }
-#line 795 "legram.c"
+#line 853 "legram.c"
         break;
-      case 16:
-#line 149 "legram.y"
+      case 21:
+#line 154 "legram.y"
 {
    yygotominor.yy0 = ApplyFunc(parser,yymsp[-5].minor.yy0,yymsp[-3].minor.yy0,NULL,yymsp[-1].minor.yy0);
    CheckForError(yygotominor.yy0);
-  yy_destructor(14,&yymsp[-4].minor);
-  yy_destructor(17,&yymsp[-2].minor);
-  yy_destructor(18,&yymsp[0].minor);
+  yy_destructor(15,&yymsp[-4].minor);
+  yy_destructor(19,&yymsp[-2].minor);
+  yy_destructor(20,&yymsp[0].minor);
 }
-#line 806 "legram.c"
+#line 864 "legram.c"
         break;
   };
   yygoto = yyRuleInfo[yyruleno].lhs;
@@ -853,7 +911,7 @@ static void yy_parse_failed(
 
    Tcl_SetResult(parser->ip, "Syntax error", TCL_STATIC);
    parser->failed = 1;
-#line 859 "legram.c"
+#line 917 "legram.c"
   LeParARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
 
@@ -888,7 +946,7 @@ static void yy_accept(
 #line 39 "legram.y"
 
    if( parser->failed ) Tcl_SetResult(parser->ip, "Exception encountered", TCL_STATIC);
-#line 895 "legram.c"
+#line 953 "legram.c"
   LeParARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
 
