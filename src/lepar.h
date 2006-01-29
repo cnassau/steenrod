@@ -19,14 +19,15 @@
 typedef struct {
    void *theparser;
    Tcl_Interp *ip;
-   const char **tokens;
-   int numtokens;
    Tcl_Obj *objv[10];
    int busy;
    int deleted;
    int failed;
    int tracing;
 } Parser;
+
+const char **LeParTokens;
+int LeParNumTokens;
 
 int Lepar_Init(Tcl_Interp *ip) ;
 

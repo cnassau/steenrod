@@ -50,22 +50,18 @@ tokdesc toktab[] = {
     DECTOK("^", SUP),
     DECTOK("_", SUB),
     DECTOK(",", COMMA),
-    DECTOK("eof", FINAL)
+    DECTOK("%", MOD),
+    DECTOK("and", AND),
+    DECTOK("or", OR),
+    DECTOK("xor", XOR),
+    DECTOK("eof", EOF)
 };
 
 Parser *CreateParser(Tcl_Interp *ip) {
-    int ntoks, i;
     Parser *res = malloc(sizeof(Parser));
     if (NULL == res) return NULL;
 
     res->deleted = res->busy = res->failed = res->tracing = 0;
-    ntoks = res->numtokens = sizeof(toktab) / sizeof(tokdesc);
-    res->tokens = (const char **) malloc((ntoks+1) * sizeof(const char *));
-
-    for (i=0;i<ntoks;i++) {
-        res->tokens[i] = toktab[i].name;
-    }
-    res->tokens[ntoks] = NULL;
 
     res->theparser = PARSERALLOC(malloc);
     if (NULL == res->theparser) {
@@ -83,7 +79,6 @@ void DeleteParser(Parser * p) {
         return;
     }
     PARSERFREE(p->theparser, free);
-    free(p->tokens);
     free(p);
 }
 
@@ -160,7 +155,8 @@ int ParserObjCmdProc(ClientData clientData,
                 Tcl_Obj *toktype;
                 if (TCL_OK != Tcl_ListObjIndex(ip, objv[i], 0, &toktype))
                     goto error;
-                result = Tcl_GetIndexFromObj(ip, toktype, p->tokens, "token", 0, &index);
+                result = Tcl_GetIndexFromObj(ip, toktype, 
+                                             LeParTokens, "token", 0, &index);
                 if (result != TCL_OK) 
                     goto error;
 #if 0
@@ -168,7 +164,8 @@ int ParserObjCmdProc(ClientData clientData,
                        toktab[index].name, toktab[index].tokenid);
 #endif
                 Tcl_IncrRefCount(objv[i]);
-                if (LEPAR_TK_FINAL == toktab[index].tokenid) {
+                if (LEPAR_TK_EOF == toktab[index].tokenid) {
+                    PARSERNAME(p->theparser, toktab[index].tokenid, objv[i], p);
                     PARSERNAME(p->theparser, 0, NULL, p);
                 } else {
                     PARSERNAME(p->theparser, toktab[index].tokenid, objv[i], p);
@@ -229,7 +226,22 @@ int ParserCreateProc(ClientData clientData,
 
 int Lepar_Init(Tcl_Interp *ip) {
 
+    int i;
+
     Tcl_InitStubs(ip, "8.0", 0);
+
+    LeParNumTokens = sizeof(toktab) / sizeof(tokdesc);
+    LeParTokens = (const char **) 
+        malloc((LeParNumTokens+1) * sizeof(const char *));
+    if (NULL == LeParTokens) {
+        Tcl_SetResult(ip,"out of memory",TCL_STATIC);
+        return TCL_ERROR;
+    }
+
+    for (i=0;i<LeParNumTokens;i++) {
+        LeParTokens[i] = toktab[i].name;
+    }
+    LeParTokens[LeParNumTokens] = NULL;
 
     Tcl_CreateObjCommand(ip, "lepar::parser", ParserCreateProc, NULL, NULL);
 
