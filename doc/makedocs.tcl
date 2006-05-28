@@ -11,6 +11,7 @@
 # published by the Free Software Foundation.
 #
 
+lappend auto_path /usr/share/tcl
 lappend auto_path /home/cn/ActiveTcl8.4.3.0-linux-ix86/lib/
 
 package require doctools
@@ -43,7 +44,7 @@ foreach name $flst {
 
     puts "-> $name"
 
-    foreach fmt {2html 2man 2tmml} { $fmt configure -file $name }
+    foreach fmt {2html 2man} { $fmt configure -file $name }
 
     set inp [open $name]
     set data [read $inp]
@@ -64,7 +65,7 @@ foreach name $flst {
     puts $ch [2tmml format $data]
     close $ch
     
-    if 0 {
+    if 1 {
         set ch [open [file join html $rname.html] w]
         puts $ch [2html format $data]
         close $ch

@@ -38,7 +38,9 @@ CFLAGS += -DSTEENROD_VERSION=\"$(STEENROD_VERSION)\"
 CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT 
 #CFLAGS += -fprofile-arcs -ftest-coverage -pg
 #CFLAGS += -DUSE_VERB_ALLOC=1
-CFLAGS += -msse2 -DUSESSE2
+
+# uncomment next line if you have 64-bit 686 processor with sse2 support
+#CFLAGS += -msse2 -DUSESSE2
 
 NOTANGLE = notangle
 NOWEAVE  = noweave

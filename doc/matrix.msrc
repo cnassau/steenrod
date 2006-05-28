@@ -18,7 +18,7 @@ help to do linear algebra modulo a prime.
 
 [para]
 
-Vectors and matrices are represent in the straightforward way as
+Vectors and matrices are represented in the straightforward way as
 lists of integers (resp. lists of lists of integers): 
 for example, [const {{0 1 2 0 1 0 1}}] is a valid vector and
 [const {{{2 1} {0 -1} {0 0}}}] a valid matrix. 
@@ -42,6 +42,11 @@ Checks whether [arg matrix] is zero.
 
 [lst_item "[cmd matrix] [cmd dimensions] [arg matrix]"]
 Returns the dimensions of [arg matrix] as a list of the form [const "\{rows columns\}"].
+
+[strong Note:] the empty matrix [const "\{\}"] does not have well defined
+dimensions. The command will return some value of the form 
+[const "\{0 columns\}"] or [const "\{rows 0\}"], depending on the
+internal representation of the matrix.
 
 [lst_item "[cmd matrix] [cmd addto] [arg matVar] [arg matrix] ?[arg scale]? ?[arg mod]?"]
 Here the variable [arg matVar] is assumed to contain a matrix of the same dimensions
@@ -109,6 +114,9 @@ while running [cmd "matrix orthonormalize"],
 
    # put write trace on the progress variable.  
    trace add variable ourProgVar write ourTraceProc 
+   
+   # now safe to call a long-running [cmd ortho]
+   matrix ortho 3 bigmatrix bigkernel
 }]
 
 
