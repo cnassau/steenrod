@@ -20,7 +20,7 @@ if {[catch {package require Steenrod} err]} {
     exit 1
 }
 
-namespace import steenrod::*
+namespace import -force steenrod::*
 
 array set defoptions {
     -prime   { {} "the prime" }
@@ -340,7 +340,7 @@ while {$repcnt} {
                 # at this point the gui's trace will trigger
                 set tridegree [list $sdeg $ideg $edeg]
 
-                #            puts "(s:$sdeg, i:$ideg, e:$edeg) : profile $theprofile"
+                            puts "(s:$sdeg, i:$ideg, e:$edeg) : profile $theprofile"
 
                 foreach mod [list C$sp C$sc C$sn] { 
                     $mod configure -profile $theprofile 
@@ -359,24 +359,25 @@ while {$repcnt} {
                         # right number of rows.
                         set mdsc [matrix create [C0 dim] 1]
                     }                
-                    eval set mdsn \[ComputeMatrix C$sn d$sn C$sc\]  
+                    eval set mdsn \[steenrod::ComputeMatrix C$sn d$sn C$sc\]  
                 } else {
                     # using eval here gives nicer error reports
-                    eval set mdsc \[ComputeMatrix C$sc d$sc C$sp\]  
-                    eval set mdsn \[ComputeMatrix C$sn d$sn C$sc\]  
+                    eval set mdsc \[steenrod::ComputeMatrix C$sc d$sc C$sp\]  
+                    eval set mdsn \[steenrod::ComputeMatrix C$sn d$sn C$sc\]  
                 }
-                
+
                 # compute image...
                 matrix ortho $p mdsn ker  ;# (ker is not used) 
 
+
                 # compute kernel...
                 matrix ortho $p mdsc ker
+
 
                 unset mdsc ;# (to save memory)
 
                 # ...and compute quotient
                 matrix quot $p ker $mdsn
-
                 unset mdsn ;# (to save memory)            
 
                 
@@ -425,7 +426,7 @@ while {$repcnt} {
                 # The rows in the matrix errterms are "d(d($id))" so they
                 # should be zero at the end of the correction process
 
-                set errterms [ComputeImage d$sc errenu $newdiffs]
+                set errterms [steenrod::ComputeImage d$sc errenu $newdiffs]
 
                 dbgadd { "errterms = $errterms" }
                 dbgadd { "C$sp basis = [errenu basis]" }
@@ -455,7 +456,7 @@ while {$repcnt} {
                     dbgadd { "    extracted $errmat via $seqmap" }
 
                     # compute relevant part of matrix   C$sc -> C$sp 
-                    set mdsn [eval ComputeMatrix C$sc d$sc C$sp]
+                    set mdsn [eval steenrod::ComputeMatrix C$sc d$sc C$sp]
 
                     dbgadd { "    matrix is $mdsn" }
 
@@ -477,7 +478,7 @@ while {$repcnt} {
 
                     dbgadd { "    using corrections $corrections" }
                     # update error terms
-                    matrix addto errterms [ComputeImage \
+                    matrix addto errterms [steenrod::ComputeImage \
                                                d$sc errenu $corrections] 1 $p
                 }
 
