@@ -179,8 +179,8 @@ void stdClearMatrix2(void *mat) {
 
 void stdUnitMatrix2(void *mat) {
     mat2 *m = (mat2 *) mat;
-    stdClearMatrix2(mat);
     int i,r = m->rows < m->cols ? m->rows : m->cols;
+    stdClearMatrix2(mat);
     for (i=0;i<r;i++)
         stdSetEntry2(mat,i,i,1);
 }
