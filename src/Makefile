@@ -121,10 +121,10 @@ lemon: lemon.c
 	$(CC) -o lemon lemon.c
 
 legram.c: legram.y lemon lempar.c
-	lemon legram.y
+	./lemon legram.y
 
 legram.h: legram.y lemon lempar.c
-	lemon legram.y
+	./lemon legram.y
 	touch legram.h
 
 # DO NOT DELETE -- make depend will overwrite the entries below

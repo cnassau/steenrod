@@ -206,13 +206,15 @@ int ParserCreateProc(ClientData clientData,
                      int objc,
                      Tcl_Obj *CONST objv[]) {
 
+    Parser *pxx;
+
     if (objc != 2) {
         char errmsg[200];
         sprintf(errmsg, "usage: %s <name>", Tcl_GetString(objv[0]));
         return TCL_ERROR;
     }
 
-    Parser *pxx = CreateParser(interp);
+    pxx = CreateParser(interp);
 
     if (NULL == pxx) {
         return TCL_ERROR;
