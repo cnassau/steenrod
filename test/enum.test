@@ -181,8 +181,17 @@ test enum-1.3 {enum, double test segfault I} {
     set res
 } {}
 
-test enum-1. {} {
-} {}
+test enum-1.4 {infinite loop problem} {
+    enumerator x -prime 2 -algebra {1 0 {3 2 1} 0} -profile {0 0 {2 1} 0} \
+        -genlist {0} -ideg 1000
+    x sigreset
+    set cnt 0
+    while {[x signext] && ([incr cnt]<100)} {}
+    # not sure about what to expect precisely here,
+    # but result must be smaller than dimension
+    # of the profile
+    expr {($cnt < 8) ? "sane" : "weird"}
+} {sane}
 
 test enum-1. {} {
 } {}
