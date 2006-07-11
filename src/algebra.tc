@@ -1,0 +1,198 @@
+# -*-tcl-*-
+# Implementation of the steenrod::algebra command 
+#
+# Copyright (C) 2006 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+namespace eval steenrod::algebra {}
+
+proc steenrod::algebra {args} {
+    if {![llength $args]} {
+        error {wrong \# args: should be "algebra subcommand ?args?"}
+    }
+    if {[info commands ::steenrod::algebra::[lindex $args 0]] eq ""} {
+        foreach subcmd [lsort [info commands ::steenrod::algebra::\[a-z\]*]] {
+            lappend scmds [namespace tail $subcmd]
+        }
+        error "bad subcommand [lindex $args 0]: must be [join $scmds {, }]"
+    }
+    eval [list ::steenrod::algebra:: [lindex $args 0]] [lrange $args 1 end]
+}
+
+proc steenrod::algebra:: args {eval $args}
+
+
+
+proc steenrod::algebra::name {profile} {
+    foreach {ext red} $profile break
+    set r2 [list]
+    foreach exp $red {
+        switch -regexp -- $exp {
+            \[0-9\]+ {
+                lappend r2 [format %d $exp]
+                continue
+            }
+            full {
+                lappend r2 full
+                break
+            }
+        } 
+        error "illegal exponent $exp"
+    }
+    return E${ext}R[join $r2 -]
+}
+
+proc steenrod::algebra::parse {name} {
+    
+    # try to parse it from filename format
+    if {[regexp {E([-0-9]+)R(.*)} $name total extpart redpart]} {
+        #puts "$alg => extpart $extpart redpart $redpart"
+        set rcoffs [list]
+        foreach comp [split $redpart -] {
+            switch -- $comp {
+                full {
+                    lappend rcoffs full
+                }
+                default {
+                    lappend rcoffs [expr {int($comp)}]
+                }
+            }
+        }
+        return [list $extpart $rcoffs]
+    }
+  
+    if {$name eq "full"} {
+        return {-1 full}
+    }
+
+    if {$name eq "reduced"} {
+        return {0 full}
+    }
+
+    error "algebra \"$name\" not understood"
+}
+
+proc steenrod::algebra::exponent {profile index} {
+    set exp [lindex $profile 1 $index]
+    if {$exp eq "full"} {
+        return 100
+    }
+    if {[string length $exp]} {
+        return $exp
+    }
+    return 0
+}
+
+proc steenrod::algebra::contains {prof1 prof2} {
+    foreach {e1 r1} $prof1 break
+    foreach {e2 r2} $prof2 break
+    if {($e1 &  $e2) != $e2} {
+        return false
+    }
+    set i 0
+    foreach exp $r2 {
+        if {[exponent $prof1 $i] < [exponent $prof2 $i]} {
+            return false
+        }
+        incr i
+    }
+    return true
+}
+
+proc steenrod::algebra::span {args} {
+
+    # expect a list of profiles and compute their span
+
+    if {0 == [llength $args]} {
+        return [list 0 {}]
+    }
+    
+    set ext 0
+    set red {}
+
+    set isnegative false
+    set N 0
+    set nargs [list]
+    foreach arg $args {
+        set i 1
+        foreach exp [lindex $arg 1] {
+            set aux [expr {$exp+$i}]
+            if {$aux > $N} {set N $aux}
+            incr i
+        }
+        set aux [lindex $arg 0]
+        set bux [expr {($aux<0) ? -1 : 0}]
+        if {$bux < 0} {set isnegative true}
+        while {($aux >> $N) != $bux} {
+            incr N
+        }
+        lappend nargs [string map {full 100} $arg]
+    }
+    set args $nargs
+
+    if {$isnegative} {
+        set ext [expr {-1 << $N}]
+    }
+
+    for {set i 0} {$i<=$N} {incr i} {
+
+        set span [list $ext $red]
+
+        # check if Q_i is in span
+
+        set qi [expr {1 << $i}]
+        set nq 0
+        foreach alg $args {
+            if {$qi & [lindex $alg 0]} {
+                set nq $qi
+                break
+            }
+        }
+
+        if {!$nq} {
+            for {set j 0} {$j<$i} {incr j} {
+                # use "xi_{i-j}^p{j} \tensor \tau_j" from Delta(tau_i)
+
+                set spanexp [exponent $span [expr {$i-$j-1}]]
+
+                set st_contains_xi [expr {$spanexp > $j}]
+                set st_contains_tau [expr {[lindex $span 0] & (1 << $j)}]
+                if {$st_contains_xi && $st_contains_tau} {
+                    set nq $qi
+                    break
+                }
+            }
+        }
+
+        set ext [expr {$ext | $nq}]
+
+        # determine largest P(0,...,0,p^k) in span
+
+        set max 0
+        foreach alg $args {
+            set x [exponent $alg $i]
+            if {$x > $max} {set max $x}
+        }
+        if {$max >= 100} {set max 1000}
+
+        for {set j 1} {$j<=$i} {incr j} {
+            # use "xi_{i-j+1}^p{j} \tensor \xi_j" from Delta(xi_i+1)
+            set m1 [exponent $span [expr {$i-$j}]]
+            if {$m1>=100} {set m1 1000}
+            incr m1 -$j
+            set m2 [exponent $span [expr {$j-1}]]
+            if {$m2>=100} {set m2 1000}
+            set min [expr {($m1<$m2) ? $m1 : $m2}]
+            if {$min > $max} {set max $min}
+        }
+        lappend red [expr {($max < 100) ? $max : 100}]
+    }
+
+    return $span
+}

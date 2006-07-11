@@ -8,11 +8,13 @@
 # it under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
 
-STEENROD_VERSION=0.7631
+STEENROD_VERSION=0.7632
 
 SYSTEM = Unix
 
 TCLSH = tclsh
+
+SED = sed
 
 ifeq ($(SYSTEM),Windows)
   CC     = gcc -mdll -mno-cygwin
@@ -39,7 +41,7 @@ CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT
 #CFLAGS += -fprofile-arcs -ftest-coverage -pg
 #CFLAGS += -DUSE_VERB_ALLOC=1
 
-# uncomment next line if you have 64-bit 686 processor with sse2 support
+# uncomment next line if you have a 64-bit 686 processor with sse2 support
 #CFLAGS += -msse2 -DUSESSE2
 
 NOTANGLE = notangle
@@ -49,7 +51,7 @@ NOWEBFILES = mult.nw
 
 SRCS = adlin.c linalg.c linwrp.c tlin.c prime.c tprime.c tptr.c \
        poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c common.c \
-       hmap.c linwrp2.c lepar.c legram.c
+       hmap.c linwrp2.c lepar.c legram.c algebra.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -68,6 +70,11 @@ install: libraries steenrodsh
 	(cd ../lib; echo "pkg_mkIndex ." | $(TCLSH))
 	mkdirhier ../bin
 	cp steenrodsh ../bin
+
+%.c : %.tc
+	@echo "const char *tc_$* = " > $*.c
+	$(SED) 's/\\/\\\\/g' $*.tc | $(SED) 's/\"/\\\"/g' | $(SED) 's/.*/\"\0\\n\"/g' >> $*.c
+	@echo ";" >> $*.c   
 
 %.c : %.nw
 	$(NOTANGLE) -L -R$*.c $(NOWEBFILES) > $*.c

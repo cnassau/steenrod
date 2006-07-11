@@ -1,0 +1,201 @@
+# -*- tcl -*-
+#
+# This file provides a test suite for the algebra functions
+#
+# Copyright (C) 2006 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+proc listmatch {a b} {
+    if {[llength $a] != [llength $b]} {
+        return false
+    }
+    foreach x $a y $b {
+        if {$x ne $y} {
+            return false
+        }
+    }
+    return true
+}
+customMatch list listmatch
+
+proc dictmatch {a b} {
+    if {[llength $a] != [llength $b]} {
+        return false
+    }
+    array set aa $a
+    array set bb $b
+    foreach nm [array names aa] {
+        if {![info exists bb($nm)] || ($aa($nm) ne $bb($nm))} {
+            return false
+        }
+    }    
+    return true
+}
+customMatch dict dictmatch
+
+proc algebramatch {a b} {
+    expr {[algebra contains $a $b] && [algebra contains $b $a]}
+}
+customMatch algebra algebramatch
+
+foreach {alg name} {
+    {0 full}             E0Rfull
+    {-1 full}            E-1Rfull 
+    {-1 {0 full}}        E-1R0-full 
+    {-1 {3 2 1}}         E-1R3-2-1 
+    {0 {10 0 10 0 full}} E0R10-0-10-0-full 
+    {7 {2 1}}            E7R2-1   
+} {
+    set alg2name($alg) $name
+    set name2alg($name) $alg
+}
+
+test algebra "algebra to name" -body {
+    set res {}
+    foreach alg [array names ::alg2name] {
+        lappend res $alg [algebra name $alg]
+    }
+    set res
+} -match dict -result [array get ::alg2name]
+
+test algebra "name to algebra" -body {
+    set res {}
+    foreach name [array names ::name2alg] {
+        lappend res $name [algebra parse $name]
+    }
+    set res
+} -match dict -result [array get ::name2alg]
+
+
+test algebra "recognise full" -body {
+    algebra parse full
+} -match list -result {-1 full}
+
+
+test algebra "recognise reduced" -body {
+    algebra parse reduced
+} -match list -result {0 full}
+
+
+foreach {alg spn} {
+    {5 0} {5 0}
+    {1 0} {1 0}
+    {0 1} {0 1}
+    {0 {0 1}} {0 {0 1}}
+    {0 {1 1}} {0 {1 1}}
+    {1 1} {3 1}
+    {1 2} {7 {2 1}}
+    {1 3} {15 {3 2 1}}
+    {0 {0 0 3}} {0 {0 0 3}}
+    {0 {0 0 4}} {0 {0 0 4 0 0 1}}
+    {0 15} {0 {15 14 13 12 11 10 9 8 7 6 5 4 3 2 1}}
+    {-1328 0}   {-1328 0} 
+    {-34528 0}  {-34528 0} 
+    {-328 1}    {-328 1} 
+    {-56 {0 1}} {-56 {0 1}} 
+    {-127 0} {-127 0}
+    {-128 0} {-128 0}
+} {
+    test algebra "span of $alg" \
+        -body [list algebra span $alg] -result $spn -match algebra
+}
+
+
+test algebra "contains" -body {
+    set res ""
+    foreach {a b} {
+        {1 {}} {0 {}}
+        {0 {}} {1 {}}
+        {2 {}} {0 {}}
+        {2 {}} {2 {}}
+        {2 {}} {3 {}}
+        {2 {}} {4 {}}
+        {3 {}} {3 {}}
+        {3 {}} {4 {}}
+
+        {0 {0 1}} {0 {0 1}}
+        {0 {0 1}} {0 {0 0 1}}
+        {0 {0 1}} {0 {1}}
+        {0 {0 0 1}} {0 {0 1}}
+        {0 {0 0 1}} {0 {0 0 1}}
+        {0 {0 0 1}} {0 {1}}
+        {0 {1}} {0 {0 1}}
+        {0 {1}} {0 {0 0 1}}
+        {0 {1}} {0 {1}}
+        
+        
+    } {
+        lappend res [expr {[algebra contains $a $b] ? "Y" : "N"}]
+    } 
+    set res
+} -match list -result {
+    Y N Y Y N N Y N
+    Y N N N Y N N N Y
+}
+
+
+test algebra "" {
+
+} {}
+
+
+test algebra "" {
+
+} {}
+
+
+test algebra "" {
+
+} {}
+
+
+test algebra "" {
+
+} {}
+
+
+test algebra "" {
+
+} {}
+
+
+test algebra "" {
+
+} {}
+
+
+test algebra "" {
+
+} {}
+
+
+test algebra "" {
+
+} {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+# cleanup
+::tcltest::cleanupTests
+

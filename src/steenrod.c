@@ -604,6 +604,8 @@ int VersionCmd(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
+extern const char *tc_algebra;
+
 EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_InitStubs(ip, "8.0", 0);
@@ -667,6 +669,10 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_UnlinkVar(ip, POLYNSP "_objCount");
     Tcl_LinkVar(ip, POLYNSP "_objCount", (char *) &objCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
+
+    if( TCL_OK != Tcl_Eval(ip, tc_algebra) ) {
+        return TCL_ERROR;
+    }
 
     Tcl_Eval(ip, "namespace eval " POLYNSP 
              " { namespace export -clear \\[a-z\\]* }");
