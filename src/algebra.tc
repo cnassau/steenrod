@@ -79,10 +79,11 @@ proc steenrod::algebra::parse {name} {
 }
 
 proc steenrod::algebra::exponent {profile index} {
-    set exp [lindex $profile 1 $index]
-    if {$exp eq "full"} {
+    set isfull [lsearch [lindex $profile 1] "full"]
+    if {($isfull >= 0) && ($index >= $isfull)} {
         return 100
-    }
+    }     
+    set exp [lindex $profile 1 $index]
     if {[string length $exp]} {
         return $exp
     }
@@ -195,4 +196,29 @@ proc steenrod::algebra::span {args} {
     }
 
     return $span
+}
+
+proc steenrod::algebra::ptslist {algebra nalg} {
+    set res {}
+    for {set i 0} {$i <= $nalg} {incr i} {
+        for {set j 0} {$j<$i} {incr j} {
+            set aux [expr {$i-$j-1}]
+            if {[exponent $algebra $j] > $aux} {
+                lappend res [list P [expr {$j+1}] $aux]
+            }
+        }
+        set aux [expr {1<<$i}]
+        if {0 != ($aux & [lindex $algebra 0])} { 
+            lappend res [list Q $i]
+        }
+    }
+    return $res
+}
+
+proc steenrod::algebra::compinfo {algebra nalg} {
+    set res {}
+    set ptslist [__ptslist__ $algebra $nalg]
+    lappend res ptslist $ptslist
+    
+    return $res
 }
