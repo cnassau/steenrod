@@ -215,10 +215,68 @@ proc steenrod::algebra::ptslist {algebra nalg} {
     return $res
 }
 
+proc steenrod::algebra::ContainsPts {algebra pts} {
+    switch -- [lindex $pts 0] {
+        P {
+            foreach {x i j} $pts break
+            return [expr {([exponent $algebra [expr {$i-1}]] > $j) ? 1 : 0}]
+        }
+        Q {
+            return [expr {[lindex $algebra 0] & (1 << [lindex $pts 1])}]
+        }
+    }
+    error "$pts not understood"
+}
+
+proc steenrod::algebra::ReducedCoproduct {pts} {
+    set res {}
+    switch -- [lindex $pts 0] {
+        P {
+            foreach {x t s} $pts break
+            for {set i 1} {$i<$t} {incr i} {
+                lappend res [list P [expr {$t-$i}] [expr {$s+$i}]]
+                lappend res [list P $i $s]
+            }
+            return $res
+        }
+        Q {
+            foreach {x n} $pts break
+            for {set i 0} {$i<$n} {incr i} {
+                lappend res [list P [expr {$n-$i}] $i]
+                lappend res [list Q $i]
+            }
+            return $res
+        }
+    }
+    error "$pts not understood"
+}
+
 proc steenrod::algebra::compinfo {algebra nalg} {
     set res {}
-    set ptslist [__ptslist__ $algebra $nalg]
+    set ptslist [ptslist $algebra $nalg]
     lappend res ptslist $ptslist
-    
+    set generators {}
+    set redcops {}
+    foreach pts $ptslist {
+        set isgen true
+        set rcps {}
+        foreach {1st 2nd} [ReducedCoproduct $pts] {
+            if {[ContainsPts $algebra $1st] && [ContainsPts $algebra $2nd]} {
+                set isgen false
+                lappend rcps $1st $2nd
+            } 
+        }
+        if {$isgen} {
+            lappend generators $pts
+        } else {
+            lappend redcops [list $pts $rcps]
+        }
+    }
+    lappend res generators $generators redcops $redcops
     return $res
+}
+
+proc steenrod::algebra::generators {algebra nalg} {
+    array set stuff [compinfo $algebra $nalg]
+    return $stuff(generators)
 }

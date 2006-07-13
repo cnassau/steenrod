@@ -11,7 +11,8 @@
 # published by the Free Software Foundation.
 #
 
-source ../src/algebra.tc
+#source ../src/algebra.tc  
+
 namespace import -force steenrod::*
 
 if {[lsearch [namespace children] ::tcltest] == -1} {
@@ -180,9 +181,18 @@ test algebra "exponent" {
 } {5 2 1 100 100 100 100 100}
 
 
-test algebra "" {
-
-} {}
+foreach {alg n gens} {
+    {-1 full} 0 {{Q 0}} 
+    {-1 full} 1 {{Q 0} {P 1 0}} 
+    {-1 full} 2 {{Q 0} {P 1 0} {P 1 1}} 
+    {-1 full} 3 {{Q 0} {P 1 0} {P 1 1} {P 1 2}} 
+    {6 {}} 8 {{Q 1} {Q 2}}
+    {0 {2 2 2 2 1}} 8 {{P 1 0} {P 1 1} {P 2 1} {P 3 1} {P 4 1}}
+} {
+    test algebra "generators" -body [subst -nocommands {
+        lsort [algebra generators [list $alg] $n]
+    }] -match list -result [lsort $gens]
+}
 
 
 test algebra "" {
