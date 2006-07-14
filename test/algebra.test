@@ -49,7 +49,7 @@ proc dictmatch {a b} {
 customMatch dict dictmatch
 
 proc algebramatch {a b} {
-    expr {[algebra contains $a $b] && [algebra contains $b $a]}
+    algebra equal $a $b
 }
 customMatch algebra algebramatch
 
@@ -110,6 +110,8 @@ foreach {alg spn} {
     {-56 {0 1}} {-56 {0 1}} 
     {-127 0} {-127 0}
     {-128 0} {-128 0}
+    {-1 full} {-1 full}
+    {0 full} {0 full}
 } {
     test algebra "span of $alg" \
         -body [list algebra span $alg] -result $spn -match algebra

@@ -60,6 +60,9 @@ proc steenrod::algebra::parse {name} {
                     lappend rcoffs full
                 }
                 default {
+                    if {![string is integer -strict $comp]} {
+                        error "expected integer, got $comp"
+                    }
                     lappend rcoffs [expr {int($comp)}]
                 }
             }
@@ -106,6 +109,10 @@ proc steenrod::algebra::contains {prof1 prof2} {
     return true
 }
 
+proc steenrod::algebra::equal {a1 a2} {
+    expr {[contains $a1 $a2] && [contains $a2 $a1]}
+}
+
 proc steenrod::algebra::span {args} {
 
     # expect a list of profiles and compute their span
@@ -122,7 +129,8 @@ proc steenrod::algebra::span {args} {
     set nargs [list]
     foreach arg $args {
         set i 1
-        foreach exp [lindex $arg 1] {
+        foreach e [lindex $arg 1] {
+            set exp [exponent $arg [expr {$i-1}]]
             set aux [expr {$exp+$i}]
             if {$aux > $N} {set N $aux}
             incr i
