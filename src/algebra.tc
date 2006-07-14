@@ -202,8 +202,15 @@ proc steenrod::algebra::span {args} {
         }
         lappend red [expr {($max < 100) ? $max : 100}]
     }
+    
+    if {[lindex $red end] == 100} {
+        while {[lindex $red end] == 100} {
+            set red [lrange $red 0 end-1]
+        }
+        lappend red full
+    }
 
-    return $span
+    list $ext $red
 }
 
 proc steenrod::algebra::ptslist {algebra nalg} {
@@ -288,3 +295,22 @@ proc steenrod::algebra::generators {algebra nalg} {
     array set stuff [compinfo $algebra $nalg]
     return $stuff(generators)
 }
+
+proc steenrod::algebra::Logp {prime num} {
+    set res 0
+    foreach pow [steenrod::prime $prime powers] {
+        if {$pow > $num} {return $res}
+        incr res
+    }
+    return 100
+}
+
+proc steenrod::algebra::envelope {prime element} {
+    set x [list]
+    foreach itm [lindex $element 2] {
+        lappend x [Logp $prime $itm]
+    }
+    lset element 2 $x
+    return [lrange $element 1 2]
+}
+
