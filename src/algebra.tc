@@ -314,3 +314,18 @@ proc steenrod::algebra::envelope {prime element} {
     return [lrange $element 1 2]
 }
 
+proc steenrod::algebra::pts2op {prime pts} {   
+    switch -- [lindex $pts 0] {
+        P {
+            foreach {x i j} $pts break
+            set exp [lindex [steenrod::prime $prime powers] $j]
+            set red [string repeat "0 " [expr {$i-1}]]
+            lappend red $exp
+            return [list 1 0 $red 0]
+        }
+        Q {
+            return [list 1 [expr {1 << [lindex $pts 1]}] {} 0]
+        }
+    }
+    error "$pts not understood"
+}
