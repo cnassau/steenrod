@@ -406,11 +406,11 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp,
     return TCL_OK;
 }
 
-Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp, 
+Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj **urb,
                       Tcl_Interp *ip, const char *progvar, int pmsk) {
     matrixType *mt = PTR1(inp);
     progressInfo pro;
-    void *res;
+    void *res, *oth, *oth2;
 
     /* since we cannibalize inp, it must not be shared */
     if (Tcl_IsShared(inp))
@@ -427,9 +427,19 @@ Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp,
     /* shouldn't reduce be implicitly done in the orthofunc... ? */
     if (NULL != mt->reduce) (mt->reduce)(PTR2(inp), pi->prime);
 
-    res = (mt->orthoFunc)(pi, PTR2(inp), (NULL != progvar) ? &pro : NULL);
+    if (NULL != urb) {
+        oth2 = &oth;
+    } else {
+        oth2 = NULL;
+    }
+
+    res = (mt->orthoFunc)(pi, PTR2(inp), oth2, (NULL != progvar) ? &pro : NULL);
 
     if (NULL == res) return NULL;
+
+    if (NULL != urb) {
+        *urb = Tcl_NewMatrixObj(mt, oth);
+    }
 
     Tcl_InvalidateStringRep(inp);
 
@@ -903,30 +913,75 @@ int Tcl_Convert2Cmd(Tcl_Interp *ip, Tcl_Obj *inmat) {
     return TCL_OK;
 }
 
+int Tcl_MultMatrixCmd(Tcl_Interp *ip, primeInfo *pi, 
+                      Tcl_Obj *f1, Tcl_Obj *f2) {
+    
+    matrixType *mt1, *mt2; 
+    void *mdat1, *mdat2, *mres;
+    int rows, cols, inb, inb2, i, j, k, p = pi->prime;
+
+    if (TCL_OK != Tcl_ConvertToMatrix(ip, f1))
+        return TCL_ERROR;
+    
+    if (TCL_OK != Tcl_ConvertToMatrix(ip, f2))
+        return TCL_ERROR;
+    
+    mt1 = matrixTypeFromTclObj(f1);
+    mt2 = matrixTypeFromTclObj(f2);
+    mdat1 = matrixFromTclObj(f1);
+    mdat2 = matrixFromTclObj(f2);
+
+    mt1->getDimensions(mdat1, &rows, &inb);
+    mt2->getDimensions(mdat2, &inb2, &cols);
+
+    if (inb != inb2) {
+        Tcl_SetResult(ip, "dimensions don't match", TCL_STATIC);
+        return TCL_ERROR;
+    }
+
+    mres = mt1->createMatrix(rows, cols);
+    
+    for (i=0;i<rows;i++) {
+        for (j=0;j<cols;j++) {
+            int aux = 0;
+            for (k=0;k<inb;k++) {
+                int v,w;
+                mt1->getEntry(mdat1,i,k,&v);
+                mt2->getEntry(mdat2,k,j,&w);
+                aux += v*w; aux %= p;
+            }
+            mt1->setEntry(mres,i,j,aux);
+        }
+    }
+
+    Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt1, mres));
+    return TCL_OK;
+}
+
 /**** Implementation of the matrix combi-command ***********************************/
 
 static CONST char *rcnames[] = { "rows", "cols", NULL };
 
 typedef enum { ORTHO, LIFT, QUOT, DIMS, CREATE, ADDTO, 
                ISZERO, TEST, EXTRACT, ENCODE64, DECODE, 
-               TYPE, CONVERT2 } matcmdcode;
+               TYPE, CONVERT2, MULT } matcmdcode;
 
 static CONST char *mCmdNames[] = { "orthonormalize", "lift", 
                                    "quotient", "extract", "dimensions", 
                                    "create", "addto", "iszero", 
                                    "test", "encode64", "decode", 
-                                   "type", "convert2",
+                                   "type", "convert2", "multiply",
                                    (char *) NULL };
 
 static matcmdcode mCmdmap[] = { ORTHO, LIFT, QUOT, EXTRACT, 
                                 DIMS, CREATE, ADDTO, ISZERO, TEST, ENCODE64, DECODE, 
-                                TYPE, CONVERT2 };
+                                TYPE, CONVERT2, MULT };
 
 int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index, scale, modval, rows, cols;
     primeInfo *pi;
     matrixType *mt; void *mdat;
-    Tcl_Obj *(varp[5]);
+    Tcl_Obj *(varp[5]), *urbobj, **urb;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
@@ -1036,7 +1091,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             return TCL_OK;
 
         case ORTHO: 
-            EXPECTARGS(2, 3, 3, "<prime> <varname> <varname>");
+            EXPECTARGS(2, 3, 4, "<prime> <inputvar> <kernelvar> ?<basisvar>?");
             
             if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[2],&pi))
                 return TCL_ERROR;
@@ -1044,7 +1099,13 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             if (NULL == (varp[1] = TakeMatrixFromVar(ip, objv[3])))
                 return TCL_ERROR;
 
-            varp[2] = Tcl_OrthoCmd(pi, varp[1], ip, THEPROGVAR, theprogmsk);
+            if (objc > 5) {
+                urb = &urbobj;
+            } else {
+                urb = NULL;
+            }
+
+            varp[2] = Tcl_OrthoCmd(pi, varp[1], urb, ip, THEPROGVAR, theprogmsk);
             
             if (NULL == varp[2]) {
                 DECREFCNT(varp[1]);
@@ -1066,6 +1127,12 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
                 return TCL_ERROR;
             }
 
+            if ((NULL != urb) && 
+                (NULL == Tcl_ObjSetVar2(ip, objv[5], NULL, 
+                                        urbobj, TCL_LEAVE_ERR_MSG))) {
+                return TCL_ERROR;
+            } 
+
             return TCL_OK;
 
         case EXTRACT:
@@ -1086,6 +1153,14 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
                                  ILgetLength(objv[4]))
                 : ExtractRowsCmd(ip, objv[3], ILgetIntPtr(objv[4]),
                                  ILgetLength(objv[4]));
+
+        case MULT: 
+            EXPECTARGS(2, 3, 3, "<prime> <matrix1> <matrix2>");
+            
+            if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[2],&pi))
+                return TCL_ERROR;
+
+            return Tcl_MultMatrixCmd(ip, pi, objv[3], objv[4]);
 
         case DIMS: 
             EXPECTARGS(2, 1, 1, "<matrix>");

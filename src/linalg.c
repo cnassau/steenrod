@@ -245,6 +245,14 @@ void matrix_add(matrix *dst, matrix *src, cint coeff, cint prime) {
 #endif 
 }
 
+void matrix_collect_ext(matrix *mdest, matrix *msrc, int r) {
+    vector dst, src;
+    make_matrix_row(&dst, mdest, mdest->rows);
+    make_matrix_row(&src, msrc, r);
+    vector_copy(&dst, &src);
+    mdest->rows++;
+}
+
 void matrix_collect(matrix *m, int r) {
     if (r != m->rows) {
         vector dst, src;

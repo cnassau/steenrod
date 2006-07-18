@@ -284,7 +284,7 @@ proc steenrod::algebra::compinfo {algebra nalg} {
         if {$isgen} {
             lappend generators $pts
         } else {
-            lappend redcops [list $pts $rcps]
+            lappend redcops $pts $rcps
         }
     }
     lappend res generators $generators redcops $redcops

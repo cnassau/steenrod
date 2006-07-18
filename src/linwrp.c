@@ -88,7 +88,7 @@ int stdReduceMatrix(void *mat, int prime) {
     return SUCCESS;
 }
 
-void *stdOrthoFunc(primeInfo *pi, void *inp, progressInfo *prg) {
+void *stdOrthoFunc(primeInfo *pi, void *inp, void *urb, progressInfo *prg) {
     matrix *ker;
     Tcl_Interp *ip = NULL; 
     const char *progvar = NULL;
@@ -96,7 +96,7 @@ void *stdOrthoFunc(primeInfo *pi, void *inp, progressInfo *prg) {
     if (NULL != prg) { 
         ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; 
     }
-    ker = matrix_ortho(pi, (matrix *) inp, ip, progvar, pmsk);
+    ker = matrix_ortho(pi, (matrix *) inp, (matrix **) urb, ip, progvar, pmsk);
     return ker;
 }
 

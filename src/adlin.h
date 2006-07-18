@@ -21,8 +21,9 @@
  * nonzero they will regularly put progress information into the variable 
  * *progvar. This allows to monitor their progress from Tcl */
 
-/* orthonormalize the input matrix, return basis of kernel */
-matrix *matrix_ortho(primeInfo *pi, matrix *inp, 
+/* orthonormalize the input matrix, return basis of kernel 
+ * and (optionally) the base change description */
+matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb, 
                      Tcl_Interp *ip, const char *progvar, int pmsk);
 
 /* orthonormalize inp and reduce rows of lft against it; 

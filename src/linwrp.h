@@ -55,7 +55,7 @@ typedef struct {
     int  (*iszero)(void *mat);
     void *(*shrinkRows)(void *mat, int *idx, int num);
     int  (*add)(void *v1, void *v2, int scale, int mod);
-    void *(*orthoFunc)(primeInfo *pi, void *inp, progressInfo *prg);
+    void *(*orthoFunc)(primeInfo *pi, void *inp, void *urb, progressInfo *prg);
     void *(*liftFunc)(primeInfo *pi, void *inp, void *lft, progressInfo *prg);
     void (*quotFunc)(primeInfo *pi, void *ker, void *im, progressInfo *prg);
 } matrixType;

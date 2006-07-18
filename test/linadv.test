@@ -29,12 +29,14 @@ set primes {2 3 5 7 11 13 17 23}
 # in the sse version of the library the data
 # is processed in blocks of 16 entries, so N
 # should be >= 16. 
-set N 20
+foreach p $primes {
+    set N($p) 20
+}
 
 # The optimized matrix code at the prime 2 
 # represents entries by bits of an int, so
 # testmatrices should be >= 64.
-set N2 80
+set N(2) 80
 
 # a test template that checks whether the ortho 
 # subcommand computes the rank correctly
@@ -86,22 +88,22 @@ proc diagmatrix {size val} {
 proc unitmatrix size {diagmatrix $size 1}
 
 foreach p $primes {
-    set idmat [unitmatrix $N]
-    for {set i 0} {$i<$N} {incr i} {
-        ortho-rank-test $p "unit-rank-$i/$N-at-$p" [lrange $idmat 1 $i] $i
+    set idmat [unitmatrix $N($p)]
+    for {set i 0} {$i<$N($p)} {incr i} {
+        ortho-rank-test $p "unit-rank-$i/$N($p)-at-$p" [lrange $idmat 1 $i] $i
     }
 }
 
 foreach p $primes {
-    set idmat [matrix create $N $N]
-    for {set i 0} {$i<$N} {incr i} {
-        ortho-rank-test $p "zero-rank-$i/$N-at-$p" [lrange $idmat 1 $i] 0
+    set idmat [matrix create $N($p) $N($p)]
+    for {set i 0} {$i<$N($p)} {incr i} {
+        ortho-rank-test $p "zero-rank-$i/$N($p)-at-$p" [lrange $idmat 1 $i] 0
     }
 }
 
 
 for {set i 0} {$i<10} {incr i} {
-    set randmat [rmat $N $N 100]
+    set randmat [rmat $N($p) $N($p) 100]
     set bdy {}
     lappend bdy [list set mat $randmat]
     lappend bdy [list matrix addto mat $randmat -1]
@@ -111,7 +113,7 @@ for {set i 0} {$i<10} {incr i} {
 
 for {set i 0} {$i<3} {incr i} {
     foreach p $primes {
-        set randmat [rmat [expr {3*$i}] $N $p]
+        set randmat [rmat [expr {3*$i}] $N($p) $p]
         set bdy {}
         lappend bdy [list set mat $randmat]
         for {set k 1} {$k < $p} {incr k} {
@@ -123,15 +125,15 @@ for {set i 0} {$i<3} {incr i} {
     }
 }
 
-foreach row [unitmatrix $N] {
+foreach row [unitmatrix $N($p)] {
     test "matrix iszero" $row [list matrix iszero [list $row]] 0
 }
 
-foreach row [diagmatrix $N -1] {
+foreach row [diagmatrix $N($p) -1] {
     test "matrix iszero" $row [list matrix iszero [list $row]] 0
 }
 
-set m [matrix create $N $N]
+set m [matrix create $N($p) $N($p)]
 test "matrix iszero" $m [list matrix iszero $m] 1
 
 proc self-lift-test {mat p} {
@@ -152,7 +154,7 @@ proc self-lift-test {mat p} {
 
 foreach p $primes {
     for {set i 0} {$i<10} {incr i} {
-        set rmt [rmat $N $N $p]
+        set rmt [rmat $N($p) $N($p) $p]
         self-lift-test $rmt $p
     }
 }
@@ -175,10 +177,39 @@ proc self-quot-test {mat p} {
 
 foreach p $primes {
     for {set i 0} {$i<10} {incr i} {
-        set rmt [rmat $N $N $p]
+        set rmt [rmat $N($p) $N($p) $p]
         self-quot-test $rmt $p
     }
 }
+
+proc ortho-basis-test {mat p} {
+    set bdy [subst -nocommands {
+        set mcpy [set mat {$mat}]
+        matrix ortho $p mat ker nbas
+        # check mat == nbas * mcpy
+        set aux [matrix multiply $p [set nbas] [set mcpy]]
+        expr {([set aux] == [set mat]) ? "ok" : "mismatch"}
+    }]
+    test "ortho-basis-test" "prime $p" $bdy "ok"
+}
+
+foreach p $primes {
+    for {set i 0} {$i<10} {incr i} {
+        set rmt [rmat $N($p) $N($p) $p]
+        ortho-basis-test $rmt $p
+    }
+}
+
+test "multiplication" "mismatch" {
+    catch {matrix multiply 3 {{1 0 0} {0 1 1}} {{1 0 0} {0 1 1}} }
+} 1
+
+test "multiplication" "simple test" {
+    set m [matrix multiply 3 {{1 2 3} {4 5 6}} {{1 2} {3 4} {5 6}}]
+    matrix addto m {{1 1} {1 1}} -1
+    matrix iszero $m
+} 1
+
 
 
 

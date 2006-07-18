@@ -72,5 +72,6 @@ void make_matrix_row(vector *v, matrix *m, int r);
  * of the rows; for this we first set m->rows = 0, then call 
  * matrix_collect(...) for those rows that we want to keep.    */
 void matrix_collect(matrix *m, int r);
+void matrix_collect_ext(matrix *dest, matrix *src, int r);
 
 #endif

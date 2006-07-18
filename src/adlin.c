@@ -43,7 +43,7 @@
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 /* orthonormalize the input matrix, return basis of kernel */
-matrix *matrix_ortho(primeInfo *pi, matrix *inp, 
+matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
                      Tcl_Interp *ip, const char *progvar, int pmsk) {
     int i,j,cols, spr, uspr;
     int failure = 1;     /* pessimistic, eh? */
@@ -51,13 +51,21 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp,
     cint *aux;
     cint prime = pi->prime;
 
-    matrix m1, m2;
-    matrix *un ;
+    matrix m1, m2, m3;
+    matrix *un, *oth = NULL;
 
     PROGVARINIT ;
     un = matrix_create(inp->rows, inp->rows);
     if (NULL == un) return NULL;
     matrix_unit(un);
+
+    if (urb) {
+        oth = (*urb = matrix_create(inp->rows, inp->rows));
+        if (NULL == oth) {
+            matrix_destroy(un);
+            return NULL;
+        }
+    }
 
     cols = inp->cols;
 
@@ -75,6 +83,10 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp,
     m1.cols = inp->cols; m1.data = inp->data; m1.rows = 0;
     m2.nomcols = un->nomcols;  
     m2.cols = un->cols;  m2.data = un->data;  m2.rows = 0;
+    if (oth != NULL) {
+        m3.nomcols = oth->nomcols;  
+        m3.cols = oth->cols;  m3.data = oth->data;  m3.rows = 0;
+    }
 
     for (v1.data=inp->data, i=0; i<inp->rows; i++, v1.data+=spr) {
         cint coeff;
@@ -93,6 +105,9 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp,
         } else {
             DBGPRINT1("IMAGE VECTOR");
             matrix_collect(&m1, i); /* collect image vector */
+            if (NULL != oth) {
+                matrix_collect_ext(&m3, &m2, i);
+            }
             coeff = pi->inverse[(unsigned) *aux]; 
             coeff = prime-coeff; coeff %= prime;
             /* go through all other rows and normalize */
@@ -119,6 +134,7 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp,
     } else {
         if (TCL_OK != matrix_resize(inp, m1.rows)) return NULL;
         if (TCL_OK != matrix_resize(un, m2.rows)) return NULL;
+        if ((NULL != oth) && (TCL_OK != matrix_resize(oth, m3.rows))) return NULL;
     }
 
     PROGVARDONE ; 
