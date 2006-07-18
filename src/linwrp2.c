@@ -190,11 +190,11 @@ int stdReduceMatrix2(void *mat, int prime) {
 }
 
 // forward declarations
-mat2 *matrix_ortho2(mat2 *inp, Tcl_Interp *ip, const char *progvar, int pmsk);
+mat2 *matrix_ortho2(mat2 *inp, mat2 **urb, Tcl_Interp *ip, const char *progvar, int pmsk);
 mat2 *matrix_lift2(mat2 *inp, mat2 *lft, Tcl_Interp *ip, const char *progvar, int pmsk);
 int matrix_quotient2(mat2 *ker, mat2 *im, Tcl_Interp *ip, const char *progvar, int pmsk);
 
-void *stdOrthoFunc2(primeInfo *pi, void *inp, progressInfo *prg) {
+void *stdOrthoFunc2(primeInfo *pi, void *inp, void *urb, progressInfo *prg) {
     mat2 *ker;
     Tcl_Interp *ip = NULL; 
     const char *progvar = NULL;
@@ -202,7 +202,7 @@ void *stdOrthoFunc2(primeInfo *pi, void *inp, progressInfo *prg) {
     if (NULL != prg) { 
         ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; 
     }
-    ker = matrix_ortho2((mat2 *) inp, ip, progvar, pmsk);
+    ker = matrix_ortho2((mat2 *) inp, (mat2 **) urb, ip, progvar, pmsk);
     return ker;
 }
 
@@ -283,6 +283,13 @@ matrixType stdMatrixType2 = {
 
 #define LINALG_INTERRUPT_VARIABLE 0
 
+void matrix_collect_ext2(mat2 *dst, mat2 *src, int i) {
+    int off1 = dst->rows * dst->ipr;
+    int off2 = i * src->ipr;
+    memcpy(dst->data + off1, src->data + off2, sizeof(int) * src->ipr);
+    dst->rows++;
+}
+
 void matrix_collect2(mat2 *m, int i) {
     int off1 = m->rows * m->ipr;
     int off2 = i * m->ipr;
@@ -303,20 +310,29 @@ int matrix_resize2(mat2 *m, int newrows) {
 }
 
 // forward declarations
-mat2 *matrix_ortho2(mat2 *inp, Tcl_Interp *ip, const char *progvar, int pmsk) {
+mat2 *matrix_ortho2(mat2 *inp, mat2 **urb, Tcl_Interp *ip, 
+                    const char *progvar, int pmsk) {
     int i,j,cols, spr, uspr;
     int failure = 1;     /* pessimistic, eh? */
     int *v1,*v2,*v3,*v4;
     int *aux;
 
-    mat2 m1, m2;
-    mat2 *un ;
+    mat2 m1, m2, m3;
+    mat2 *un, *oth = NULL;
 
     PROGVARINIT ;
 
     un = (mat2 *) stdCreateMatrix2(inp->rows, inp->rows);
     if (NULL == un) return NULL;
     stdUnitMatrix2(un);
+
+    if (urb) {
+        oth = (*urb = stdCreateMatrix2(inp->rows, inp->rows));
+        if (NULL == oth) {
+            stdDestroyMatrix2(un);
+            return NULL;
+        }
+    }
 
     cols = inp->cols;
 
@@ -328,6 +344,10 @@ mat2 *matrix_ortho2(mat2 *inp, Tcl_Interp *ip, const char *progvar, int pmsk) {
     m1.cols = inp->cols; m1.data = inp->data; m1.rows = 0;
     m2.ipr = un->ipr;
     m2.cols = un->cols;  m2.data = un->data;  m2.rows = 0;
+    if (oth != NULL) {
+        m3.cols = oth->cols;
+        m3.data = oth->data;  m3.ipr = oth->ipr;  m3.rows = 0;
+    }
 
     for (v1=inp->data, i=0; i<inp->rows; i++, v1+=spr) {
       
@@ -347,7 +367,10 @@ mat2 *matrix_ortho2(mat2 *inp, Tcl_Interp *ip, const char *progvar, int pmsk) {
         } else {
             int pivmsk = *aux; pivmsk ^= pivmsk & (pivmsk-1);
             matrix_collect2(&m1, i); /* collect image vector */
-            /* go through all other rows and normalize */
+            if (NULL != oth) {
+                matrix_collect_ext2(&m3, &m2, i);
+            }
+             /* go through all other rows and normalize */
             v2 = v1 + spr; aux += spr;
             v3 = un->data + i * uspr;
             v4 = v3 + uspr;
@@ -369,6 +392,7 @@ mat2 *matrix_ortho2(mat2 *inp, Tcl_Interp *ip, const char *progvar, int pmsk) {
     } else {
         if (TCL_OK != matrix_resize2(inp, m1.rows)) return NULL;
         if (TCL_OK != matrix_resize2(un, m2.rows)) return NULL;
+        if ((NULL != oth) && (TCL_OK != matrix_resize2(oth, m3.rows))) return NULL;
     }
 
     PROGVARDONE ;

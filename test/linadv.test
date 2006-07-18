@@ -183,8 +183,12 @@ foreach p $primes {
 }
 
 proc ortho-basis-test {mat p} {
+    set themat \{$mat\}
+    if {$p == 2} {
+        set themat [subst -nocommands {[matrix convert2 {$mat}]}]
+    }
     set bdy [subst -nocommands {
-        set mcpy [set mat {$mat}]
+        set mcpy [set mat $themat]
         matrix ortho $p mat ker nbas
         # check mat == nbas * mcpy
         set aux [matrix multiply $p [set nbas] [set mcpy]]
