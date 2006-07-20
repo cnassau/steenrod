@@ -964,18 +964,19 @@ static CONST char *rcnames[] = { "rows", "cols", NULL };
 
 typedef enum { ORTHO, LIFT, QUOT, DIMS, CREATE, ADDTO, 
                ISZERO, TEST, EXTRACT, ENCODE64, DECODE, 
-               TYPE, CONVERT2, MULT } matcmdcode;
+               TYPE, CONVERT2, MULT, UNIT } matcmdcode;
 
 static CONST char *mCmdNames[] = { "orthonormalize", "lift", 
                                    "quotient", "extract", "dimensions", 
                                    "create", "addto", "iszero", 
                                    "test", "encode64", "decode", 
-                                   "type", "convert2", "multiply",
+                                   "type", "convert2", "multiply", 
+                                   "unit",
                                    (char *) NULL };
 
 static matcmdcode mCmdmap[] = { ORTHO, LIFT, QUOT, EXTRACT, 
                                 DIMS, CREATE, ADDTO, ISZERO, TEST, ENCODE64, DECODE, 
-                                TYPE, CONVERT2, MULT };
+                                TYPE, CONVERT2, MULT, UNIT };
 
 int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index, scale, modval, rows, cols;
@@ -1191,6 +1192,24 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt, mdat));
             return TCL_OK;
             
+        case UNIT:
+            EXPECTARGS(2, 1, 1, "<rows>");
+            
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2], &rows))
+                return TCL_ERROR;
+            
+            mt = stdmatrix;
+            mdat = mt->createMatrix(rows, rows);
+
+            if (NULL == mdat) RETERR("out of memory");
+
+            for (cols=0; cols < rows; cols++) {
+                mt->setEntry(mdat,cols,cols,1);
+            }
+
+            Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt, mdat));
+            return TCL_OK;   
+
         case ADDTO: 
             EXPECTARGS(2, 2, 4, "<varname> <matrix> ?<scale>? ?<mod>?");
             
