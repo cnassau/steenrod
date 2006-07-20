@@ -329,3 +329,19 @@ proc steenrod::algebra::pts2op {prime pts} {
     }
     error "$pts not understood"
 }
+
+proc steenrod::algebra::tomono {alg {N {}}} {
+    set res 0
+    if {$N eq ""} {set N [steenrod::prime 2 NALG]}
+    lappend res [expr {[lindex $alg 0] & (((2<<($N+1))>>1)-1)}]
+    set M $N
+    set red [list]
+    for {set i 0} {$i<$N} {incr i} {
+        set aux [exponent $alg $i]
+        if {$aux > $M} {set aux $M}
+        incr M -1
+        lappend red $aux
+    }
+    lappend res $red 0
+    set res
+}

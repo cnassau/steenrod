@@ -192,7 +192,8 @@ proc ortho-basis-test {mat p} {
         matrix ortho $p mat ker nbas
         # check mat == nbas * mcpy
         set aux [matrix multiply $p [set nbas] [set mcpy]]
-        expr {([set aux] == [set mat]) ? "ok" : "mismatch"}
+        matrix addto aux [set mat] -1
+        expr {([matrix iszero [set aux]]) ? "ok" : "mismatch"}
     }]
     test "ortho-basis-test" "prime $p" $bdy "ok"
 }
