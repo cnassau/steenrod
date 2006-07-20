@@ -522,6 +522,31 @@ test poly-1.12 {poly posmult/negmult, signs} {
     set res
 } {{} {} 1 -1 1 1 -1 -1 1 1 -1 1 1 -1 {} {} -1 -1}
 
+proc polycompare {a b} {
+    if {[catch {
+        set res [expr {![poly compare $a $b]}]
+    }]} {
+        return 0
+    }
+    return $res
+}
+customMatch poly polycompare
+
+foreach ply {
+    {{1 0 0 1}} 
+    {{4 0 1 3} {2 0 1 3} {1 2 0 0} {3 2 1 0}} 
+    {{0 2 0 0}}
+} {
+    test poly "poly foreach (reassembly, $ply)" -body [subst -nocommands {
+        set uhu {}
+        set ply { $ply }
+        poly foreach [set ply] myvar {
+            lappend uhu [set myvar]
+        }
+        set uhu
+    }] -result $ply -match poly
+}
+
 
 # --------------------------------------------------------------------------
 

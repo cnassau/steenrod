@@ -471,6 +471,42 @@ Tcl_Obj *Tcl_PolyObjGetInfo(Tcl_Obj *obj) {
     return NEWSTRINGOBJ(aux);
 }        
 
+
+int Tcl_PolyForeachProc(Tcl_Interp *ip, Tcl_Obj *src, 
+                        Tcl_Obj *mvar, Tcl_Obj *script) {
+    int rc = TCL_OK;
+    polyType *pt; void *pdat; 
+    int pns, idx;
+    exmo mono;
+
+    if (TCL_OK != Tcl_ConvertToPoly(ip, src))
+        return TCL_ERROR;
+        
+    pt   = polyTypeFromTclObj(src);
+    pdat = polyFromTclObj(src);
+    pns  = PLgetNumsum(pt, pdat);
+
+    for (idx=0; idx<pns; idx++) {
+        
+        if (SUCCESS != PLgetExmo(pt, pdat, &mono, idx)) {
+            Tcl_SetResult(ip, "internal error in Tcl_PolyForeachProc: "
+                          "PLgetExmo failed", TCL_STATIC);
+            return TCL_ERROR;
+        }
+
+        if( NULL == Tcl_ObjSetVar2(ip,mvar,NULL,
+                                   Tcl_NewExmoCopyObj(&mono),
+                                   TCL_LEAVE_ERR_MSG) ) {
+            return TCL_ERROR;
+        }
+
+        rc = Tcl_EvalObjEx(ip,script,0);
+        if( rc != TCL_OK ) return rc;
+    }
+    
+    return TCL_OK;
+}
+
 /* The Tcl_PolySplitProc 
  *
  *  - iterates through the monomials in *src,
@@ -652,17 +688,19 @@ Tcl_Obj *TakePolyFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
 typedef enum { CREATE, TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT, 
                STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT, 
-               COMPARE, SPLIT, VARSPLIT, COEFF } pcmdcode;
+               COMPARE, SPLIT, VARSPLIT, COEFF, FOREACH } pcmdcode;
 
 static CONST char *pCmdNames[] = { "create", "test", "info", "append", "cancel", 
                                    "add", "posmult", "negmult", "steenmult",
                                    "varappend", "varcancel", "shift", "reflect",
                                    "compare", "split", "varsplit", "coeff",
+                                   "foreach", 
                                    (char *) NULL };
 
-static pcmdcode pCmdmap[] = { CREATE, TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT, 
-                              STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT, 
-                              COMPARE, SPLIT, VARSPLIT, COEFF };
+static pcmdcode pCmdmap[] = { CREATE, TEST, INFO, APPEND, CANCEL, ADD,
+                              POSMULT, NEGMULT, STEENMULT, VARAPPEND, VARCANCEL, 
+                              SHIFT, REFLECT, COMPARE, SPLIT, VARSPLIT, COEFF, 
+                              FOREACH };
 
 int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index, scale, modval;
@@ -901,6 +939,17 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 return TCL_ERROR;
             
             Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;
+            
+        case FOREACH:
+            EXPECTARGS(2, 3, 3, "<polynomial> <monovar> <script>"); 
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_PolyForeachProc(ip, objv[2], objv[3], objv[4]))
+                return TCL_ERROR;
+            
             return TCL_OK;
             
         case VARSPLIT:
