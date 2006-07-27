@@ -115,6 +115,10 @@ test prime-1.5 {prime binom} {
     set res
 } {}
 
+test prime-1.6 {list of primes available} {
+    expr {[llength $steenrod::primes] > 5 ? "ok" : "not enough primes"}
+} ok
+
 # --------------------------------------------------------------------------
 
 # cleanup

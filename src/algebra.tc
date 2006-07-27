@@ -10,6 +10,19 @@
 # published by the Free Software Foundation.
 #
 
+namespace eval steenrod {
+
+    # create list of available primes
+
+    for {set i 1} {$i<256} {incr i} {
+        if {![string length [prime $i test]]} {
+            lappend primes $i
+        }
+    }
+    unset -nocomplain i
+}
+
+
 namespace eval steenrod::algebra {}
 
 proc steenrod::algebra {args} {
@@ -26,8 +39,6 @@ proc steenrod::algebra {args} {
 }
 
 proc steenrod::algebra:: args {eval $args}
-
-
 
 proc steenrod::algebra::name {profile} {
     foreach {ext red} $profile break
