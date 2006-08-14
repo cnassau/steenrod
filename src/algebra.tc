@@ -224,7 +224,7 @@ proc steenrod::algebra::span {args} {
     list $ext $red
 }
 
-proc steenrod::algebra::ptslist {algebra nalg} {
+proc steenrod::algebra::ptslist {algebra {nalg -666}} {
     set res {}
     for {set i 0} {$i <= $nalg} {incr i} {
         for {set j 0} {$j<$i} {incr j} {
@@ -302,7 +302,10 @@ proc steenrod::algebra::compinfo {algebra nalg} {
     return $res
 }
 
-proc steenrod::algebra::generators {algebra nalg} {
+proc steenrod::algebra::generators {algebra {nalg {}}} {
+    if {$nalg eq ""} {
+        set nalg [steenrod::prime 2 NALG]
+    }
     array set stuff [compinfo $algebra $nalg]
     return $stuff(generators)
 }
@@ -355,4 +358,10 @@ proc steenrod::algebra::tomono {alg {N {}}} {
     }
     lappend res $red 0
     set res
+}
+
+proc steenrod::algebra::verify {alg} {
+    set span [steenrod::algebra span $alg]
+    if {[steenrod::algebra equal $span $alg]} return
+    error "profile $alg is not complete: it spans $span"
 }
