@@ -36,6 +36,8 @@ else
   STUBLINK = gcc -shared $(CFLAGS) $(foreach i,$(TCLLIBDIR),-L$(i))
 endif
 
+LIBDIRS = $(foreach i,$(TCLLIBDIR),-L$(i))
+
 CFLAGS += -DSTEENROD_VERSION=\"$(STEENROD_VERSION)\"
 CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT 
 #CFLAGS += -fprofile-arcs -ftest-coverage -pg
@@ -103,7 +105,7 @@ libsteenrod.so : $(OBJS)
 	$(STUBLINK) -o libsteenrod.so $(OBJS) -l$(TCLSTUBLIB)
 
 steenrodsh : $(OBJS) steenrodsh.c
-	$(CC) -o steenrodsh $(CFLAGS) -I$(TCLINCDIR) $(OBJS) steenrodsh.c -l$(TCLLIB)
+	$(CC) -o steenrodsh $(CFLAGS) -I$(TCLINCDIR) $(OBJS) steenrodsh.c $(LIBDIRS) -l$(TCLLIB)
 
 clean:
 	$(RM) $(OBJS) $(LIBS) 2> /dev/null
