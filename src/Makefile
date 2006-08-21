@@ -53,7 +53,7 @@ NOWEBFILES = mult.nw
 
 SRCS = adlin.c linalg.c linwrp.c tlin.c prime.c tprime.c tptr.c \
        poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c common.c \
-       hmap.c linwrp2.c lepar.c legram.c algebra.c
+       hmap.c linwrp2.c lepar.c legram.c algebra.c secmult2.c
 
 OBJS = $(SRCS:.c=.o)
 
