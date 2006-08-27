@@ -14,11 +14,245 @@
 #include "secmult2.h"
 #include "tpoly.h"
 
-int SecmultExmo(Tcl_Interp *ip,
-            polyType *ptp1, void *pol1, 
-            exmo *f1, exmo *f2) {
+/* We're implementing a slightly twisted version of (part of) EBP/I^2.
+ * For the uninitiated: E stands for the exterior algebra on mu0,mu1,... 
+ * where "boundary(mu_k) = v_k", and we're about to add support for 
+ * the expressions
+ *
+ *    coeff * Sq(R) * v_k * gen   and/or   coeff * Sq(R) * w_k * gen 
+ *
+ * where w_k = 2*mu_k + v_k*mu_0 (mod 4). The v_k and w_k are encoded 
+ * in the lowest byte of the generator id in our exmo's. 
+ */
 
+#define HASVW(genid) (0 != ((genid) & 0x30))
+#define VWIDX(genid) ((genid) & 0x0f)
+#define HASV(genid) (0 != ((genid) & 0x20))
+#define HASW(genid) (0 != ((genid) & 0x10))
+
+typedef unsigned char cofft; 
+
+typedef struct {
+    cofft dat[3+NALG][2+NALG]; /* box entry */
+    cofft msk[3+NALG][2+NALG]; /* mask of forbidden bits = diagonal sum */
+    cofft rem[3+NALG][2+NALG]; /* vertical remainders */
+    cofft sum[3+NALG][2+NALG]; /* vertcial sum */
+    cofft cols[NALG];          /* bitmask of collisions */
+    Tcl_Interp *ip;
+    polyType *ptp;
+    void *pol;
+    const exmo *f1;
+    exmo *f2;
+    int collisionidx, collision;
+    int decoration; /* < 0 for wk, > 0 for vk */
+} smultmat;
+
+cofft removeBadbits(cofft val, cofft bad) {
+    while (0 != (val & bad)) val--;
+    return val;
+}
+cofft removeBadbitsAlmost(cofft val, cofft bad) {
+    while (BITCOUNT(val & bad) > 1) val--;
+    return val;
+}
+
+int SecmultHandleBoxVal(smultmat *mmat, int val, 
+                        int rownum, int idx, int allowCollisions) {
+    unsigned int
+        rem = mmat->rem[rownum][idx], 
+        msk = mmat->msk[rownum][idx],
+        collision = mmat->cols[rownum];
+    if (val > rem) val = rem;
+    if (!allowCollisions || (0 != collision)) {
+        val = removeBadbits(val,msk);
+        /* clear collision field if it referred to this box */
+        mmat->cols[rownum] = collision ^ (collision & (1 << idx));
+    } else {
+        val = removeBadbitsAlmost(val,msk);
+        if (0 != (collision = (val & msk))) {
+            mmat->collisionidx = idx;
+            mmat->collision = collision;
+            mmat->cols[rownum] = 1 << idx;
+        }
+    }   
+    mmat->dat[rownum][idx] = val;
+    mmat->msk[rownum-1][idx+1] = msk | val;
+    mmat->rem[rownum-1][idx] = rem - val;
+    mmat->sum[rownum-1][idx] = mmat->sum[rownum][idx] + val;
+    return val;
+}
+
+int SecmultFinalRow(smultmat *mmat, int allowCollision) {
+    int i, val, nval;
+    for (i=NALG;i--;) {
+        val = mmat->f2->r.dat[i]-mmat->sum[1][i];
+        nval = SecmultHandleBoxVal(mmat,val,1,i+1,allowCollision);
+        if( val != nval ) return 0;
+    }
+    return 1;
+}
+
+int SecmultFirstRow(smultmat *mmat, int rownum, int allowCollision) {
+    int i, tot, val;
+    mmat->cols[rownum] = 0;
+    if( 1 == rownum ) 
+        return SecmultFinalRow(mmat,allowCollision);
+    tot = mmat->f1->r.dat[rownum-2];
+    for (i=NALG;i--;) {
+        val = SecmultHandleBoxVal(mmat,tot>>i,rownum,i,allowCollision);
+        tot -= val << i;
+    }
+    return 1;
+}
+
+int SecmultNextRow(smultmat *mmat, int rownum, int allowCollision) {
+    unsigned int i=1, tot = mmat->dat[rownum][0], val, nval;
+    if( 1 <= rownum ) return 0;
+    do {
+        while ((i < NALG) && (0 == (val=mmat->dat[rownum][i]))) i++;
+        if (i == NALG) return 0;
+        nval = SecmultHandleBoxVal(mmat,val-1,rownum,i,allowCollision);
+        tot += (val-nval) << i;
+        while (i--) {
+            val = SecmultHandleBoxVal(mmat,tot>>i,rownum,i,allowCollision);
+            tot -= val << i;
+        }
+    } while (tot);
+    return 1;
+}
+
+void printmat2(cofft arr[3+NALG][2+NALG]) {
+    int i,j;
+    for(i=0;i<3+NALG;i++) {
+        for(j=0;j<2+NALG-i;j++) 
+            printf(" %03d",arr[i][j]);
+        printf("\n");
+    }
+}
+
+void printmat(smultmat *mmat) {
+    printf("dat\n"); printmat2(mmat->dat);
+    printf("msk\n"); printmat2(mmat->msk);
+    printf("rem\n"); printmat2(mmat->rem);
+    printf("sum\n"); printmat2(mmat->sum);
+}
+
+void SecmultHandleRow(smultmat *mmat, int rownum, int allowCollision) {
+    int i;
+
+    printf("\n\nrownum=%d,allowCollision=%d\n",rownum,allowCollision);
+    printmat(mmat);
+
+    if (rownum) {
+        if (SecmultFirstRow(mmat,rownum,allowCollision)) 
+            do {
+                if( mmat->cols[rownum] ) {
+                    unsigned int 
+                        idx = mmat->collisionidx, 
+                        collision = mmat->collision,
+                        aux, bitidx;
+                    /* try out the three possible consequences "v0", "vk", "wk" */
+                    aux = (mmat->msk[rownum-1][idx+1] ^= collision);
+                    if( 0 == (aux & (collision << 1)) ) {
+                        mmat->msk[rownum-1][idx+1] |= (collision << 1);
+                        mmat->decoration = 1; /* v0 */
+                        SecmultHandleRow(mmat,rownum-1,0);
+                        mmat->msk[rownum-1][idx+1] ^= (collision << 1);                
+                    }
+                    for(bitidx=0,aux=collision;aux;aux>>=1) bitidx++;
+                    if(bitidx>=2 && (0 == (mmat->msk[rownum-1][idx+bitidx] & 2))) {
+                        mmat->msk[rownum-1][idx+bitidx] |= 2;
+                        mmat->decoration = bitidx; /* vk */
+                        SecmultHandleRow(mmat,rownum-1,0); 
+                        mmat->msk[rownum-1][idx+bitidx] ^= 2;
+                    }
+                    if(bitidx>=2 && (0 == (mmat->msk[rownum-1][idx+bitidx+1] & 1))) {
+                        mmat->msk[rownum-1][idx+bitidx+1] |= 1;
+                        mmat->decoration = 1-bitidx; /* wk */
+                        SecmultHandleRow(mmat,rownum-1,0); 
+                        mmat->msk[rownum-1][idx+bitidx+1] ^= 1;
+                    }
+                } else {
+                    SecmultHandleRow(mmat,rownum-1,allowCollision);
+                }
+            } while (SecmultNextRow(mmat,rownum,allowCollision));
+    } else {
+        /* collect results, if available */
+        exmo res;
+        res.ext = 0;
+        res.coeff = (mmat->f1->coeff * mmat->f2->coeff) & 3;
+        for(i=0;i<NALG;i++) {
+            res.r.dat[i] = mmat->msk[0][i+2];
+        }
+        res.gen = mmat->decoration;
+        PLappendExmo(mmat->ptp,mmat->pol,&res);
+    }
+}
+
+void SecmultStart(Tcl_Interp *ip,
+                 polyType *ptp, void *pol, 
+                 const exmo *f1, exmo *f2, int allowCollision) {
+    int i;
+    smultmat mmat;
+    mmat.ip=ip;
+    mmat.ptp=ptp;
+    mmat.pol=pol;
+    mmat.f1=f1;
+    mmat.f2=f2;
+    mmat.collision = 0;
+    for (i=0;i<NALG;i++) {
+        mmat.rem[2+NALG][i] = f2->r.dat[i];
+        mmat.msk[2+NALG][i] = 0;
+    }
+    for (i=0;i<3+NALG;i++) {
+        mmat.msk[i][0] = 0;
+    }
+    SecmultHandleRow(&mmat,2+NALG,allowCollision);
+}
+
+void SecmultVCommute(Tcl_Interp *ip,
+                    polyType *ptp, void *pol, 
+                    const exmo *f1, exmo *f2) {
+    unsigned int idx = VWIDX(f1->gen);
     
+}
+
+void SecmultWCommute(Tcl_Interp *ip,
+                    polyType *ptp, void *pol, 
+                    const exmo *f1, exmo *f2) {
+}
+
+int SecmultExmo(Tcl_Interp *ip,
+                polyType *ptp, void *pol, 
+                const exmo *f1, exmo *f2) {
+    
+    if (HASVW(f1->gen)) {
+        if (HASVW(f2->gen)) {
+            return TCL_OK;
+        } else {
+            if (0 == (1 & f2->coeff)) {
+                /* second factor is even */
+                return TCL_OK;
+            }
+            /* commute f1's vw through f2, then multiply mod 2 */
+            if (HASV(f1->gen)) {
+                SecmultVCommute(ip,ptp,pol,f1,f2);
+            } else {
+                SecmultWCommute(ip,ptp,pol,f1,f2);
+            }
+        }
+    } else {
+        if (HASVW(f2->gen)) {
+            if (0 == (1 & f1->coeff)) {
+                /* first factor is even */
+                return TCL_OK;
+            }
+            /* multiply mod 2 */
+            SecmultStart(ip,ptp,pol,f1,f2,0);
+        } else {
+            SecmultStart(ip,ptp,pol,f1,f2,1);
+        }
+    }
 
     return TCL_OK;
 }
@@ -39,7 +273,9 @@ int Secmult(Tcl_Interp *ip,
     nsum2 = PLgetNumsum(ptp2,pol2);
 
     for (i=0;i<nsum1;i++) {
+        PLgetExmo(ptp1,pol1,&f1,i);
         for (j=0;j<nsum2;j++) {
+            PLgetExmo(ptp2,pol2,&f2,j);
             if (TCL_OK != SecmultExmo(ip,pt,pl,&f1,&f2)) {
                 return TCL_ERROR;
             }
