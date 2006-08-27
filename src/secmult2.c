@@ -62,7 +62,7 @@ int SecmultHandleBoxVal(smultmat *mmat, int val,
         rem = mmat->rem[rownum][idx], 
         msk = mmat->msk[rownum][idx],
         collision = mmat->cols[rownum];
-    if (val > rem) val = rem;
+    if (idx && (val > rem)) val = rem;
     if (!allowCollisions || (0 != collision)) {
         val = removeBadbits(val,msk);
         /* clear collision field if it referred to this box */
@@ -84,8 +84,9 @@ int SecmultHandleBoxVal(smultmat *mmat, int val,
 
 int SecmultFinalRow(smultmat *mmat, int allowCollision) {
     int i, val, nval;
+    mmat->sum[1][NALG] = 0;
     for (i=NALG;i--;) {
-        val = mmat->f2->r.dat[i]-mmat->sum[1][i];
+        val = mmat->f2->r.dat[i] - mmat->sum[1][i+1];
         nval = SecmultHandleBoxVal(mmat,val,1,i+1,allowCollision);
         if( val != nval ) return 0;
     }
@@ -107,7 +108,7 @@ int SecmultFirstRow(smultmat *mmat, int rownum, int allowCollision) {
 
 int SecmultNextRow(smultmat *mmat, int rownum, int allowCollision) {
     unsigned int i=1, tot = mmat->dat[rownum][0], val, nval;
-    if( 1 <= rownum ) return 0;
+    if( 1 >= rownum ) return 0;
     do {
         while ((i < NALG) && (0 == (val=mmat->dat[rownum][i]))) i++;
         if (i == NALG) return 0;
@@ -121,27 +122,29 @@ int SecmultNextRow(smultmat *mmat, int rownum, int allowCollision) {
     return 1;
 }
 
-void printmat2(cofft arr[3+NALG][2+NALG]) {
+void printmat2(cofft arr[3+NALG][2+NALG],int i0) {
     int i,j;
-    for(i=0;i<3+NALG;i++) {
+    for(i=i0;i<3+NALG;i++) {
         for(j=0;j<2+NALG-i;j++) 
             printf(" %03d",arr[i][j]);
         printf("\n");
     }
 }
 
-void printmat(smultmat *mmat) {
-    printf("dat\n"); printmat2(mmat->dat);
-    printf("msk\n"); printmat2(mmat->msk);
-    printf("rem\n"); printmat2(mmat->rem);
-    printf("sum\n"); printmat2(mmat->sum);
+void printmat(smultmat *mmat,int rnum) {
+    printf("dat\n"); printmat2(mmat->dat,rnum);
+    printf("msk\n"); printmat2(mmat->msk,rnum);
+    printf("rem\n"); printmat2(mmat->rem,rnum);
+    printf("sum\n"); printmat2(mmat->sum,rnum);
 }
 
 void SecmultHandleRow(smultmat *mmat, int rownum, int allowCollision) {
     int i;
 
+#if 0
     printf("\n\nrownum=%d,allowCollision=%d\n",rownum,allowCollision);
-    printmat(mmat);
+    printmat(mmat,rownum);
+#endif
 
     if (rownum) {
         if (SecmultFirstRow(mmat,rownum,allowCollision)) 
@@ -200,8 +203,10 @@ void SecmultStart(Tcl_Interp *ip,
     mmat.f1=f1;
     mmat.f2=f2;
     mmat.collision = 0;
+    mmat.decoration = 0;
     for (i=0;i<NALG;i++) {
-        mmat.rem[2+NALG][i] = f2->r.dat[i];
+        mmat.rem[2+NALG][i+1] = f2->r.dat[i];
+        mmat.sum[2+NALG][i] = 0;
         mmat.msk[2+NALG][i] = 0;
     }
     for (i=0;i<3+NALG;i++) {
