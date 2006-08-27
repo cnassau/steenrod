@@ -154,6 +154,10 @@ void SecmultHandleRow(smultmat *mmat, int rownum, int allowCollision) {
                         idx = mmat->collisionidx, 
                         collision = mmat->collision,
                         aux, bitidx;
+                    if ( 0 != (collision & 1) ) {
+                        /* Bockstein collisions not allowed */
+                        continue;
+                    }
                     /* try out the three possible consequences "v0", "vk", "wk" */
                     aux = (mmat->msk[rownum-1][idx+1] ^= collision);
                     if( 0 == (aux & (collision << 1)) ) {
