@@ -242,8 +242,6 @@ void SecmultVCommute(Tcl_Interp *ip,
                      const exmo *f1, exmo *f2) {
     unsigned int idx = VWIDX(f1->gen),i,j,k;
     unsigned int fgen = f2->gen & 0xffffff00;
-    exmo f1copy;
-    copyExmo(&f1copy,f1);
 
     /* vn */
     f2->gen = fgen | 0x20 | idx;
@@ -263,6 +261,51 @@ void SecmultVCommute(Tcl_Interp *ip,
 void SecmultWCommute(Tcl_Interp *ip,
                      polyType *ptp, void *pol,
                      const exmo *f1, exmo *f2) {
+    unsigned int idx = VWIDX(f1->gen),i,j,k;
+    unsigned int fgen = f2->gen & 0xffffff00;
+
+    /* wn */
+    f2->gen = fgen | 0x10 | idx;
+    SecmultStart(ip,ptp,pol,f1,f2,0);
+
+    for(i=idx,j=0,k=1<<idx;--i;j++,k>>=1) {
+        unsigned int aux =  f2->r.dat[j];
+        if( aux >= k ) {
+            f2->r.dat[j] = aux-k;
+            f2->gen = fgen | 0x10 | i;
+            SecmultStart(ip,ptp,pol,f1,f2,0);
+            f2->r.dat[j] = aux;
+        }
+    }
+
+    if( 0 != (f2->r.dat[idx-1] & 1) ) {
+        /* v0 */
+        f2->r.dat[idx-1] ^= 1;
+        f2->gen = fgen | 0x20;
+        SecmultStart(ip,ptp,pol,f1,f2,0);
+        f2->r.dat[idx-1] ^= 1;        
+    }
+
+    if( 0 != (f2->r.dat[0] & 1) ) {
+
+        f2->r.dat[0] ^= 1;
+
+        /* vn */
+        f2->gen = fgen | 0x20 | idx;
+        SecmultStart(ip,ptp,pol,f1,f2,0);
+
+        for(i=idx,j=0,k=1<<idx;i--;j++,k>>=1) {
+            unsigned int aux =  f2->r.dat[j];
+            if( aux >= k ) {
+                f2->r.dat[j] = aux-k;
+                f2->gen = fgen | 0x20 | i;
+                SecmultStart(ip,ptp,pol,f1,f2,0);
+                f2->r.dat[j] = aux;
+            }
+        }
+  
+    }
+
 }
 
 int SecmultExmo(Tcl_Interp *ip,
