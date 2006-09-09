@@ -181,6 +181,7 @@ void SecmultHandleRow(smultmat *mmat, int rownum, int allowCollision) {
                         SecmultHandleRow(mmat,rownum-1,0);
                         mmat->msk[rownum-1][idx+bitidx+1] ^= 1;
                     }
+                    mmat->decoration = 0;
                 } else {
                     SecmultHandleRow(mmat,rownum-1,allowCollision);
                 }
