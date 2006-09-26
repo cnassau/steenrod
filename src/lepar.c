@@ -211,6 +211,7 @@ int ParserCreateProc(ClientData clientData,
     if (objc != 2) {
         char errmsg[200];
         sprintf(errmsg, "usage: %s <name>", Tcl_GetString(objv[0]));
+        Tcl_SetResult(interp,errmsg,TCL_VOLATILE);
         return TCL_ERROR;
     }
 
