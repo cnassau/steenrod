@@ -44,7 +44,7 @@ CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT
 #CFLAGS += -DUSE_VERB_ALLOC=1
 
 # uncomment next line if you have a 64-bit 686 processor with sse2 support
-CFLAGS += -msse2 -DUSESSE2
+#CFLAGS += -msse2 -DUSESSE2
 
 NOTANGLE = notangle
 NOWEAVE  = noweave
@@ -53,7 +53,7 @@ NOWEBFILES = mult.nw
 
 SRCS = adlin.c linalg.c linwrp.c tlin.c prime.c tprime.c tptr.c \
        poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c common.c \
-       hmap.c linwrp2.c lepar.c legram.c algebra.c secmult2.c
+       hmap.c linwrp2.c lepar.c legram.c algebra.c secmult2.c scrobjy.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -138,8 +138,8 @@ legram.h: legram.y lemon lempar.c
 
 # DO NOT DELETE -- make depend will overwrite the entries below
 
-adlin.o: adlin.h linalg.h prime.h common.h adlin-sse2.c ssedefs.h
-linalg.o: linalg.h prime.h common.h ssedefs.h
+adlin.o: adlin.h linalg.h prime.h common.h
+linalg.o: linalg.h prime.h common.h
 linwrp.o: linwrp.h prime.h common.h linalg.h adlin.h
 tlin.o: steenrod.h momap.h poly.h common.h prime.h tenum.h enum.h linwrp.h
 tlin.o: tlin.h tptr.h tprime.h
@@ -148,15 +148,18 @@ tprime.o: tprime.h prime.h common.h tptr.h
 tptr.o: tptr.h common.h
 poly.o: poly.h common.h prime.h mult.h
 tpoly.o: tptr.h common.h tpoly.h poly.h prime.h tprime.h mult.h
-mult.o: mult.h common.h prime.h poly.h ssedefs.h linalg.h
+mult.o: mult.h common.h prime.h poly.h
 enum.o: enum.h poly.h common.h prime.h
 tenum.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h linwrp.h
 tenum.o: tenum.h enum.h
 momap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h momap.h
 steenrod.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h tlin.h linwrp.h
 steenrod.o: steenrod.h momap.h tenum.h enum.h mult.h hmap.h lepar.h
+steenrod.o: secmult2.h scrobjy.h
 common.o: common.h
 hmap.o: tprime.h prime.h common.h tpoly.h tptr.h poly.h hmap.h
 linwrp2.o: linwrp.h prime.h common.h
 lepar.o: lepar.h legram.h
 legram.o: lepar.h
+secmult2.o: secmult2.h tptr.h common.h tprime.h prime.h tpoly.h poly.h
+scrobjy.o: scrobjy.h

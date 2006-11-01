@@ -23,6 +23,7 @@
 #include "hmap.h"
 #include "lepar.h"
 #include "secmult2.h"
+#include "scrobjy.h"
 
 char *theprogvar; /* ckalloc'ed name of the progress variable */
 int   theprogmsk; /* progress reporting granularity */
@@ -644,6 +645,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     Hmap_Init(ip);
     Lepar_Init(ip);
     Secmult2_Init(ip);
+    Scrobjy_Init(ip);
 
     Tcl_CreateObjCommand(ip, POLYNSP "ComputeMatrix",
                          TMakeMatrixSameSig, (ClientData) 0, NULL);
