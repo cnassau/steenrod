@@ -28,11 +28,6 @@ Tcl_Obj *ObjStringCopy(Tcl_Obj *other) {
     return Tcl_NewStringObj(bytes,length);
 }
 
-TCL_DECLARE_MUTEX(scrobjyMutex);
-static int ScrobjyInitialised;
-Tcl_HashTable *TypeTablePtr;
-#define TypeTable (*TypeTablePtr);
-
 /* We use the following extension of Tcl's Tcl_Obj struct
  * to describe each scripted type that has been declared. */
 
@@ -155,6 +150,8 @@ int ScrobjSetproc(ScrObjType *tp, Tcl_Interp *ip, Tcl_Obj *objPtr) {
         Tcl_IncrRefCount(res);
         INSTDATAPTR(objPtr) = id;
         return TCL_OK;
+    } else {
+        Tcl_AddErrorInfo(ip,Tcl_GetVar(tp->ip,"::errorInfo",0));
     }
     Tcl_SetResult(ip, Tcl_GetString(res), TCL_VOLATILE);
     return rc;
@@ -210,6 +207,7 @@ ScrObjType *NewScrobjType(Tcl_Interp *ip, Tcl_Obj *nameobj,
     Tcl_SetVar(res->ip,"::tcl_library",
                Tcl_GetVar(ip,"::tcl_library",0),0);
     Tcl_Init(res->ip);
+    Tcl_SetAssocData(ip,"scrobjy",NULL,Tcl_GetAssocData(ip,"scrobjy",NULL));
     Scrobjy_Init(res->ip);
     return res;
 }
@@ -222,17 +220,16 @@ Tcl_ObjType ScrobjTypeName = {
     NULL,
     ScrObjTNDupProc,
     NULL,
-    ScrObjTNSetProc
+    NULL
 };
 
-int ScrObjTNSetProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
-    Tcl_MutexLock(&scrobjyMutex);
+int MakeTypeNameObj(Tcl_HashTable *TypeTablePtr,
+                    Tcl_Interp *interp, Tcl_Obj *objPtr) {
     Tcl_HashEntry *res = Tcl_FindHashEntry(TypeTablePtr, (void *) objPtr);
     if (NULL == res) {
         if(NULL != interp) {
             Tcl_AppendResult(interp, "Type ", Tcl_GetString(objPtr), " not found", NULL);
         }
-        Tcl_MutexUnlock(&scrobjyMutex);
         return TCL_ERROR;
     }
     if (objPtr->typePtr && objPtr->typePtr->freeIntRepProc) {
@@ -240,7 +237,6 @@ int ScrObjTNSetProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
     }
     objPtr->typePtr = (Tcl_ObjType *) &ScrobjTypeName;
     INTREPPTR(objPtr) = Tcl_GetHashValue(res);
-    Tcl_MutexUnlock(&scrobjyMutex);
     return TCL_OK;
 }
 
@@ -257,6 +253,7 @@ static ScrobjCmdCode ScrobjCmdmap[] = { REGISTER, CONVERT, VALUE, EVAL, GETSTRIN
 
 int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int index, result;
+    Tcl_HashTable *TypeTablePtr = (Tcl_HashTable *) cd;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
@@ -281,17 +278,15 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
             scode = objv[4];
             fcode = (objc > 5) ? objv[5] : Tcl_NewObj();
 
-            if (TCL_OK != Tcl_ConvertToType(NULL,objv[2],(Tcl_ObjType *) &ScrobjTypeName)) {
+            if (TCL_OK != MakeTypeNameObj(TypeTablePtr,NULL,objv[2])) {
                 /* create new type entry */
 
                 int isnew;
                 Tcl_HashEntry *res;
 
-                Tcl_MutexLock(&scrobjyMutex);
                 res = Tcl_CreateHashEntry(TypeTablePtr, (void *) objv[2], &isnew);
 
                 Tcl_SetHashValue(res, NewScrobjType(ip,objv[2],ucode,scode,fcode));
-                Tcl_MutexUnlock(&scrobjyMutex);
 
             } else {
                 /* update existing entry */
@@ -319,7 +314,7 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
                 return TCL_ERROR;
             }
 
-            if (TCL_OK != Tcl_ConvertToType(ip,objv[2],(Tcl_ObjType *) &ScrobjTypeName)) {
+            if (TCL_OK != MakeTypeNameObj(TypeTablePtr,ip,objv[2])) {
                 return TCL_ERROR;
             }
 
@@ -344,7 +339,7 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
                 return TCL_ERROR;
             }
 
-            if (TCL_OK != Tcl_ConvertToType(ip,objv[2],(Tcl_ObjType *) &ScrobjTypeName)) {
+            if (TCL_OK != MakeTypeNameObj(TypeTablePtr,ip,objv[2])) {
                 return TCL_ERROR;
             }
 
@@ -376,7 +371,7 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
                 return TCL_ERROR;
             }
 
-            if (TCL_OK != Tcl_ConvertToType(ip,objv[2],(Tcl_ObjType *) &ScrobjTypeName)) {
+            if (TCL_OK != MakeTypeNameObj(TypeTablePtr,ip,objv[2])) {
                 return TCL_ERROR;
             }
 
@@ -391,21 +386,22 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
 
 int Scrobjy_Init(Tcl_Interp *ip) {
 
+    Tcl_HashTable *TypeTablePtr;
 
+    Tcl_InitStubs(ip, "8.0", 0);
 
-   Tcl_InitStubs(ip, "8.0", 0);
+    TypeTablePtr = (Tcl_HashTable *) Tcl_GetAssocData(ip,"scrobjy",NULL);
 
-   Tcl_MutexLock(&scrobjyMutex);
-   if (!ScrobjyInitialised) {
-      ScrobjyInitialised = 1;
-      TypeTablePtr = (Tcl_HashTable *) ckalloc(sizeof(Tcl_HashTable));
-      Tcl_InitObjHashTable(TypeTablePtr);
-   }
-   Tcl_MutexUnlock(&scrobjyMutex);
+    if (NULL == TypeTablePtr) {
+        TypeTablePtr = (Tcl_HashTable *) ckalloc(sizeof(Tcl_HashTable));
+        Tcl_InitObjHashTable(TypeTablePtr);
+        Tcl_SetAssocData(ip,"scrobjy",NULL,(ClientData) TypeTablePtr);
+    }
 
-   Tcl_CreateObjCommand(ip, "scrobjy", ScrobjyCmd, (ClientData) 0, NULL);
-   Tcl_Eval(ip,"package provide scrobjy 1.0");
+    Tcl_CreateObjCommand(ip, "scrobjy", ScrobjyCmd, 
+                         (ClientData) TypeTablePtr, NULL);
+    Tcl_Eval(ip,"package provide scrobjy 1.0");
 
-   return TCL_OK;
+    return TCL_OK;
 }
 
