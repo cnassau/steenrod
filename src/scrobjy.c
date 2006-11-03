@@ -1,5 +1,5 @@
 /*
- * Scriptable Tcl-Object support (scrobjy)
+ * Scripted Tcl-Object support (scrobjy)
  *
  * Copyright (C) 2006 Christian Nassau <nassau@nullhomotopie.de>
  *
@@ -28,7 +28,7 @@ Tcl_Obj *ObjStringCopy(Tcl_Obj *other) {
     return Tcl_NewStringObj(bytes,length);
 }
 
-/* We use the following extension of Tcl's Tcl_Obj struct
+/* We use the following extension of the Tcl_Obj struct
  * to describe each scripted type that has been declared. */
 
 typedef struct {
@@ -41,7 +41,7 @@ typedef struct {
 } ScrObjType;
 
 /* It can happen that the update & free code of a type is 
- * changed when there are still instances for the old code
+ * changed while there are still instances for the old code
  * around. For this reason each instance must keep its own
  * reference to its original lambdaExpressions. */
 
@@ -50,8 +50,8 @@ typedef struct {
     Tcl_Obj *freecode;
 } ScrObjInstData;
 
-/* We use the two-pointer form of the instance data for the 
- * internal representation and the instance data: */
+/* We use the twoPtrValue to cache our internal representation 
+ * and the type's instance data: */
 
 #define INTREPPTR(optr) ((optr)->internalRep.twoPtrValue.ptr1)
 #define INTREPOBJ(optr) ((Tcl_Obj *) INTREPPTR(optr))
@@ -90,7 +90,7 @@ void FreeInstData(ScrObjInstData *id) {
     Tcl_Free((char *) id);
 }
 
-/* implementation of the Tcl_Obj interface functions */
+/* Implementation of the Tcl_Obj interface functions: */
 
 int ScrObjTypeEvalCode(ScrObjType *tp, Tcl_Obj *code, Tcl_Obj *arg) {
     Tcl_Obj *aux[3];
@@ -203,14 +203,18 @@ ScrObjType *NewScrobjType(Tcl_Interp *ip, Tcl_Obj *nameobj,
     Tcl_IncrRefCount(res->SetAnyCode);
     Tcl_IncrRefCount(res->FreeCode);
     res->ip = Tcl_CreateInterp();
-    /* make sure our slave has the same Tcl environment */
+    /* make sure our slave has a usable Tcl environment */
     Tcl_SetVar(res->ip,"::tcl_library",
                Tcl_GetVar(ip,"::tcl_library",0),0);
+    Tcl_SetVar(res->ip,"::auto_path",
+               Tcl_GetVar(ip,"::auto_path",0),0);
     Tcl_Init(res->ip);
     Tcl_SetAssocData(ip,"scrobjy",NULL,Tcl_GetAssocData(ip,"scrobjy",NULL));
     Scrobjy_Init(res->ip);
     return res;
 }
+
+/* We use another Tcl_Obj type for typename references */
 
 int ScrObjTNSetProc(Tcl_Interp *interp, Tcl_Obj *objPtr);
 void ScrObjTNDupProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr);
@@ -244,6 +248,8 @@ void ScrObjTNDupProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     dupPtr->typePtr = (Tcl_ObjType *) &ScrobjTypeName;
     INTREPPTR(dupPtr) = INTREPPTR(srcPtr);
 }
+
+/* Finally, the implementation of the scrobjy command ensemble: */
 
 typedef enum { REGISTER, CONVERT, VALUE, EVAL, GETSTRING } ScrobjCmdCode;
 
