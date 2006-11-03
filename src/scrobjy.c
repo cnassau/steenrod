@@ -19,6 +19,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+TCL_DECLARE_MUTEX(scrobjyMutex)
 Tcl_HashTable TypeTable;
 
 typedef struct {
@@ -29,14 +30,16 @@ typedef struct {
 } ScrObjType;
 
 #define INTDATAPTR(optr) ((optr)->internalRep.twoPtrValue.ptr1)
+#define UPDCODEPTR(optr) ((optr)->internalRep.twoPtrValue.ptr2)
 #define INTDATAOBJ(optr) ((Tcl_Obj *) INTDATAPTR(optr))
+#define UPDCODEOBJ(optr) ((Tcl_Obj *) UPDCODEPTR(optr))
 
 #define SAVERES
 
 int ScrobjSetproc (ScrObjType *tp, Tcl_Interp *ip, Tcl_Obj *objPtr) {
     Tcl_Obj **aux, *res;
     int rc; 
-#ifdef SAVERES
+#ifdef SAVERES_IN_SETPROC
     Tcl_SavedResult sr;
     Tcl_SaveResult(tp->ip,&sr);
 #endif
@@ -56,25 +59,29 @@ int ScrobjSetproc (ScrObjType *tp, Tcl_Interp *ip, Tcl_Obj *objPtr) {
         }
         objPtr->typePtr = (Tcl_ObjType *) tp;
         INTDATAPTR(objPtr) = res;
+        UPDCODEPTR(objPtr) = Tcl_NewListObj(2,tp->Update);
         Tcl_IncrRefCount(res);
+        Tcl_IncrRefCount(UPDCODEOBJ(objPtr));
         return TCL_OK;
     }
     Tcl_SetResult(ip, Tcl_GetString(res), TCL_VOLATILE);
-#ifdef SAVERES
+#ifdef SAVERES_IN_SETPROC
     Tcl_RestoreResult(tp->ip,&sr);
 #endif
     return rc;
 }
 
 void ScrobjUpdateproc (Tcl_Obj *objPtr) {
-    Tcl_Obj **aux, *res;
+    Tcl_Obj *aux[3], *updstuff, *res;
     char *sres; int slen;
     ScrObjType *tp = (ScrObjType *) objPtr->typePtr;
 #ifdef SAVERES
     Tcl_SavedResult sr;
     Tcl_SaveResult(tp->ip,&sr);
 #endif
-    aux = tp->Update;
+    updstuff = UPDCODEOBJ(objPtr);
+    Tcl_ListObjIndex(NULL,updstuff,0,&(aux[0]));
+    Tcl_ListObjIndex(NULL,updstuff,1,&(aux[1]));
     aux[2] = INTDATAOBJ(objPtr);
     Tcl_IncrRefCount(aux[0]);
     Tcl_IncrRefCount(aux[1]);
@@ -100,13 +107,15 @@ void ScrobjyDupproc (Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     }
     dupPtr->typePtr = srcPtr->typePtr;
     INTDATAPTR(dupPtr) = INTDATAPTR(srcPtr);
+    UPDCODEPTR(dupPtr) = UPDCODEPTR(srcPtr);
     Tcl_IncrRefCount(INTDATAOBJ(dupPtr));
+    Tcl_IncrRefCount(UPDCODEOBJ(dupPtr));
 }
 
 void ScrobjyFreeproc (Tcl_Obj *objPtr) {
     Tcl_DecrRefCount(INTDATAOBJ(objPtr));
+    Tcl_DecrRefCount(UPDCODEOBJ(objPtr));
 }
-
 
 Tcl_Obj *NewScrobj(ScrObjType *tp, Tcl_Obj *intrep) {
     Tcl_Obj *res = Tcl_NewObj();
@@ -114,6 +123,8 @@ Tcl_Obj *NewScrobj(ScrObjType *tp, Tcl_Obj *intrep) {
     res->typePtr = (Tcl_ObjType *) tp;
     INTDATAPTR(res) = intrep;
     Tcl_IncrRefCount(intrep);
+    UPDCODEPTR(res) = Tcl_NewListObj(2,tp->Update);
+    Tcl_IncrRefCount(UPDCODEOBJ(res));
     return res;
 }
 
@@ -151,9 +162,13 @@ Tcl_ObjType ScrobjTypeName = {
 };
 
 int ScrObjTNSetProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
+    Tcl_MutexLock(&scrobjyMutex);
     Tcl_HashEntry *res = Tcl_FindHashEntry(&TypeTable, (void *) objPtr);
     if (NULL == res) {
-        Tcl_AppendResult(interp, "Type ", Tcl_GetString(objPtr), " not found", NULL);
+        if(NULL != interp) {
+            Tcl_AppendResult(interp, "Type ", Tcl_GetString(objPtr), " not found", NULL);
+        }
+        Tcl_MutexUnlock(&scrobjyMutex);
         return TCL_ERROR;
     }
     if (objPtr->typePtr && objPtr->typePtr->freeIntRepProc) {
@@ -161,6 +176,7 @@ int ScrObjTNSetProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
     }
     objPtr->typePtr = (Tcl_ObjType *) &ScrobjTypeName;
     INTDATAPTR(objPtr) = Tcl_GetHashValue(res);
+    Tcl_MutexUnlock(&scrobjyMutex);
     return TCL_OK;
 }
 
@@ -169,11 +185,11 @@ void ScrObjTNDupProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     INTDATAPTR(dupPtr) = INTDATAPTR(srcPtr);
 }
 
-typedef enum { REGISTER, CONVERT, VALUE } ScrobjCmdCode;
+typedef enum { REGISTER, CONVERT, VALUE, GETSTRING } ScrobjCmdCode;
 
-static CONST char *ScrobjCmdNames[] = { "register", "convert", "value", NULL };
+static CONST char *ScrobjCmdNames[] = { "register", "convert", "value", "getstring", NULL };
 
-static ScrobjCmdCode ScrobjCmdmap[] = { REGISTER, CONVERT, VALUE };
+static ScrobjCmdCode ScrobjCmdmap[] = { REGISTER, CONVERT, VALUE, GETSTRING };
 
 int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int index, result;
@@ -189,18 +205,44 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     switch (ScrobjCmdmap[index]) {
         case REGISTER:
         {
-            int isnew;
+            ScrObjType *tp;
+            Tcl_Obj *ucode, *scode;
+
             if (objc != 5) {
                 Tcl_WrongNumArgs(ip, 2, objv, "typename updateCode setFromAnyCode");
                 return TCL_ERROR;
             }
-            Tcl_HashEntry *res = Tcl_FindHashEntry(&TypeTable, (void *) objv[2]);
-            if (NULL != res) {
-                Tcl_AppendResult(ip, "Type ", Tcl_GetString(objv[2]), " already exists", NULL);
-                return TCL_ERROR;
+
+            ucode = objv[3]; // Tcl_NewStringObj(Tcl_GetStringFromObj(objv[3],NULL),-1);
+            scode = objv[4]; // Tcl_NewStringObj(Tcl_GetStringFromObj(objv[4],NULL),-1);
+
+            if (TCL_OK != Tcl_ConvertToType(NULL,objv[2], (Tcl_ObjType *) &ScrobjTypeName)) {
+                /* create new type entry */
+                
+                int isnew;
+                Tcl_HashEntry *res;
+
+                Tcl_MutexLock(&scrobjyMutex);
+                res = Tcl_CreateHashEntry(&TypeTable, (void *) objv[2], &isnew);
+
+
+                Tcl_SetHashValue(res, NewScrobjType(ip,objv[2],ucode,scode));
+                Tcl_MutexUnlock(&scrobjyMutex);
+
+            } else {
+                /* update existing entry */
+                
+                Tcl_Obj *oldval;
+                tp = (ScrObjType *) objv[2]->internalRep.twoPtrValue.ptr1;
+                oldval = tp->Update[1];
+                tp->Update[1] = ucode;
+                Tcl_DecrRefCount(oldval);
+                Tcl_IncrRefCount(ucode);
+                oldval = tp->SetAny[1];
+                tp->SetAny[1] = scode;
+                Tcl_DecrRefCount(oldval);
+                Tcl_IncrRefCount(scode);
             }
-            res = Tcl_CreateHashEntry(&TypeTable, (void *) objv[2], &isnew);
-            Tcl_SetHashValue(res, NewScrobjType(ip,objv[2],objv[3],objv[4]));
             return TCL_OK;
         }
         case CONVERT:
@@ -225,6 +267,18 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
             }
 
             Tcl_SetObjResult(ip, objv[3]->internalRep.twoPtrValue.ptr1);
+            return TCL_OK;
+        }
+        case GETSTRING:
+        {
+            int length; char *bytes;
+            if (objc != 3) {
+                Tcl_WrongNumArgs(ip, 2, objv, "value");
+                return TCL_ERROR;            
+            }
+            
+            bytes = Tcl_GetStringFromObj(objv[2],&length);
+            Tcl_SetObjResult(ip,Tcl_NewStringObj(bytes,length));
             return TCL_OK;
         }
         case VALUE:
