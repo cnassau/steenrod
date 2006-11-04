@@ -216,7 +216,6 @@ ScrObjType *NewScrobjType(Tcl_Interp *ip, Tcl_Obj *nameobj,
 
 /* We use another Tcl_Obj type for typename references */
 
-int ScrObjTNSetProc(Tcl_Interp *interp, Tcl_Obj *objPtr);
 void ScrObjTNDupProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr);
 
 Tcl_ObjType ScrobjTypeName = {
@@ -251,11 +250,18 @@ void ScrObjTNDupProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
 
 /* Finally, the implementation of the scrobjy command ensemble: */
 
-typedef enum { REGISTER, CONVERT, VALUE, EVAL, GETSTRING } ScrobjCmdCode;
+typedef enum { 
+    REGISTER, CONVERT, VALUE, EVAL, TYPEINFO, GETSTRING 
+} ScrobjCmdCode;
 
-static CONST char *ScrobjCmdNames[] = { "register", "convert", "value", "eval", "getstring", NULL };
+static CONST char *ScrobjCmdNames[] = {
+    "register", "convert", "value", "eval", "typeinfo", 
+    "getstring", NULL 
+};
 
-static ScrobjCmdCode ScrobjCmdmap[] = { REGISTER, CONVERT, VALUE, EVAL, GETSTRING };
+static ScrobjCmdCode ScrobjCmdmap[] = { 
+    REGISTER, CONVERT, VALUE, EVAL, TYPEINFO, GETSTRING 
+};
 
 int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int index, result;
@@ -372,6 +378,8 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
         }
         case VALUE:
         {
+            ScrObjType *tp;
+
             if (objc != 4) {
                 Tcl_WrongNumArgs(ip, 2, objv, "typename internal-rep");
                 return TCL_ERROR;
@@ -381,9 +389,56 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
                 return TCL_ERROR;
             }
 
-            ScrObjType *tp = (ScrObjType *) INTREPPTR(objv[2]);
+            tp = (ScrObjType *) INTREPPTR(objv[2]);
 
             Tcl_SetObjResult(ip, NewScrobj(tp,objv[3]));
+            return TCL_OK;
+        }
+        case TYPEINFO:
+        {
+            ScrObjType *tp;
+            Tcl_Obj *res;
+
+            if (objc > 3 || objc < 2) {
+                Tcl_WrongNumArgs(ip, 2, objv, "?typename?");
+                return TCL_ERROR;
+            }
+
+            if (objc == 3) {
+
+                Tcl_Obj *info[3];
+
+                if (TCL_OK != MakeTypeNameObj(TypeTablePtr,ip,objv[2])) {
+                    return TCL_ERROR;
+                }
+                
+                tp = (ScrObjType *) INTREPPTR(objv[2]);
+                
+                info[0] = tp->UpdateCode;
+                info[1] = tp->SetAnyCode;
+                info[2] = tp->FreeCode;
+
+                Tcl_SetObjResult(ip,Tcl_NewListObj(3,info));
+                return TCL_OK;
+            }
+
+            /* list known types */
+            
+            {    
+                Tcl_HashSearch search;
+                Tcl_HashEntry *ent;
+
+                res = Tcl_NewObj();
+            
+                ent = Tcl_FirstHashEntry(TypeTablePtr, &search);
+                while (NULL != ent) {
+                    Tcl_Obj *name = (Tcl_Obj *) ent->key.objPtr;
+                    Tcl_ListObjAppendElement(ip,res,name);
+                    ent = Tcl_NextHashEntry(&search);
+                }
+ 
+                Tcl_SetObjResult(ip,res);
+            }
             return TCL_OK;
         }
     }
