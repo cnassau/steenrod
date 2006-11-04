@@ -21,13 +21,6 @@
 
 int Scrobjy_Init(Tcl_Interp *ip);
 
-Tcl_Obj *ObjStringCopy(Tcl_Obj *other) {
-    int length;
-    char *bytes;
-    bytes = Tcl_GetStringFromObj(other,&length);
-    return Tcl_NewStringObj(bytes,length);
-}
-
 /* We use the following extension of the Tcl_Obj struct
  * to describe each scripted type that has been declared. */
 
@@ -303,11 +296,11 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
             } else {
                 /* update existing entry */
 
-#define SETNEWVAL(old,new) { \
-    oldval=old;              \
-    old=new;                 \
-    Tcl_IncrRefCount(new);   \
-    Tcl_DecrRefCount(old); }
+#define SETNEWVAL(old,new) {   \
+    oldval=old;                \
+    old=new;                   \
+    Tcl_IncrRefCount(new);     \
+    Tcl_DecrRefCount(oldval); }
 
                 Tcl_Obj *oldval;
                 tp = (ScrObjType *) objv[2]->internalRep.twoPtrValue.ptr1;
