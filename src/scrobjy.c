@@ -19,6 +19,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+/* Scripted destructors appear to be of no use, whatsoever.
+ * Set the following define to 1 if you want them nonetheless. */
+#define WITHFREECODE 0
+
 int Scrobjy_Init(Tcl_Interp *ip);
 
 /* We use the following extension of the Tcl_Obj struct
@@ -30,7 +34,7 @@ typedef struct {
     Tcl_Obj *Apply;      /* "::apply" */
     Tcl_Obj *UpdateCode; /* lambdaExpr to re-create string rep. */
     Tcl_Obj *SetAnyCode; /* lambdaExpr to parse from string */
-    Tcl_Obj *FreeCode;   /* destructor as lambdaExpr */
+    Tcl_Obj *FreeCode;   /* destructor lambdaExpr */
 } ScrObjType;
 
 /* It can happen that the update & free code of a type is 
@@ -74,7 +78,6 @@ ScrObjInstData *DupInstData(ScrObjInstData *id) {
     Tcl_IncrRefCount(res->updcode);
     Tcl_IncrRefCount(res->freecode);
     return res;
-    
 }
 
 void FreeInstData(ScrObjInstData *id) {
@@ -102,11 +105,13 @@ int ScrObjTypeEvalCode(ScrObjType *tp, Tcl_Obj *code, Tcl_Obj *arg) {
 }
 
 void ScrobjyFreeproc(Tcl_Obj *objPtr) {
+#if WITHFREECODE
     ScrObjType *tp = (ScrObjType *) objPtr->typePtr;
     Tcl_Obj *freecode = FREECODE(objPtr);
     if (*Tcl_GetString(freecode)) {
         ScrObjTypeEvalCode(tp,freecode,INTREPOBJ(objPtr));
     }
+#endif
     Tcl_DecrRefCount(INTREPOBJ(objPtr));
     FreeInstData(INSTDATAPTR(objPtr));
 }
@@ -142,6 +147,8 @@ int ScrobjSetproc(ScrObjType *tp, Tcl_Interp *ip, Tcl_Obj *objPtr) {
         INTREPPTR(objPtr) = res;
         Tcl_IncrRefCount(res);
         INSTDATAPTR(objPtr) = id;
+        /* free the slave's reference to the internal rep */
+        Tcl_SetObjResult(tp->ip,Tcl_NewObj());
         return TCL_OK;
     } else {
         Tcl_AddErrorInfo(ip,Tcl_GetVar(tp->ip,"::errorInfo",0));
@@ -274,14 +281,25 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
             ScrObjType *tp;
             Tcl_Obj *ucode, *scode, *fcode;
 
+#if WITHFREECODE
             if (objc > 6 || objc < 5) {
                 Tcl_WrongNumArgs(ip, 2, objv, "typename updateCode setFromAnyCode ?freeCode?");
                 return TCL_ERROR;
             }
+#else
+            if (objc != 5) {
+                Tcl_WrongNumArgs(ip, 2, objv, "typename updateCode setFromAnyCode");
+                return TCL_ERROR;
+            }
+#endif
 
             ucode = objv[3];
             scode = objv[4];
-            fcode = (objc > 5) ? objv[5] : Tcl_NewObj();
+            if (objc == 5) {
+                fcode = Tcl_NewObj();
+            } else {
+                fcode = objv[5];
+            }
 
             if (TCL_OK != MakeTypeNameObj(TypeTablePtr,NULL,objv[2])) {
                 /* create new type entry */
@@ -411,7 +429,11 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
                 info[1] = tp->SetAnyCode;
                 info[2] = tp->FreeCode;
 
+#if WITHFREECODE
                 Tcl_SetObjResult(ip,Tcl_NewListObj(3,info));
+#else
+                Tcl_SetObjResult(ip,Tcl_NewListObj(2,info));
+#endif
                 return TCL_OK;
             }
 
