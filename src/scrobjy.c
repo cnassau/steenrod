@@ -209,7 +209,7 @@ ScrObjType *NewScrobjType(Tcl_Interp *ip, Tcl_Obj *nameobj,
     Tcl_SetVar(res->ip,"::auto_path",
                Tcl_GetVar(ip,"::auto_path",0),0);
     Tcl_Init(res->ip);
-    Tcl_SetAssocData(ip,"scrobjy",NULL,Tcl_GetAssocData(ip,"scrobjy",NULL));
+    Tcl_SetAssocData(res->ip,"scrobjy",NULL,Tcl_GetAssocData(ip,"scrobjy",NULL));
     Scrobjy_Init(res->ip);
     return res;
 }
