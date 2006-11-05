@@ -78,7 +78,12 @@ Tcl_Obj *EvalN(Parser *p, const char *procname, int n) {
                     Tcl_Obj *exp, Tcl_Obj *ind, Tcl_Obj *arglist) {
      Tcl_Obj *res;
      parser->objv[1]=funcname;
-     parser->objv[2]=arglist;
+     if(arglist) {
+         parser->objv[2]=arglist;
+     } else {
+         parser->objv[2]=Tcl_NewObj();
+         Tcl_IncrRefCount(parser->objv[2]);
+     }
      res = EvalN(parser,"apply",2);
      return res;
  }
@@ -139,6 +144,10 @@ exprlist(A) ::= expr(B). {
    CheckForError(A);
 }
 funcname(A) ::= FUNCTION(B). { EV1(A,function,B); }
+funcres(A) ::= funcname(B) LPAREN RPAREN. {
+   A = ApplyFunc(parser,B,NULL,NULL,NULL);
+   CheckForError(A);
+}
 funcres(A) ::= funcname(B) LPAREN exprlist(C) RPAREN. {
    A = ApplyFunc(parser,B,NULL,NULL,C);
    CheckForError(A);
