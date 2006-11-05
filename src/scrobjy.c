@@ -19,8 +19,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* Scripted destructors appear to be of no use, whatsoever.
- * Set the following define to 1 if you want them nonetheless. */
+/* Scripted destructors appear to be of no use.
+ * Set the following to 1 if you want them anyway. */
 #define WITHFREECODE 0
 
 int Scrobjy_Init(Tcl_Interp *ip);
