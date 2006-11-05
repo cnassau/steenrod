@@ -148,11 +148,31 @@ funcres(A) ::= funcname(B) LPAREN RPAREN. {
    A = ApplyFunc(parser,B,NULL,NULL,NULL);
    CheckForError(A);
 }
+funcres(A) ::= funcname(B) SUP VALUE(exponent) SUB VALUE(index) LPAREN RPAREN. {
+   A = ApplyFunc(parser,B,exponent,index,NULL);
+   CheckForError(A);
+}
+funcres(A) ::= funcname(B) SUB VALUE(index) SUP VALUE(exponent) LPAREN RPAREN. {
+   A = ApplyFunc(parser,B,exponent,index,NULL);
+   CheckForError(A);
+}
+funcres(A) ::= funcname(B) SUB VALUE(index) LPAREN RPAREN. {
+   A = ApplyFunc(parser,B,NULL,index,NULL);
+   CheckForError(A);
+}
+funcres(A) ::= funcname(B) SUP VALUE(exponent) LPAREN RPAREN. {
+   A = ApplyFunc(parser,B,exponent,NULL,NULL);
+   CheckForError(A);
+}
 funcres(A) ::= funcname(B) LPAREN exprlist(C) RPAREN. {
    A = ApplyFunc(parser,B,NULL,NULL,C);
    CheckForError(A);
 }
 funcres(A) ::= funcname(B) SUP VALUE(exponent) SUB VALUE(index) LPAREN exprlist(C) RPAREN. {
+   A = ApplyFunc(parser,B,exponent,index,C);
+   CheckForError(A);
+}
+funcres(A) ::= funcname(B) SUB VALUE(index) SUP VALUE(exponent) LPAREN exprlist(C) RPAREN. {
    A = ApplyFunc(parser,B,exponent,index,C);
    CheckForError(A);
 }
@@ -165,4 +185,4 @@ funcres(A) ::= funcname(B) SUP VALUE(exponent) LPAREN exprlist(C) RPAREN. {
    CheckForError(A);
 }
 
-%nonassoc DOLLAR FUNCTION 
+%nonassoc DOLLAR FUNCTION
