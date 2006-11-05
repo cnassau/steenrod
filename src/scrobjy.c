@@ -88,16 +88,18 @@ void FreeInstData(ScrObjInstData *id) {
 
 /* Implementation of the Tcl_Obj interface functions: */
 
-int ScrObjTypeEvalCode(ScrObjType *tp, Tcl_Obj *code, Tcl_Obj *arg) {
+int ScrObjTypeEvalCode(ScrObjType *tp, Tcl_Obj *code, 
+                       Tcl_Obj *arg, Tcl_Interp *ip) {
     Tcl_Obj *aux[3];
     int rc;
     aux[0] = tp->Apply;
     aux[1] = code;
     aux[2] = arg;
+    if (NULL == ip) ip = tp->ip; 
     Tcl_IncrRefCount(aux[0]);
     Tcl_IncrRefCount(aux[1]);
     Tcl_IncrRefCount(aux[2]);
-    rc = Tcl_EvalObjv(tp->ip,3,aux,TCL_EVAL_GLOBAL);
+    rc = Tcl_EvalObjv(ip,3,aux,TCL_EVAL_GLOBAL);
     Tcl_DecrRefCount(aux[0]);
     Tcl_DecrRefCount(aux[1]);
     Tcl_DecrRefCount(aux[2]);
@@ -109,7 +111,7 @@ void ScrobjyFreeproc(Tcl_Obj *objPtr) {
     ScrObjType *tp = (ScrObjType *) objPtr->typePtr;
     Tcl_Obj *freecode = FREECODE(objPtr);
     if (*Tcl_GetString(freecode)) {
-        ScrObjTypeEvalCode(tp,freecode,INTREPOBJ(objPtr));
+        ScrObjTypeEvalCode(tp,freecode,INTREPOBJ(objPtr),0);
     }
 #endif
     Tcl_DecrRefCount(INTREPOBJ(objPtr));
@@ -120,7 +122,7 @@ void ScrobjUpdateproc (Tcl_Obj *objPtr) {
     Tcl_Obj *res;
     char *sres; int slen;
     ScrObjType *tp = (ScrObjType *) objPtr->typePtr;
-    ScrObjTypeEvalCode(tp,UPDATECODE(objPtr),INTREPOBJ(objPtr));
+    ScrObjTypeEvalCode(tp,UPDATECODE(objPtr),INTREPOBJ(objPtr),0);
     res = Tcl_GetObjResult(tp->ip);
     sres = Tcl_GetStringFromObj(res,&slen);
     objPtr->bytes = Tcl_Alloc(slen+1);
@@ -129,11 +131,13 @@ void ScrobjUpdateproc (Tcl_Obj *objPtr) {
     objPtr->length = slen;
 }
 
-int ScrobjSetproc(ScrObjType *tp, Tcl_Interp *ip, Tcl_Obj *objPtr) {
+int ScrobjSetproc(ScrObjType *tp, Tcl_Interp *ip, 
+                  Tcl_Obj *objPtr, int local) {
     Tcl_Obj *res;
     int rc;
-    rc = ScrObjTypeEvalCode(tp,tp->SetAnyCode,objPtr);
-    res = Tcl_GetObjResult(tp->ip);
+    Tcl_Interp *the_ip = local ? ip : tp->ip;
+    rc = ScrObjTypeEvalCode(tp,tp->SetAnyCode,objPtr,local ? ip : 0);
+    res = Tcl_GetObjResult(the_ip);
     if (TCL_OK == rc) {
         ScrObjInstData *id = NewInstData(tp);
         if (NULL == id) {
@@ -148,10 +152,12 @@ int ScrobjSetproc(ScrObjType *tp, Tcl_Interp *ip, Tcl_Obj *objPtr) {
         Tcl_IncrRefCount(res);
         INSTDATAPTR(objPtr) = id;
         /* free the slave's reference to the internal rep */
-        Tcl_SetObjResult(tp->ip,Tcl_NewObj());
+        Tcl_SetObjResult(the_ip,Tcl_NewObj());
         return TCL_OK;
     } else {
-        Tcl_AddErrorInfo(ip,Tcl_GetVar(tp->ip,"::errorInfo",0));
+        if (!local) {
+            Tcl_AddErrorInfo(ip,Tcl_GetVar(the_ip,"::errorInfo",0));
+        }
     }
     Tcl_SetResult(ip, Tcl_GetString(res), TCL_VOLATILE);
     return rc;
@@ -230,7 +236,7 @@ int MakeTypeNameObj(Tcl_HashTable *TypeTablePtr,
                     Tcl_Interp *interp, Tcl_Obj *objPtr) {
     Tcl_HashEntry *res = Tcl_FindHashEntry(TypeTablePtr, (void *) objPtr);
     if (NULL == res) {
-        if(NULL != interp) {
+        if (NULL != interp) {
             Tcl_AppendResult(interp, "Type ", Tcl_GetString(objPtr), " not found", NULL);
         }
         return TCL_ERROR;
@@ -261,6 +267,18 @@ static CONST char *ScrobjCmdNames[] = {
 
 static ScrobjCmdCode ScrobjCmdmap[] = { 
     REGISTER, CONVERT, VALUE, EVAL, TYPEINFO, GETSTRING 
+};
+
+typedef enum { 
+    LOCAL, REMOTE
+} ScrobjConvertOption;
+
+static CONST char *ScrobjConvertOptionNames[] = {
+    "local", "remote", NULL
+};
+
+static ScrobjConvertOption ScrobjConvertOptionmap[] = { 
+    LOCAL, REMOTE 
 };
 
 int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
@@ -331,10 +349,19 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
         }
         case CONVERT:
         {
+            int local = 0;
             ScrObjType *tp;
-            if (objc != 4) {
-                Tcl_WrongNumArgs(ip, 2, objv, "typename value");
+            if (objc < 4 || objc > 5) {
+                Tcl_WrongNumArgs(ip, 2, objv, "typename value ?[local|remote]?");
                 return TCL_ERROR;
+            }
+            
+            if (5 == objc) {
+                result = Tcl_GetIndexFromObj(ip, objv[4], 
+                                             ScrobjConvertOptionNames, 
+                                             "option", 0, &index);
+                if (result != TCL_OK) return result;
+                local = (ScrobjConvertOptionmap[index] == LOCAL);
             }
 
             if (TCL_OK != MakeTypeNameObj(TypeTablePtr,ip,objv[2])) {
@@ -344,7 +371,7 @@ int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
             tp = (ScrObjType *) objv[2]->internalRep.twoPtrValue.ptr1;
 
             if(objv[3]->typePtr != (Tcl_ObjType *) tp) {
-                if (TCL_OK != ScrobjSetproc(tp, ip, objv[3])) {
+                if (TCL_OK != ScrobjSetproc(tp, ip, objv[3], local)) {
                     return TCL_ERROR;
                 }
             }
