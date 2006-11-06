@@ -59,13 +59,13 @@ Tcl_Obj *EvalN(Parser *p, const char *procname, int n) {
    } else {
        rc = TCL_ERROR;
    }
-   for (i=0;i<=n;i++) Tcl_DecrRefCount(p->objv[i]);
    if (TCL_OK != rc) {
-      res = NULL;
+       res = NULL;
    } else {
       res = Tcl_GetObjResult(p->ip);
       Tcl_IncrRefCount(res);
-   }
+   }  
+   for (i=0;i<=n;i++) Tcl_DecrRefCount(p->objv[i]);
    if (p->tracing) {
       printf("  result = %s\n", (NULL == res) ? "NULL" : Tcl_GetString(res));
    }
@@ -78,13 +78,16 @@ Tcl_Obj *EvalN(Parser *p, const char *procname, int n) {
                     Tcl_Obj *exp, Tcl_Obj *ind, Tcl_Obj *arglist) {
      Tcl_Obj *res;
      parser->objv[1]=funcname;
-     if(arglist) {
-         parser->objv[2]=arglist;
-     } else {
-         parser->objv[2]=Tcl_NewObj();
-         Tcl_IncrRefCount(parser->objv[2]);
-     }
-     res = EvalN(parser,"apply",2);
+
+#define TRYSET(var,val) {                         \
+ if (val) {var=val;}                              \
+ else {var=Tcl_NewObj();Tcl_IncrRefCount(var);};}
+
+     TRYSET(parser->objv[2],exp);
+     TRYSET(parser->objv[3],ind);
+     TRYSET(parser->objv[4],arglist);
+
+     res = EvalN(parser,"apply",4);
      return res;
  }
 
@@ -130,7 +133,7 @@ expr(A) ::= LPAREN expr(B) RPAREN. {
 }
 expr(A) ::= expr(B) funcres(C).  { EV2(A,times,B,C); }
 expr(A) ::= funcres(B). { A = B; B = NULL; }
-expr(A) ::= VALUE(B). { EV1(A,value,B); }
+expr(A) ::= VALUE(B). { EV1(A,value,B);  }
 exprlist(A) ::= exprlist(B) COMMA expr(C). {
    A = B; 
    Tcl_ListObjAppendElement(parser->ip,A,C); 
@@ -143,44 +146,41 @@ exprlist(A) ::= expr(B). {
    if (A) Tcl_IncrRefCount(A);
    CheckForError(A);
 }
+/* brexprlist = bracketed expression list or immediate value */
+brexprlist(A) ::= LPAREN exprlist(B) RPAREN. {
+    A = B; B=NULL; 
+}
+brexprlist(A) ::= VALUE(B). {
+    A = B; B=NULL; 
+}
+/* funcarglist = bracketed expression list or empty arglist */
+funcarglist(A) ::= LPAREN exprlist(B) RPAREN. {
+    A = B; B=NULL; 
+}
+funcarglist(A) ::= LPAREN RPAREN. {
+    A = Tcl_NewObj(); 
+    if(A) Tcl_IncrRefCount(A);
+    CheckForError(A);
+}
 funcname(A) ::= FUNCTION(B). { EV1(A,function,B); }
-funcres(A) ::= funcname(B) LPAREN RPAREN. {
-   A = ApplyFunc(parser,B,NULL,NULL,NULL);
-   CheckForError(A);
-}
-funcres(A) ::= funcname(B) SUP VALUE(exponent) SUB VALUE(index) LPAREN RPAREN. {
-   A = ApplyFunc(parser,B,exponent,index,NULL);
-   CheckForError(A);
-}
-funcres(A) ::= funcname(B) SUB VALUE(index) SUP VALUE(exponent) LPAREN RPAREN. {
-   A = ApplyFunc(parser,B,exponent,index,NULL);
-   CheckForError(A);
-}
-funcres(A) ::= funcname(B) SUB VALUE(index) LPAREN RPAREN. {
-   A = ApplyFunc(parser,B,NULL,index,NULL);
-   CheckForError(A);
-}
-funcres(A) ::= funcname(B) SUP VALUE(exponent) LPAREN RPAREN. {
-   A = ApplyFunc(parser,B,exponent,NULL,NULL);
-   CheckForError(A);
-}
-funcres(A) ::= funcname(B) LPAREN exprlist(C) RPAREN. {
+
+funcres(A) ::= funcname(B) funcarglist(C). {
    A = ApplyFunc(parser,B,NULL,NULL,C);
    CheckForError(A);
 }
-funcres(A) ::= funcname(B) SUP VALUE(exponent) SUB VALUE(index) LPAREN exprlist(C) RPAREN. {
+funcres(A) ::= funcname(B) SUP brexprlist(exponent) SUB brexprlist(index) funcarglist(C). {
    A = ApplyFunc(parser,B,exponent,index,C);
    CheckForError(A);
 }
-funcres(A) ::= funcname(B) SUB VALUE(index) SUP VALUE(exponent) LPAREN exprlist(C) RPAREN. {
+funcres(A) ::= funcname(B) SUB brexprlist(index) SUP brexprlist(exponent) funcarglist(C). {
    A = ApplyFunc(parser,B,exponent,index,C);
    CheckForError(A);
 }
-funcres(A) ::= funcname(B) SUB VALUE(index) LPAREN exprlist(C) RPAREN. {
+funcres(A) ::= funcname(B) SUB brexprlist(index) funcarglist(C). {
    A = ApplyFunc(parser,B,NULL,index,C);
    CheckForError(A);
 }
-funcres(A) ::= funcname(B) SUP VALUE(exponent) LPAREN exprlist(C) RPAREN. {
+funcres(A) ::= funcname(B) SUP brexprlist(exponent) funcarglist(C). {
    A = ApplyFunc(parser,B,exponent,NULL,C);
    CheckForError(A);
 }
