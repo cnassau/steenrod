@@ -1,7 +1,7 @@
 /*
  * Secondary multiplication routine, prime 2
  *
- * Copyright (C) 2004-2006 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2007 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *
@@ -38,6 +38,8 @@ typedef struct {
     cofft rem[3+NALG][2+NALG]; /* vertical remainders */
     cofft sum[3+NALG][2+NALG]; /* vertcial sum */
     cofft cols[3+NALG];        /* bitmask of collisions */
+    cofft par[3+NALG];         /* helper field to determine the parity/sign */
+    int sign;
     Tcl_Interp *ip;
     polyType *ptp;
     void *pol;
@@ -75,6 +77,10 @@ int SecmultHandleBoxVal(smultmat *mmat, int val,
             mmat->cols[rownum] = 1 << idx;
         }
     }
+    if (0 != (1 & val)) {
+        /* printf("par[%d]:=%d\n",rownum+idx-2,idx); */
+        mmat->par[rownum+idx-2] = idx;
+    }
     mmat->dat[rownum][idx] = val;
     mmat->msk[rownum-1][idx+1] = msk | val;
     mmat->rem[rownum-1][idx] = rem - val;
@@ -83,13 +89,17 @@ int SecmultHandleBoxVal(smultmat *mmat, int val,
 }
 
 int SecmultFinalRow(smultmat *mmat, int allowCollision) {
-    int i, val, nval;
+    int i, val, nval, ext1=0, ext2=0;
     mmat->sum[1][NALG] = 0;
     for (i=NALG;i--;) {
         val = mmat->f2->r.dat[i] - mmat->sum[1][i+1];
         nval = SecmultHandleBoxVal(mmat,val,1,i+1,allowCollision);
         if( val != nval ) return 0;
+        ext1 <<= 1; ext1 |= (1 & val);
+        ext2 <<= 1; ext2 |= (1 & mmat->msk[1][i+1]);
     }
+    mmat->sign = SIGNFUNC(ext2,ext1);
+    printf("sign=%d from %d | %d\n",mmat->sign,ext1,ext2);
     return 1;
 }
 
@@ -136,6 +146,10 @@ void printmat(smultmat *mmat,int rnum) {
     printf("msk\n"); printmat2(mmat->msk,rnum);
     printf("rem\n"); printmat2(mmat->rem,rnum);
     printf("sum\n"); printmat2(mmat->sum,rnum);
+}
+
+int SecmultSign(smultmat *mmat) {
+    return mmat->sign;
 }
 
 void SecmultHandleRow(smultmat *mmat, int rownum, int allowCollision) {
@@ -208,6 +222,7 @@ void SecmultHandleRow(smultmat *mmat, int rownum, int allowCollision) {
             res.gen = (mmat->f2->gen & 0xffffff00) | aux ;
             res.coeff <<= 1;
 	} else {
+            if (SecmultSign(mmat)) res.coeff = -res.coeff & 3;
             res.gen = mmat->f2->gen;
 	}
         PLappendExmo(mmat->ptp,mmat->pol,&res);

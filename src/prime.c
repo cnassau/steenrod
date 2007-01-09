@@ -1,7 +1,7 @@
 /*
  * Basic information that depends on the prime
  *
- * Copyright (C) 2004-2006 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2007 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *
