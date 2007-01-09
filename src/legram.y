@@ -28,7 +28,7 @@
 %token_type {Tcl_Obj *}
 
 %token_destructor {
-   if ($$) Tcl_DecrRefCount($$);
+   if ($$) { Tcl_DecrRefCount($$); } ;
 }
 
 %parse_failure {

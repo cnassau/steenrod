@@ -106,8 +106,8 @@ extern int objCount; /* for refCount debgging */
 /* wrappers for Tcl reference count management */
 #ifndef USE_VERB_REFCOUNTS
 #  ifndef COUNT_REFCOUNTS
-#    define INCREFCNT(x) Tcl_IncrRefCount(x)
-#    define DECREFCNT(x) Tcl_DecrRefCount(x)
+#    define INCREFCNT(x) do { Tcl_IncrRefCount(x); } while (0)
+#    define DECREFCNT(x) do { Tcl_DecrRefCount(x); } while (0)
 #  else 
 #    define INCREFCNT(x) { ++objCount; Tcl_IncrRefCount(x); }
 #    define DECREFCNT(x) { --objCount; Tcl_DecrRefCount(x); }

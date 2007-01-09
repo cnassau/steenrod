@@ -453,7 +453,7 @@ Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj **urb,
 /* VAddCmd tries to do "(*obj1) += (*obj2) mod modval" */
 
 int VAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale, int modval) {
-    vectorType *vt1, *vt2;
+    vectorType *vt1, *vt2, *aux;
     void *vdat1, *vdat2;
     int d1, d2;
 
@@ -476,9 +476,11 @@ int VAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale, int modval)
 
     Tcl_InvalidateStringRep(obj1);
 
-    if (SUCCESS != LAVadd((vectorType **) &PTR1(obj1), &PTR2(obj1), 
+    aux = (vectorType *) PTR1(obj1);
+    if (SUCCESS != LAVadd(&aux, &PTR2(obj1), 
                           vt2, vdat2, scale, modval)) 
         RETERR("could not add vectors (LAVadd failed)");
+    PTR1(obj1) = aux;
 
     return TCL_OK;
 }
@@ -486,7 +488,7 @@ int VAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale, int modval)
 /* MAddCmd tries to do "(*obj1) += (*obj2) mod modval" */
 
 int MAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale, int modval) {
-    matrixType *mt1, *mt2;
+    matrixType *mt1, *mt2, *aux;
     void *mdat1, *mdat2;
     int r1, r2, c1, c2;
 
@@ -509,9 +511,11 @@ int MAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale, int modval)
 
     Tcl_InvalidateStringRep(obj1);
 
-    if (SUCCESS != LAMadd((matrixType **) &PTR1(obj1), &PTR2(obj1), 
+    aux = (matrixType *) PTR1(obj1);    
+    if (SUCCESS != LAMadd(&aux, &PTR2(obj1), 
                           mt2, mdat2, scale, modval)) 
         RETERR("could not add matrices (LAMadd failed)");
+    PTR1(obj1) = aux;
 
     return TCL_OK;
 }

@@ -461,7 +461,7 @@ static void yy_destructor(YYCODETYPE yymajor, YYMINORTYPE *yypminor){
     case 24:
 #line 30 "legram.y"
 {
-   if ((yypminor->yy0)) Tcl_DecrRefCount((yypminor->yy0));
+   if ((yypminor->yy0)) { Tcl_DecrRefCount((yypminor->yy0)); } ;
 }
 #line 468 "legram.c"
       break;

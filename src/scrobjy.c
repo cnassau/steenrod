@@ -109,7 +109,7 @@ int ScrObjTypeEvalCode(ScrObjType *tp, Tcl_Obj *code,
     Tcl_DecrRefCount(aux[0]);
     Tcl_DecrRefCount(aux[1]);
     Tcl_DecrRefCount(aux[2]);
-    if (NULL != xarg) Tcl_DecrRefCount(xarg);
+    if (NULL != xarg) { Tcl_DecrRefCount(xarg); }
     return rc;
 }
 
