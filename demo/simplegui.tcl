@@ -65,8 +65,10 @@ proc updateScrollRegion {} {
 
 updateScrollRegion
 
+set dotfile @[file join [file dirname [info script]] dot]
+
 proc addDot {x y edeg id s} { 
-    global cvs maxY maxX
+    global cvs maxY maxX dotfile
 
     set colval [expr 1-exp(.15*-$edeg)]
     set colval [expr 80 + int(155 * $colval)]
@@ -83,7 +85,7 @@ proc addDot {x y edeg id s} {
     if {$y>$maxY} { set maxY [expr $y+10] ; updateScrollRegion }
 
     set ::dots($s,$id) [$cvs create bitmap [::tocoord $x] [::tocoord -$y] \
-                            -foreground $col -bitmap @dot]
+                            -foreground $col -bitmap $dotfile]
 }
 
 # finally, here are our "callbacks":
