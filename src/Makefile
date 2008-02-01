@@ -18,7 +18,7 @@ SED = sed
 
 ifeq ($(SYSTEM),Windows)
   CC     = gcc -mdll -mno-cygwin
-  CFLAGS = -O2 -g -Wall -I.  -DDLLBUILD
+  CFLAGS += -O2 -g -Wall -I.  -DDLLBUILD 
 
   TCLINCDIR = c:/MinGW/include/
   TCLLIBDIR = c:/MinGW/lib/
@@ -27,10 +27,10 @@ ifeq ($(SYSTEM),Windows)
   STUBLINK = gcc -mdll -mno-cygwin -L$(TCLLIBDIR) -lmsvcrt
 else
   CC     = gcc -fPIC
-  CFLAGS =  -O2 -g -Wall -I. -DUSE_TCL_STUBS
+  CFLAGS +=  -O2 -g -Wall -I. -DUSE_TCL_STUBS 
 
   TCLINCDIR = /usr/include/
-  TCLLIBDIR = /usr/lib64 /usr/lib
+  TCLLIBDIR = /usr/lib64 /usr/lib /home/cn/mytcl/lib/
   TCLSTUBLIB = tclstub8.4
   TCLLIB = tcl8.4
   STUBLINK = gcc -shared $(CFLAGS) $(foreach i,$(TCLLIBDIR),-L$(i))
@@ -68,10 +68,9 @@ objects: $(OBJS)
 libraries: $(LIBS)
 
 install: libraries steenrodsh
-	$(TCLSH) instlib.tcl $(LIBS)
+	$(TCLSH) instlib.tcl lib $(LIBS)
 	(cd ../lib; echo "pkg_mkIndex ." | $(TCLSH))
-	mkdirhier ../bin
-	cp steenrodsh ../bin
+	$(TCLSH) instlib.tcl bin steenrodsh
 
 %.c : %.tc
 	@echo "const char *tc_$* = " > $*.c
