@@ -1,6 +1,6 @@
 # Main makefile
 #
-# Copyright (C) 2004-2007 Christian Nassau <nassau@nullhomotopie.de>
+# Copyright (C) 2004-2008 Christian Nassau <nassau@nullhomotopie.de>
 #
 #  $Id$
 #
@@ -8,7 +8,7 @@
 # it under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
 
-STEENROD_VERSION=0.7632
+STEENROD_VERSION=0.7651
 
 SYSTEM = Unix
 

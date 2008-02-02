@@ -1,7 +1,7 @@
 /*
  * Generic pointers for the Tcl interface 
  *
- * Copyright (C) 2004-2007 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2008 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *
