@@ -57,7 +57,7 @@ int ILSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
             ckfree((char *) dat); return TCL_ERROR;
         }
     /* Now we have a copy of the data. Free list representation. */
-    objPtr->typePtr->freeIntRepProc(objPtr);
+    if( objPtr->typePtr && objPtr->typePtr->freeIntRepProc) objPtr->typePtr->freeIntRepProc(objPtr);
     PTR1(objPtr) = VPTRFROMUSGN(objc << 1);
     PTR2(objPtr) = dat;
     objPtr->typePtr = &IntList;

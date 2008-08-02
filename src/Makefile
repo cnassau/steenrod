@@ -30,9 +30,9 @@ else
   CFLAGS +=  -O2 -g -Wall -I. -DUSE_TCL_STUBS 
 
   TCLINCDIR = /usr/include/
-  TCLLIBDIR = /usr/lib64 /usr/lib /home/cn/mytcl/lib/
-  TCLSTUBLIB = tclstub8.4
-  TCLLIB = tcl8.4
+  TCLLIBDIR = /usr/lib64 /usr/lib /home/cn/tcl85/lib/
+  TCLSTUBLIB = tclstub8.5
+  TCLLIB = tcl8.5
   STUBLINK = gcc -shared $(CFLAGS) $(foreach i,$(TCLLIBDIR),-L$(i))
 endif
 

@@ -35,7 +35,12 @@ proc steenrod::algebra {args} {
         }
         error "bad subcommand [lindex $args 0]: must be [join $scmds {, }]"
     }
-    eval [list ::steenrod::algebra:: [lindex $args 0]] [lrange $args 1 end]
+    if {[catch { 
+        eval ::steenrod::algebra::[lindex $args 0] [lrange $args 1 end]
+    } res]} {
+        error $res $res
+    }
+    return $res
 }
 
 proc steenrod::algebra:: args {eval $args}
