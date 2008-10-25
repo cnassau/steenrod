@@ -27,19 +27,21 @@ ifeq ($(SYSTEM),Windows)
   STUBLINK = gcc -mdll -mno-cygwin -L$(TCLLIBDIR) -lmsvcrt
 else
   CC     = gcc -fPIC
-  CFLAGS +=  -O2 -g -Wall -I. -DUSE_TCL_STUBS 
+  CFLAGS +=  -O2 -g -Wall -I.
 
-  TCLINCDIR = /usr/include/
-  TCLLIBDIR = /usr/lib64 /usr/lib /home/cn/tcl85/lib/
-  TCLSTUBLIB = tclstub8.5
-  TCLLIB = tcl8.5
+  TCLINCDIRS = /home/cn/tcl-head/include /usr/include/
+  TCLINCDIR = $(foreach i,$(TCLINCDIRS),-I$(i))
+  TCLLIBDIR = /home/cn/tcl-head/lib /usr/lib64 /usr/lib 
+  TCLSTUBLIB = tclstub8.6
+  TCLLIB = tcl8.6
+  TCLSTATICLIB = tcl8.6.a
   STUBLINK = gcc -shared $(CFLAGS) $(foreach i,$(TCLLIBDIR),-L$(i))
 endif
 
 LIBDIRS = $(foreach i,$(TCLLIBDIR),-L$(i))
 
 CFLAGS += -DSTEENROD_VERSION=\"$(STEENROD_VERSION)\"
-CFLAGS += -DUSE_TCL_STUBS -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT 
+CFLAGS += -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT 
 #CFLAGS += -fprofile-arcs -ftest-coverage -pg
 #CFLAGS += -DUSE_VERB_ALLOC=1
 
@@ -84,7 +86,7 @@ install: libraries steenrodsh
 	$(NOTANGLE) -L -R$*.h $(NOWEBFILES) > $*.h
 
 %.o : %.c
-	$(CC) $(CFLAGS) -I$(TCLINCDIR) -c $*.c
+	$(CC) -DUSE_TCL_STUBS $(CFLAGS) $(TCLINCDIR) -c $*.c
 
 %.ps : %.dvi
 	dvips $*.dvi
@@ -103,11 +105,12 @@ depend:
 libsteenrod.so : $(OBJS)
 	$(STUBLINK) -o libsteenrod.so $(OBJS) -l$(TCLSTUBLIB)
 
-steenrodsh : $(OBJS) steenrodsh.c
-	$(CC) -o steenrodsh $(CFLAGS) -I$(TCLINCDIR) $(OBJS) steenrodsh.c $(LIBDIRS) -l$(TCLLIB)
+steenrodsh : $(SRCS) steenrodsh.c
+	$(CC) -o steenrodsh $(CFLAGS) -I$(TCLINCDIR) $(SRCS) steenrodsh.c $(LIBDIRS) -l$(TCLLIB)
 
 clean:
 	$(RM) $(OBJS) $(LIBS) 2> /dev/null
+	$(RM) steenrodsh
 
 distclean: clean
 	$(RM) *~ *.bak 2> /dev/null
