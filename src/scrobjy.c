@@ -1,7 +1,7 @@
 /*
  * Scripted Tcl-Object support (scrobjy)
  *
- * Copyright (C) 2008 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2009 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *
