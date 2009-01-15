@@ -28,6 +28,8 @@ test mult-hangup-1.0 {endless loop} {
     d set  {1 0 {} 2} {{1 0 5 0}}
     enumerator p {*}[join "{-prime 5} {-algebra {0 511 {8 7 6 5 4 3 2 1} 0}} {-profile {0 254 {8 8 8 8 8 8 8 8} 0}} {-signature {0 0 {} 0}} {-type positive} {-ideg 1} {-edeg 1} {-hdeg {}} {-genlist {{0 1 1} {1 8 0} {2 40 0}}}"]
     enumerator n {*}[join  "{-prime 5} {-algebra {0 511 {8 7 6 5 4 3 2 1} 0}} {-profile {0 254 {8 8 8 8 8 8 8 8} 0}} {-signature {0 0 {} 0}} {-type positive} {-ideg 1} {-edeg 1} {-hdeg {}} {-genlist {{0 0 0}}}"]
+    enumerator p {*}[join "{-prime 5} {-algebra {0 511 {8 7 6 5 4 3 2 1} 0}} {-profile {0 254 {8 7 6 5 4 3 2 1} 0}} {-signature {0 0 {} 0}} {-type positive} {-ideg 1} {-edeg 1} {-hdeg {}} {-genlist {{0 1 1} {1 8 0} {2 40 0}}}"]
+    enumerator n {*}[join  "{-prime 5} {-algebra {0 511 {8 7 6 5 4 3 2 1} 0}} {-profile {0 254 {8 7 6 5 4 3 2 1} 0}} {-signature {0 0 {} 0}} {-type positive} {-ideg 1} {-edeg 1} {-hdeg {}} {-genlist {{0 0 0}}}"]
     steenrod::ComputeMatrix p d n 
     set res dummy
 } dummy
