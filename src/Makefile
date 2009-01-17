@@ -32,9 +32,10 @@ else
   TCLINCDIRS = /home/cn/tcl-head/include /usr/include/
   TCLINCDIR = $(foreach i,$(TCLINCDIRS),-I$(i))
   TCLLIBDIR = /home/cn/tcl-head/lib /usr/lib64 /usr/lib 
-  TCLSTUBLIB = tclstub8.6
-  TCLLIB = tcl8.6
-  TCLSTATICLIB = tcl8.6.a
+  TCLVERSION=8.5
+  TCLSTUBLIB = tclstub$(TCLVERSION)
+  TCLLIB = tcl$(TCLVERSION)
+  TCLSTATICLIB = tcl$(TCLVERSION).a
   STUBLINK = gcc -shared $(CFLAGS) $(foreach i,$(TCLLIBDIR),-L$(i))
 endif
 
@@ -55,7 +56,7 @@ NOWEBFILES = mult.nw
 
 SRCS = adlin.c linalg.c linwrp.c tlin.c prime.c tprime.c tptr.c \
        poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c common.c \
-       hmap.c linwrp2.c lepar.c legram.c algebra.c secmult2.c scrobjy.c
+       hmap.c linwrp2.c lepar.c legram.c algebra.c secmult2.c scrobjy.c ebp.c
 
 OBJS = $(SRCS:.c=.o)
 

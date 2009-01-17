@@ -46,9 +46,9 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
     int idx;
     int rcode;
     Tcl_Interp *ip = (Tcl_Interp *) ma->TclInterp;
-
+    
     idx = SeqnoFromEnum(dst, (exmo *) smd);
-
+    
     if (idx < 0) { 
         ma->cd4 = (void *) FAIL;
         goto error;

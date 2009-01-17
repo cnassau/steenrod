@@ -24,14 +24,14 @@
 #define RETERR(errmsg) \
 { if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
 
-typedef enum { TEST, MAXPOW, TPMO, N, PRIMPOWS, RDEGS, EDEGS, INVERSE, BINOM } ecmdcode;
+typedef enum { TEST, MAXPOW, TPMO, N, PRIMPOWS, RDEGS, EDEGS, INVERSE, BINOM, BINOM2 } ecmdcode;
 
 static CONST char *eCmdNames[] = { "test", "maxpower", "tpmo", "NALG", "powers",
-                                   "rdegrees", "edegrees", "inverse", "binom",
+                                   "rdegrees", "edegrees", "inverse", "binom", "binom2",
                                    (char *) NULL };
 
 static ecmdcode eCmdmap[] = { TEST, MAXPOW, TPMO, N, PRIMPOWS, 
-                              RDEGS, EDEGS, INVERSE, BINOM };
+                              RDEGS, EDEGS, INVERSE, BINOM, BINOM2 };
 
 #define EXPECTARGS(num,msg) \
  { if (objc != (num)) { Tcl_WrongNumArgs(ip, 3, objv, msg); return TCL_ERROR; } }
@@ -99,6 +99,20 @@ int PrimeCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]
             if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &b))
                 return TCL_ERROR;
             RETURNINT(binomp(pi, a, b));
+        case BINOM2:
+            EXPECTARGS(5,"<integer> <integer>"); 
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &a))
+                return TCL_ERROR;
+            if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &b))
+                return TCL_ERROR;
+	    {
+		int col, bin = binomp2(pi, a, b, &col);
+		Tcl_Obj *ob[2];
+		ob[0] = Tcl_NewIntObj(bin);
+		ob[1] = Tcl_NewIntObj(col);
+		Tcl_SetObjResult(ip,Tcl_NewListObj(2,ob));
+	    }
+	    return TCL_OK;
     }
  
     Tcl_SetResult(ip, "internal error in PrimeCombiCmd", TCL_STATIC);

@@ -119,6 +119,72 @@ test prime-1.6 {list of primes available} {
     expr {[llength $steenrod::primes] > 5 ? "ok" : "not enough primes"}
 } ok
 
+proc tcl::mathfunc::binom {n m} {
+    variable bins
+    if {![info exists bins($n,$m)]} {
+	set bins($n,$m) [binom.impl $n $m]
+    }
+    return $bins($n,$m) 
+}
+
+proc tcl::mathfunc::binom.impl {n m} {
+    if {0 == $m} {
+	return 1
+    }
+    if {0 == $n} {
+	return 0
+    }
+    expr {binom($n-1,$m) + binom($n-1,$m-1)}
+}
+
+proc decomp {p n} {
+    set res {}
+    while {$n} {
+	lappend res [expr {$n % $p}]
+	set n [expr {$n/$p}]
+    }
+    return $res
+}
+
+proc collisions {p n1 n2} {
+    set c 0
+    set cols {}
+    foreach a [decomp $p $n1] b [decomp $p $n2] {
+	if {$a ne "" && $b ne ""} {
+	    if {$a+$b>=$p} {
+		lappend cols $c
+	    }
+	}
+	incr c
+    }
+    return $cols
+}
+
+test prime-1.7 {binomials mod p^2} {
+    set errors {}
+    set max 30
+    for {set n 0} {$n<$max && [llength $errors] < 10} {incr n} {
+	for {set m 0} {$m<=$max && [llength $errors] < 10} {incr m} {
+	    set bin [expr {binom($n,$m)}]
+	    foreach p {2 3 5 7 11} {
+		set binp2 [expr {$bin % ($p*$p)}]
+		foreach {b c} [prime $p binom2 $n $m] break
+		if {$b != $binp2} {
+		    lappend errors "binom($n,$m) mod $p*$p: got $b, want $binp2"
+		}
+		if {$b && 0 == ($b % $p)} {
+		    set cols [collisions $p $m [expr {$n-$m}]]
+		    if {$c != $cols} {
+			lappend errors "collision($n,$m) mod $p*$p: got $c, want $cols"
+		    }
+		} 
+	    }
+	}
+    }
+    join $errors \n
+} {}
+
+
 # --------------------------------------------------------------------------
 
 # cleanup

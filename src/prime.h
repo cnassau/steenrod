@@ -48,8 +48,11 @@ typedef struct {
     /* inverse */
     cint *inverse;     /* table of inverses */
     /* binom */
-    cint *binom;       /* table of binomials (a over b) with 0 <= a,b < prime */
-} primeInfo;
+    cint *binom;       /* table of binomials (a over b) with 0 <= a,b < prime modulo prime */
+    cint prime2;       /* prime * prime */
+    cint *binom2;      /* table of binom(n,m) mod p^2 + collision indices */
+    int binom2max;     /* biggest n such that binom(n,*) is available */
+ } primeInfo;
 
 /* possible return values of makePrimeInfo: */
 
@@ -66,6 +69,10 @@ cint random_cint(cint max);
 
 /* compute binomial "l over m" mod pi->prime */
 cint binomp(const primeInfo *pi, int l, int m);
+
+/* compute binomial "l over m" mod (pi->prime)*(pi->prime)
+ * also return collision index if binom is zero mod p */
+cint binomp2(primeInfo *pi, int l, int m, int *collision);
 
 #ifdef USESSE2
 cint binompsse(const primeInfo *pi, __m128i l8, __m128i m8);
