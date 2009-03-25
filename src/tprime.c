@@ -127,21 +127,29 @@ typedef struct piList {
 
 static piList *piMasterList;
 
+TCL_DECLARE_MUTEX(primeMutex)
+
 /* return values come from makePrimeInfo */
 int findPrimeInfo(int prime, primeInfo **pi) {
     piList **nextp = &(piMasterList);
     int rcode;
     for (; NULL != *nextp; nextp = &((*nextp)->next)) 
         if (prime == (*nextp)->pi.prime) { *pi = &((*nextp)->pi); return PI_OK; }
-    if (NULL == ((*nextp) = mallox(sizeof(piList)))) return PI_NOMEM;
-    if (PI_OK != (rcode = makePrimeInfo(&((*nextp)->pi), prime))) { 
-        freex(*nextp); 
-        *nextp = NULL; 
-        return rcode; 
+    Tcl_MutexLock(&primeMutex);
+    if (NULL == ((*nextp) = mallox(sizeof(piList)))) {
+	rcode = PI_NOMEM;
+    } else {
+	if (PI_OK != (rcode = makePrimeInfo(&((*nextp)->pi), prime))) { 
+	    freex(*nextp); 
+	    *nextp = NULL; 
+	} else {
+	    (*nextp)->next = NULL;
+	    *pi = &((*nextp)->pi);
+	    rcode = PI_OK;
+	}
     }
-    (*nextp)->next = NULL;
-    *pi = &((*nextp)->pi);
-    return PI_OK;
+    Tcl_MutexUnlock(&primeMutex);
+    return rcode;
 }
 
 static Tcl_ObjType PrimeType;
