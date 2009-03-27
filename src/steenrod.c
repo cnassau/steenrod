@@ -29,7 +29,6 @@ static int SIGNAL_FLAG;
 #ifndef NO_SIGNALS
 #include <signal.h>
 void SignalHandler(int c) {
-    printf("SIGINT!\n");
     SIGNAL_FLAG = 1;
 }
 #endif

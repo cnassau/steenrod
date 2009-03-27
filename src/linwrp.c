@@ -46,7 +46,8 @@ int stdAddToEntry(void *m, int row, int col, int val, int mod) {
     if (SUCCESS != (rcode = stdGetEntry(m, row, col, &aux)))
         return rcode;
     aux = aux + val; 
-    if (mod) aux %= mod; 
+    if (mod) 
+	if( (aux %= mod) < 0 ) aux += mod; 
     return stdSetEntry(m, row, col, aux);
 }
 

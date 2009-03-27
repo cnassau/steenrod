@@ -47,7 +47,7 @@ CFLAGS += -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT
 #CFLAGS += -DUSE_VERB_ALLOC=1
 
 # uncomment next line if you have a 64-bit 686 processor with sse2 support
-#CFLAGS += -msse2 -DUSESSE2 
+CFLAGS += -msse2 -DUSESSE2 
 
 NOTANGLE = notangle
 NOWEAVE  = noweave

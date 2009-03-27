@@ -91,7 +91,7 @@ void vector_add(vector *dst, vector *src, cint coeff, cint prime) {
 void vector_add_entry(vector *dst, int off, cint dat, cint prime) {
 #ifdef USESSE2
     char c = extract_entry(dst->data[off/16],off&15);
-    c += dat; c %= prime; 
+    c += dat; c %= prime; if (c<0) c+=prime;
     set_entry(&(dst->data[off/16]),off&15,c);
 #else
     dst->data[off] += dat;
