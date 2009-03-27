@@ -89,7 +89,7 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
     }
 
     for (v1.data=inp->data, i=0; i<inp->rows; i++, v1.data+=spr) {
-        cint coeff;
+        cint coeff, auxval;
         if ((NULL != progvar) && (0==(i&pmsk))) {
             perc = i; perc /= inp->rows;
             perc = 1-perc; perc *= perc; perc = 1-perc;
@@ -97,7 +97,7 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
         }
         /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
-            if (0 != *aux) break;
+            if (0 != (auxval = *aux)) break;
         if (0 == j) {
             DBGPRINT1("KERNEL VECTOR");
             /* row is zero */
@@ -108,7 +108,8 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
             if (NULL != oth) {
                 matrix_collect_ext(&m3, &m2, i);
             }
-            coeff = pi->inverse[(unsigned) *aux]; 
+	    auxval %= prime; if (auxval < 0) auxval += prime;
+            coeff = pi->inverse[(unsigned) auxval]; 
             coeff = prime-coeff; coeff %= prime;
             /* go through all other rows and normalize */
             v2.data = v1.data + spr; aux += spr;
@@ -260,7 +261,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
     spr = im->nomcols; /* sints per row */
 
     for (v1.data=im->data, i=0; i<im->rows; i++, v1.data+=spr) {
-        cint coeff; int pos;
+        cint coeff, auxval; int pos;
         if ((NULL != progvar) && (0==(i&pmsk))) {
             perc = i; perc /= im->rows;
             perc = 1-perc; perc *= perc; perc = 1-perc;
@@ -268,13 +269,14 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
         }
         /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
-            if (0 != *aux) break;
+            if (0 != (auxval=*aux)) break;
         
         if (0 == j) {  
             /* row is zero */ 
         } else {
             pos = aux - v1.data;
-            coeff = pi->inverse[(unsigned) *aux]; 
+	    if( (auxval%=prime) < 0) auxval +=prime;
+            coeff = pi->inverse[(unsigned) auxval]; 
             coeff = prime-coeff; coeff %= prime;
             /* reduce vectors in ker in the usual way */
             v2.data = ker->data; aux = v2.data + pos;
@@ -290,16 +292,17 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
     PROGVARSET(-1.0); /* -1 to indicate beginning of last phase */
 
     for (v1.data=ker->data, i=0; i<ker->rows; i++, v1.data+=spr) {
-        cint coeff; int pos;
+        cint coeff,auxval; int pos;
         /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
-            if (0 != *aux) break;
+            if (0 != (auxval=*aux)) break;
         if (0 == j) {
             /* row is zero */
         } else {
             pos = aux - v1.data;
             matrix_collect(&m1, i); /* collect this row */
-            coeff = pi->inverse[(unsigned) *aux]; 
+	    if( (auxval%=prime) < 0) auxval +=prime;
+            coeff = pi->inverse[(unsigned) auxval]; 
             coeff = prime-coeff; coeff %= prime;
             /* reduce other vectors in ker */
             v2.data = v1.data + spr; aux = v2.data + pos;
