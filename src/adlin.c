@@ -150,7 +150,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
     int i,j,cols, spr, uspr;
     int failure=1;
     vector v1,v2,v3,v4;
-    cint *aux;
+    cint *aux, auxval;
     cint prime = pi->prime;
     matrix *un, *res ;
 
@@ -185,12 +185,14 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
         }
         /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
-            if (0 != *aux) break;
+            if (0 != (auxval = *aux)) break;
         if (0 == j) {
             /* row is zero */
         } else {
+	    auxval = auxval % prime;
+	    if(auxval < 0) auxval += prime;
             pos = aux - v1.data;
-            negcoeff = coeff = pi->inverse[(unsigned) *aux]; 
+            negcoeff = coeff = pi->inverse[(unsigned) auxval]; 
             coeff = prime-coeff; coeff %= prime;
             /* go through all other rows and normalize */
             v2.data = v1.data + spr; aux += spr;

@@ -177,7 +177,11 @@ test prime-1.7 {binomials mod p^2} {
 		    if {$c != $cols} {
 			lappend errors "collision($n,$m) mod $p*$p: got $c, want $cols"
 		    }
-		} 
+		} elseif {$b % $p} {
+		    if {$c != -1} {
+			lappend errors "collision($n,$m) mod $p*$p: no collision, expected -1, got $c"
+		    }
+		}
 	    }
 	}
     }

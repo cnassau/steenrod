@@ -216,6 +216,15 @@ test "multiplication" "simple test" {
 } 1
 
 
+test "segfault" "sage 1" {
+    set m {
+	{3 2 0 3 0 1 0}
+    }
+    steenrod::matrix lift 5 {
+	{0 0 2 0 -3 0 0} {1 4 0 1 0 2 0} {0 0 4 0 0 0 0} {0 0 4 0 0 0 -1} {0 0 0 0 3 0 0} {0 0 0 0 4 0 1} {0 0 0 0 0 0 2} 
+    } m
+    set m ok
+} ok
 
 
 # cleanup
