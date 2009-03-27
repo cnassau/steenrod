@@ -68,8 +68,10 @@ void zeroXdat(Xfield *X) { X->val = 0; *(X->newmsk) = *(X->oldmsk); }
  *  3) if yes then invoke the stdSummandFunc for this summand. */
 
 #ifndef USESSE2
+#  define stdFetchFuncSFNoSSE stdFetchFuncSF
+#endif
 
-void stdFetchFuncSF(struct multArgs *ma, int coeff) {
+void stdFetchFuncSFNoSSE(struct multArgs *ma, int coeff) {
     const exmo *sfx; int idx, i; cint c; 
     const int prime = ma->pi->prime; 
     const primeInfo * const pi = ma->pi;
@@ -110,7 +112,7 @@ void stdFetchFuncSF(struct multArgs *ma, int coeff) {
     }
 }
 
-#else
+#ifdef USESSE2
 
 /* here comes the sse2 variant */
 
@@ -388,7 +390,7 @@ void handlePABox(multArgs *ma, int row, int col, xint coeff) {
     do {
         if (col > (1 + ma->sfMaxLength)) { 
             xint c = coeff; 
-            if (0 != (sgn & 1)) c = ma->pi->prime - c;
+            if (0 != (sgn & 1)) c = - c;
             zeroXdat(&(ma->xfPA[row][col]));
             if (col>1) 
                 handlePABox(ma, row, col-1, c);
@@ -398,7 +400,7 @@ void handlePABox(multArgs *ma, int row, int col, xint coeff) {
             if (0 != (c = firstXdat(&(ma->xfPA[row][col]),ma->pi)))
                 do {
                     xint prime = ma->pi->prime ;
-                    if (0 != (sgn & 1)) c = prime - c;
+                    if (0 != (sgn & 1)) c = - c;
                     if (col>1) 
                         handlePABox(ma, row, col-1, XINTMULT(coeff, c, prime));
                     else 
@@ -545,6 +547,193 @@ int stdAddProductToPoly(polyType *rtp, void *res,
         workPAchain(ma);
     else 
         workAPchain(ma);
+
+    multCount += PLgetNumsum(ftp, ff) * PLgetNumsum(stp, sf);
+
+    return SUCCESS;
+}
+
+/* --- EBP variants -------------------------------------------------------- */
+
+
+xint firstXdatEBP(multArgs *ma, Xfield *X, primeInfo *pi, int *collision) {
+    xint c, aux;
+    const int collisionAllowed = ma->collisionAllowed;
+     X->val = *(X->res) / X->res_weight;
+    X->val /= X->quant; 
+    aux = *(X->oldmsk); aux /= X->quant;
+    do {
+	while (0 == (c=binomp2(pi,X->val+aux,aux,collision))) --(X->val);
+    } while (!collisionAllowed && *collision >= 0);
+    X->val *= X->quant;     
+    *(X->newmsk) = *(X->oldmsk) + X->val; 
+    *(X->res) -= X->val * X->res_weight; 
+    *(X->sum) -= X->val * X->sum_weight; 
+    return c;
+}
+
+xint nextXdatEBP(multArgs *ma, Xfield *X, primeInfo *pi, int *collision) {
+    xint c, nval, aux;
+    const int collisionAllowed = ma->collisionAllowed;
+    if (0 == (nval = X->val)) return 0;
+    nval /= X->quant; 
+    aux = *(X->oldmsk); aux /= X->quant; 
+    do {
+	while (0 == (c = binomp2(pi,--(nval)+aux,aux,collision))) ;
+    } while (!collisionAllowed && *collision >= 0);
+    nval *= X->quant;
+    *(X->newmsk) = *(X->oldmsk) + nval; 
+    *(X->sum) += (X->val - nval) * X->sum_weight; 
+    *(X->res) += (X->val - nval) * X->res_weight; 
+    X->val = nval;
+    return c;
+}
+
+void zeroXdatEBP(Xfield *X) { X->val = 0; *(X->newmsk) = *(X->oldmsk); } 
+
+void handlePArowEBP(multArgs *ma, int row, xint coeff);
+
+void handlePABoxEBP(multArgs *ma, int row, int col, xint coeff) {
+    xint c;
+    int eval = 1 << (col - 1); /* value of the exterior component */
+    int sgn = 0, collision;
+    const int collisionIn = ma->collision, collisionAllowedIn = ma->collisionAllowed;
+    if ((0 != ma->xfPA[row][col].estat) 
+        && (*(ma->xfPA[row][col].res) >= ma->xfPA[row][col].ext_weight) 
+        && (0 == ((eval<<row) & ma->emsk[row])) && (0 == (eval & ma->esum[row]))) {
+        *(ma->xfPA[row][col].res) -= ma->xfPA[row][col].ext_weight;
+        sgn = SIGNFUNC(ma->emsk[row], (eval<<row)) + SIGNFUNC(ma->esum[row], eval);
+        ma->emsk[row] |= (eval<<row); ma->esum[row] |= eval;
+    } else eval = 0;
+    do {
+        if (col > (1 + ma->sfMaxLength)) { 
+            xint c = coeff; 
+            if (0 != (sgn & 1)) c = - c;
+            zeroXdatEBP(&(ma->xfPA[row][col]));
+            if (col>1) 
+                handlePABoxEBP(ma, row, col-1, c);
+            else 
+                handlePArowEBP(ma, row-1, c);
+        } else {
+            if (0 != (c = firstXdatEBP(ma,&(ma->xfPA[row][col]),ma->pi,&collision)))
+                do {
+                    xint prime2 = ma->pi->prime2, c2;
+                    if (0 != (sgn & 1)) c2 = - c; else c2 = c;
+                    if (col>1) 
+                        handlePABoxEBP(ma, row, col-1, XINTMULT(coeff, c2, prime2));
+                    else 
+                        handlePArowEBP(ma, row-1, XINTMULT(coeff, c2, prime2));
+                } while (0 != (c = nextXdatEBP(ma,&(ma->xfPA[row][col]),ma->pi,&collision)));
+        }
+        if (!eval) break;
+        /* reset exterior bit */
+        *(ma->xfPA[row][col].res) += ma->xfPA[row][col].ext_weight;
+        ma->emsk[row] ^= (eval<<row); ma->esum[row] ^= eval;
+        eval = 0; sgn = 0;      
+    } while (1);
+    ma->collision = collisionIn;
+    ma->collisionAllowed = collisionAllowedIn;
+}
+
+void handlePArowEBP(multArgs *ma, int row, xint coeff) {
+     /* clear exterior field for this row */
+    ma->emsk[row] = ma->emsk[row+1];
+    ma->esum[row] = ma->esum[row+1];
+    if (0 != row) 
+        handlePABoxEBP(ma, row, NALG-row, coeff);
+    else 
+        (ma->fetchFuncSF)(ma,coeff);
+}
+
+void workPAchainEBP(multArgs *ma) {
+    int i, idx, inirow; const exmo *m;
+    for (idx=0; SUCCESS == (ma->getExmoFF)(ma,FIRST_FACTOR,&m,idx); idx++) {
+        /* clear matrices */
+        memset(ma->msk, 0, sizeof(xint)*(NALG+1)*(NALG+1));
+        memset(ma->sum, 0, sizeof(xint)*(NALG+1)*(NALG+1));
+        ma->ffid = m->gen;
+        /* initialize oldmsk, sum, res */
+        for (i=NALG;i--;) { ma->sum[0][i+1]=0; ma->msk[i+1][0]=m->r.dat[i]; }
+        inirow = 1 + ma->ffMaxLength;
+        ma->emsk[inirow + 1] = m->ext; ma->esum[inirow + 1] = 0;
+        handlePArowEBP(ma, inirow, m->coeff);
+    }
+}
+
+void stdFetchFuncSFEBP(struct multArgs *ma, int coeff) {
+    const exmo *sfx; int idx, i; cint c; 
+    const int prime2 = ma->pi->prime2; 
+    primeInfo * pi = ma->pi;
+    const int proext = (NULL == ma->profile) ? 0 : ma->profile->ext;
+    int collision;
+    for (idx = 0; SUCCESS == (ma->getExmoSF)(ma,SECOND_FACTOR,&sfx,idx); idx++) {
+        exmo res; int hlp1;
+        c = coeff;
+        /* first check exterior part */
+        if (ma->esum[1] != (sfx->ext & ma->esum[1])) continue;
+        hlp1 = (sfx->ext ^ ma->esum[1]);
+        if (0 != (hlp1 & proext)) continue; 
+        if (0 != (hlp1 & ma->emsk[1])) continue;
+        /* now check reduced part */
+        for (i=NALG;c && i--;) {
+            xint aux, aux2;
+            aux  = sfx->r.dat[i] + ma->sum[0][i+1];
+            if (NULL != ma->profile)
+                if (0 != (aux % (ma->profile->r.dat[i]))) {
+                    c = 0; 
+                    break;
+                }
+            aux2 = ma->msk[1][i];
+            if ((0 > (res.r.dat[i] = aux + aux2)) && ma->sfIsPos) {
+                c = 0;
+            } else {
+                c = XINTMULT(c, binomp2(pi, res.r.dat[i], aux,&collision), prime2);
+            }
+        }
+        if (0 == c) continue;
+        res.ext = hlp1 | ma->emsk[1];
+        if (0 != (1 & (SIGNFUNC(ma->emsk[1], hlp1)
+                       + SIGNFUNC(ma->esum[1], hlp1))))
+            c = prime2 - c;
+        res.coeff = XINTMULT(c, sfx->coeff, prime2);
+        res.gen   = sfx->gen; /* should this be done in the callback function ? */
+        /* invoke callback */
+        (ma->stdSummandFunc)(ma, &res);
+    }
+}
+
+int stdAddProductToPolyEBP(polyType *rtp, void *res,
+                        polyType *ftp, void *ff,
+                        polyType *stp, void *sf,
+                        primeInfo *pi) {
+    multArgs ourMA, *ma = &ourMA;
+    
+    initMultargs(ma, pi, NULL);
+
+    ma->ffIsPos = 1;
+    ma->sfIsPos = 1;
+
+    ma->collision = -1;
+
+    ma->ffMaxLength = PLgetMaxRedLength(ftp, ff);
+    ma->sfMaxLength = PLgetMaxRedLength(stp, sf);
+
+    ma->ffMaxLength = MIN(ma->ffMaxLength, NALG-2);
+    ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
+
+    ma->ffdat = ftp; ma->ffdat2 = ff; 
+    ma->getExmoFF = &stdGetExmoFunc;
+    ma->fetchFuncFF = &stdFetchFuncFF;
+    
+    ma->sfdat = stp; ma->sfdat2 = sf; 
+    ma->getExmoSF = &stdGetExmoFunc;
+    ma->fetchFuncSF = &stdFetchFuncSFEBP;
+
+    ma->resPolyType = rtp;
+    ma->resPolyPtr = res;
+    ma->stdSummandFunc = stdAddSummandToPoly;
+
+    workPAchainEBP(ma);
 
     multCount += PLgetNumsum(ftp, ff) * PLgetNumsum(stp, sf);
 

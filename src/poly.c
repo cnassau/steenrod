@@ -722,6 +722,26 @@ int PLsteenrodMultiply(polyType **rtp, void **res,
     return SUCCESS;
 }
 
+int PLEBPMultiply(polyType **rtp, void **res,
+		  polyType *fftp, void *ff,
+		  polyType *sftp, void *sf, 
+		  primeInfo *pi) {
+    int fpos = (SUCCESS == PLtest(fftp,ff,ISPOSITIVE));
+    int spos = (SUCCESS == PLtest(sftp,sf,ISPOSITIVE));
+ 
+    if (!fpos || !spos) {
+	return FAILIMPOSSIBLE;
+    }
+    
+    *rtp = stdpoly; 
+    *res = PLcreate(*rtp);
+    stdAddProductToPolyEBP(*rtp, *res, fftp, ff, sftp, sf, pi);
+
+    PLcancel(*rtp, *res, pi->prime2);
+
+    return SUCCESS;
+}
+
 typedef struct {
     exmo *ex;
     void *val;

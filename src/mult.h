@@ -33,7 +33,7 @@
  *  3)  knows where the sum is kept (*sum, sum_weight)
  *  4)  knows where the reservoir for this row or column is (*res, res_weight)
  *
- * added extra feature:
+ * added extra features:
  *
  *  5)  "quantization of values", used to preserve profiles (quant)
  */
@@ -90,6 +90,9 @@ typedef struct multArgs {
     exmo      *profile;  /* the subalgebra profile that we want to respect */
     int        prime;    /* same as pi->prime, provided for faster access */
     
+    int        collision; /* collision index, used for EBP */
+    int        collisionAllowed; 
+
     /* first factor data & callbacks */
     void *ffdat, *ffdat2;
     int   ffIsPos, ffMaxLength;
@@ -164,6 +167,11 @@ int stdAddProductToPoly(polyType *rtp, void *res,
                         polyType *stp, void *sf,
                         primeInfo *pi, const exmo *pro,
                         int fIsPos, int sIsPos);
+
+int stdAddProductToPolyEBP(polyType *rtp, void *res,
+			   polyType *ftp, void *ff,
+			   polyType *stp, void *sf,
+			   primeInfo *pi);
 
 /* the following counter tries to estimate the number
  * of multiplications that have been carried out */

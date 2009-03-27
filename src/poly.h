@@ -224,6 +224,10 @@ int   PLsteenrodMultiply(polyType **rtp, void **res,
                          polyType *fftp, void *ff,
                          polyType *sftp, void *sf, 
                          primeInfo *pi, const exmo *pro);
+int   PLEBPMultiply(polyType **rtp, void **res,
+		    polyType *fftp, void *ff,
+		    polyType *sftp, void *sf, 
+		    primeInfo *pi);
 
 #ifndef POLYC 
 extern polyType stdPolyType;

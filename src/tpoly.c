@@ -430,6 +430,15 @@ Tcl_Obj *Tcl_PolyObjSteenrodProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) 
     return Tcl_NewPolyObj(rtp,res);
 }
 
+Tcl_Obj *Tcl_PolyObjEBPProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) {
+    polyType *rtp; void *res;
+    if (SUCCESS != PLEBPMultiply(&rtp,&res,
+				 PTR1(obj),PTR2(obj),
+				 PTR1(pol2),PTR2(pol2),pi))
+        return NULL;
+    return Tcl_NewPolyObj(rtp,res);
+}
+
 Tcl_Obj *Tcl_PolyObjGetCoeff(Tcl_Obj *obj, Tcl_Obj *exm, int mod) {
     int safeflags = 0, rval;
 
@@ -688,19 +697,19 @@ Tcl_Obj *TakePolyFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
 typedef enum { CREATE, TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT, 
                STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT, 
-               COMPARE, SPLIT, VARSPLIT, COEFF, FOREACH } pcmdcode;
+               COMPARE, SPLIT, VARSPLIT, COEFF, FOREACH, EBPMULT } pcmdcode;
 
 static CONST char *pCmdNames[] = { "create", "test", "info", "append", "cancel", 
                                    "add", "posmult", "negmult", "steenmult",
                                    "varappend", "varcancel", "shift", "reflect",
                                    "compare", "split", "varsplit", "coeff",
-                                   "foreach", 
+                                   "foreach", "ebpmult",
                                    (char *) NULL };
 
 static pcmdcode pCmdmap[] = { CREATE, TEST, INFO, APPEND, CANCEL, ADD,
                               POSMULT, NEGMULT, STEENMULT, VARAPPEND, VARCANCEL, 
                               SHIFT, REFLECT, COMPARE, SPLIT, VARSPLIT, COEFF, 
-                              FOREACH };
+                              FOREACH, EBPMULT };
 
 int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index, scale, modval;
@@ -867,6 +876,24 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 return TCL_ERROR;
 
             if (NULL == (obj1 = Tcl_PolyObjSteenrodProduct(objv[2], objv[3], pi)))
+                RETERR("Tcl_PolyObjSteenrodProduct failed");
+
+            Tcl_SetObjResult(ip, obj1);
+            return TCL_OK;  
+
+        case EBPMULT:
+            EXPECTARGS(2, 3, 3, "<polynomial> <polynomial> <prime>"); 
+
+            if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[4], &pi))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
+                return TCL_ERROR;
+
+            if (NULL == (obj1 = Tcl_PolyObjEBPProduct(objv[2], objv[3], pi)))
                 RETERR("Tcl_PolyObjSteenrodProduct failed");
 
             Tcl_SetObjResult(ip, obj1);

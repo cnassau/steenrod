@@ -47,7 +47,7 @@ CFLAGS += -DBUILD_steenrod -DTCL_STORAGE_CLASS=DLLEXPORT
 #CFLAGS += -DUSE_VERB_ALLOC=1
 
 # uncomment next line if you have a 64-bit 686 processor with sse2 support
-CFLAGS += -msse2 -DUSESSE2 
+#CFLAGS += -msse2 -DUSESSE2 
 
 NOTANGLE = notangle
 NOWEAVE  = noweave
@@ -56,7 +56,8 @@ NOWEBFILES = mult.nw
 
 SRCS = adlin.c linalg.c linwrp.c tlin.c prime.c tprime.c tptr.c \
        poly.c tpoly.c mult.c enum.c tenum.c momap.c steenrod.c common.c \
-       hmap.c linwrp2.c lepar.c legram.c algebra.c secmult2.c scrobjy.c ebp.c
+       hmap.c linwrp2.c lepar.c legram.c algebra.c 
+#secmult2.c scrobjy.c ebp.c
 
 OBJS = $(SRCS:.c=.o)
 
@@ -107,7 +108,7 @@ libsteenrod.so : $(OBJS)
 	$(STUBLINK) -o libsteenrod.so $(OBJS) -l$(TCLSTUBLIB)
 
 steenrodsh : $(SRCS) steenrodsh.c
-	$(CC) -o steenrodsh $(CFLAGS) -I$(TCLINCDIR) $(SRCS) steenrodsh.c $(LIBDIRS) -l$(TCLLIB)
+	$(CC) -o steenrodsh $(CFLAGS) $(TCLINCDIR) $(SRCS) steenrodsh.c $(LIBDIRS) -l$(TCLLIB)
 
 clean:
 	$(RM) $(OBJS) $(LIBS) 2> /dev/null

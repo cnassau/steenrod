@@ -169,12 +169,13 @@ int collisionidx(int prime, int n, int m) {
     }
     return 0;
 }
+
 void piiMakeBinom2(primeInfo *pi, int l) {
     cint *newdat, *olddat = pi->binom2;
     int reqsz = (l+2)*(l+1), i,j, p = pi->prime, p2 = pi->prime2;
     if (NULL == olddat) {
 	newdat = mallox(sizeof(cint)*2*reqsz);
-	*(newdat+1) = 1; /* "0 over 0" */
+	*newdat = -1; *(newdat+1) = 1; /* "0 over 0" */
 	pi->binom2max = 0;
     } else {
 	newdat = reallox(olddat,sizeof(cint)*2*reqsz);
@@ -183,16 +184,16 @@ void piiMakeBinom2(primeInfo *pi, int l) {
     pi->binom2 = newdat;
     for (i=pi->binom2max+1;i<=l;i++) {   
 	cint *newrow = newdat+i*(i+1), *lastrow = newdat+(i-1)*i;
-	newrow[0] = 0; newrow[1] = 1;
+	newrow[0] = -1; newrow[1] = 1;
 	for (j=1;j<i;j++) {
 	    cint aux = newrow[2*j+1] = (lastrow[2*j-1] + lastrow[2*j+1]) % p2;
 	    if (aux % p) {
-		newrow[2*j] = 0;
+		newrow[2*j] = -1;
 	    } else {
 		newrow[2*j] = collisionidx(pi->prime, i-j,j);
 	    }
 	}
-	newrow[2*i] = 0;
+	newrow[2*i] = -1;
 	newrow[2*i+1] = 1;
     }
     pi->binom2max = l;
@@ -202,14 +203,14 @@ void piiMakeBinom2(primeInfo *pi, int l) {
 cint binomp2(primeInfo *pi, int l, int m, int *collision) {
     cint *aux;
     if (m>l || m<0 || l<0) {
-	*collision = 0;
+	*collision = -1;
 	return 0;
     }
     if (l>pi->binom2max) {
 	piiMakeBinom2(pi,pi->prime*l);
     }
     if (l>pi->binom2max) {
-	*collision = 0;
+	*collision = -1;
 	return 0;
     }
     aux = pi->binom2+l*(l+1)+2*m;
