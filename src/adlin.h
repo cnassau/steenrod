@@ -37,4 +37,8 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im, 
              Tcl_Interp *ip, const char *progvar, int pmsk);
 
+/* all three routines can be interrupted if a progress variable is set and 
+ * the following int is non-zero. note that this is a process-wide flag.  */
+extern volatile int LINALG_INTERRUPT_VARIABLE;
+
 #endif

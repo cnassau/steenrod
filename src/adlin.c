@@ -28,8 +28,6 @@
 #define PROGVARDONE \
     if (NULL != progvar) Tcl_UnlinkVar(ip, progvar);
 
-#define LINALG_INTERRUPT_VARIABLE 0
-
 #if 0
 #  define DBGPRINT1(fmt) { printf(fmt "\n"); }
 #  define DBGPRINT2(fmt,val) { printf(fmt "\n",val); }
@@ -289,11 +287,12 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
 
     /* now reduce ker and collect results */
 
-    PROGVARSET(-1.0); /* -1 to indicate beginning of last phase */
-
-    for (v1.data=ker->data, i=0; i<ker->rows; i++, v1.data+=spr) {
+     for (v1.data=ker->data, i=0; i<ker->rows; i++, v1.data+=spr) {
         cint coeff,auxval; int pos;
-        /* find pivot for this row */
+        if ((NULL != progvar) && (0==(i&pmsk))) {
+	    PROGVARSET(-1.0); /* -1 to indicate beginning of last phase */
+	}
+         /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
             if (0 != (auxval=*aux)) break;
         if (0 == j) {

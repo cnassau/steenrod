@@ -27,8 +27,6 @@
 #define PROGVARDONE \
     if (NULL != progvar) Tcl_UnlinkVar(ip, progvar);
 
-#define LINALG_INTERRUPT_VARIABLE 0
-
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 /* orthonormalize the input matrix, return basis of kernel */
@@ -317,11 +315,13 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
 
     /* now reduce ker and collect results */
 
-    PROGVARSET(-1.0); /* -1 to indicate beginning of last phase */
-
     for (v1.data=ker->data, i=0; i<ker->rows; i++, v1.data+=spr) {
         int coeff, bmsk=0;
         __m128i zero = _mm_setzero_si128();
+
+        if ((NULL != progvar) && (0==(i&pmsk))) {
+	    PROGVARSET(-1.0); /* -1 to indicate beginning of last phase */
+	}
 
         /* find pivot for this row */
         for (aux=v1.data, j=v1.blocks; j; aux++, j--) {

@@ -11,8 +11,11 @@
  *
  */
 
+#define TLIN_C_INCLUDES 
+
 #include "steenrod.h" 
 #include "tlin.h"
+#include "adlin.h"
 #include <string.h>
 
 #define FREETCLOBJ(obj) { INCREFCNT(obj); DECREFCNT(obj); }
@@ -964,6 +967,13 @@ int Tcl_MultMatrixCmd(Tcl_Interp *ip, primeInfo *pi,
 
 /**** Implementation of the matrix combi-command ***********************************/
 
+volatile int LINALG_INTERRUPT_VARIABLE;
+
+#define CHECK_INTERRUPT_VARIABLE(where)				\
+    if (LINALG_INTERRUPT_VARIABLE) {					\
+	Tcl_SetResult(ip, "computation has been interrupted", TCL_STATIC); \
+	return TCL_ERROR; }
+
 static CONST char *rcnames[] = { "rows", "cols", NULL };
 
 typedef enum { ORTHO, LIFT, QUOT, DIMS, CREATE, ADDTO, 
@@ -987,6 +997,8 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
     primeInfo *pi;
     matrixType *mt; void *mdat;
     Tcl_Obj *(varp[5]), *urbobj, **urb;
+
+    LINALG_INTERRUPT_VARIABLE = 0;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
@@ -1054,7 +1066,8 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             
             if (TCL_OK != Tcl_QuotCmd(pi, varp[1], objv[4], ip, THEPROGVAR, theprogmsk)) {
                 DECREFCNT(varp[1]);
-                return TCL_ERROR;
+		CHECK_INTERRUPT_VARIABLE(quot);
+		return TCL_ERROR;
             }
 
             /* put result into var1 */
@@ -1082,6 +1095,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
 
             if (NULL == varp[3]) {
                 DECREFCNT(varp[2]);
+		CHECK_INTERRUPT_VARIABLE(lift);
                 return TCL_ERROR;
             }
 
@@ -1114,6 +1128,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             
             if (NULL == varp[2]) {
                 DECREFCNT(varp[1]);
+		CHECK_INTERRUPT_VARIABLE(ortho);
                 RETERR("orthonormalization failed");
             }
 
@@ -1309,9 +1324,10 @@ int Tlin_Init(Tcl_Interp *ip) {
 
     Tcl_CreateObjCommand(ip, NSP "matrix", MatrixCombiCmd, (ClientData) 0, NULL);
 
+    Tcl_LinkVar(ip, NSP "interrupt", (char *) &LINALG_INTERRUPT_VARIABLE, TCL_LINK_INT);
     Tcl_LinkVar(ip, NSP "_matCount", (char *) &matCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
     Tcl_LinkVar(ip, NSP "_vecCount", (char *) &vecCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
-    
+   
     Tcl_Eval(ip, "namespace eval " NSP " { namespace export * }");
 
     return TCL_OK;

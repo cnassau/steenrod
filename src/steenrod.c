@@ -22,6 +22,44 @@
 #include "mult.h"
 #include "hmap.h"
 #include "lepar.h"
+#include "adlin.h"
+
+static int SIGNAL_FLAG;
+
+#ifndef NO_SIGNALS
+#include <signal.h>
+void SignalHandler(int c) {
+    printf("SIGINT!\n");
+    SIGNAL_FLAG = 1;
+}
+#endif
+
+int InterruptibleCmd(ClientData cd, Tcl_Interp *ip,
+		     int objc, Tcl_Obj * CONST objv[]) {    
+    int rc;
+    void (*sigint)(int);
+
+    if (objc != 3) {
+        Tcl_WrongNumArgs(ip, 1, objv, "varname script");
+        return TCL_ERROR;
+    }
+    
+    Tcl_LinkVar(ip, Tcl_GetString(objv[1]), (char *) &SIGNAL_FLAG, TCL_LINK_INT | TCL_LINK_READ_ONLY);
+
+    SIGNAL_FLAG = 0;
+#ifndef NO_SIGNALS
+    sigint = signal(SIGINT, SignalHandler);
+#endif
+    rc = Tcl_EvalObj(ip, objv[2]);
+#ifndef NO_SIGNALS
+    signal(SIGINT, sigint);
+#endif
+
+    return rc;
+}
+
+
+
 
 char *theprogvar; /* ckalloc'ed name of the progress variable */
 int   theprogmsk; /* progress reporting granularity */
@@ -657,6 +695,9 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_CreateObjCommand(ip, POLYNSP "Version",
                          VersionCmd, (ClientData) 0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "interruptible",
+			 InterruptibleCmd, (ClientData) 0, NULL);
 
     /* create links for progress reporting */
     Tcl_UnlinkVar(ip, POLYNSP "_progvarname");
