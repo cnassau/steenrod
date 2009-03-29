@@ -316,7 +316,7 @@ int Tcl_MatrixGetDimensions(Tcl_Interp *ip, Tcl_Obj *obj, int *rows, int *cols) 
 /**** wrappers for the adlin routines  */
 
 Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft, 
-                     Tcl_Interp *ip, const char *progvar, int pmsk) {
+                     Tcl_Interp *ip, const char *progvar, int pmsk, int *interruptVar) {
     matrixType *mt = PTR1(inp), *mt2 = PTR1(lft);
     int krows, kcols, irows, icols;
     void *rdat;
@@ -347,6 +347,7 @@ Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft,
     pro.ip = ip;
     pro.progvar = progvar;
     pro.pmsk = pmsk;
+    pro.interruptVar = interruptVar;
 
     Tcl_InvalidateStringRep(lft);
     rdat = (mt->liftFunc)(pi, PTR2(inp), PTR2(lft), (NULL != progvar) ? &pro : NULL);
@@ -357,7 +358,7 @@ Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft,
 }
 
 int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp, 
-                     Tcl_Interp *ip, const char *progvar, int pmsk) {
+                     Tcl_Interp *ip, const char *progvar, int pmsk, int *interruptVar) {
     matrixType *mt = PTR1(inp), *mt2 = PTR1(ker);
     int krows, kcols, irows, icols;
     progressInfo pro;
@@ -400,6 +401,7 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp,
     pro.ip = ip;
     pro.progvar = progvar;
     pro.pmsk = pmsk;
+    pro.interruptVar = interruptVar;
 
     if (ker==inp) ASSERT(NULL == "quot not fully implemented");
 
@@ -410,7 +412,7 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp,
 }
 
 Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj **urb,
-                      Tcl_Interp *ip, const char *progvar, int pmsk) {
+                      Tcl_Interp *ip, const char *progvar, int pmsk, int *interruptVar) {
     matrixType *mt = PTR1(inp);
     progressInfo pro;
     void *res, *oth, *oth2;
@@ -426,6 +428,7 @@ Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj **urb,
     pro.ip = ip;
     pro.progvar = progvar;
     pro.pmsk = pmsk;
+    pro.interruptVar = interruptVar;
 
     /* shouldn't reduce be implicitly done in the orthofunc... ? */
     if (NULL != mt->reduce) (mt->reduce)(PTR2(inp), pi->prime);
@@ -967,7 +970,7 @@ int Tcl_MultMatrixCmd(Tcl_Interp *ip, primeInfo *pi,
 
 /**** Implementation of the matrix combi-command ***********************************/
 
-volatile int LINALG_INTERRUPT_VARIABLE;
+#define LINALG_INTERRUPT_VARIABLE (*interruptVar)
 
 #define CHECK_INTERRUPT_VARIABLE(where)				\
     if (LINALG_INTERRUPT_VARIABLE) {					\
@@ -997,7 +1000,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
     primeInfo *pi;
     matrixType *mt; void *mdat;
     Tcl_Obj *(varp[5]), *urbobj, **urb;
-
+    int *interruptVar = (int *) cd;
     LINALG_INTERRUPT_VARIABLE = 0;
 
     if (objc < 2) {
@@ -1064,7 +1067,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             if (NULL == (varp[1] = TakeMatrixFromVar(ip, objv[3])))
                 return TCL_ERROR;
             
-            if (TCL_OK != Tcl_QuotCmd(pi, varp[1], objv[4], ip, THEPROGVAR, theprogmsk)) {
+            if (TCL_OK != Tcl_QuotCmd(pi, varp[1], objv[4], ip, THEPROGVAR, theprogmsk, interruptVar)) {
                 DECREFCNT(varp[1]);
 		CHECK_INTERRUPT_VARIABLE(quot);
 		return TCL_ERROR;
@@ -1091,7 +1094,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             if (NULL == (varp[2] = TakeMatrixFromVar(ip, objv[4])))
                 return TCL_ERROR;
 
-            varp[3] = Tcl_LiftCmd(pi, objv[3], varp[2], ip, THEPROGVAR, theprogmsk);
+            varp[3] = Tcl_LiftCmd(pi, objv[3], varp[2], ip, THEPROGVAR, theprogmsk, interruptVar);
 
             if (NULL == varp[3]) {
                 DECREFCNT(varp[2]);
@@ -1124,7 +1127,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
                 urb = NULL;
             }
 
-            varp[2] = Tcl_OrthoCmd(pi, varp[1], urb, ip, THEPROGVAR, theprogmsk);
+            varp[2] = Tcl_OrthoCmd(pi, varp[1], urb, ip, THEPROGVAR, theprogmsk, interruptVar);
             
             if (NULL == varp[2]) {
                 DECREFCNT(varp[1]);
@@ -1322,9 +1325,11 @@ int Tlin_Init(Tcl_Interp *ip) {
         Tlin_HaveType = 1;
     }
 
-    Tcl_CreateObjCommand(ip, NSP "matrix", MatrixCombiCmd, (ClientData) 0, NULL);
+    int *interruptVar = malloc(sizeof(int)); /* yes, this leaks */
 
-    Tcl_LinkVar(ip, NSP "interrupt", (char *) &LINALG_INTERRUPT_VARIABLE, TCL_LINK_INT);
+    Tcl_CreateObjCommand(ip, NSP "matrix", MatrixCombiCmd, (ClientData) interruptVar, NULL);
+ 
+    Tcl_LinkVar(ip, NSP "interrupt", (char *) interruptVar, TCL_LINK_INT);
     Tcl_LinkVar(ip, NSP "_matCount", (char *) &matCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
     Tcl_LinkVar(ip, NSP "_vecCount", (char *) &vecCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
    

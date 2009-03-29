@@ -23,7 +23,7 @@
 
 #define PROGVARSET(val)  \
     if (NULL != progvar) Tcl_UpdateLinkedVar(ip, progvar); \
-    if (LINALG_INTERRUPT_VARIABLE) goto done;
+    if (*LINALG_INTERRUPT_VARIABLE) goto done;
 
 #define PROGVARDONE \
     if (NULL != progvar) Tcl_UnlinkVar(ip, progvar);
@@ -42,7 +42,8 @@
 
 /* orthonormalize the input matrix, return basis of kernel */
 matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
-                     Tcl_Interp *ip, const char *progvar, int pmsk) {
+                     Tcl_Interp *ip, const char *progvar, int pmsk, 
+		     int *LINALG_INTERRUPT_VARIABLE) {
     int i,j,cols, spr, uspr;
     int failure = 1;     /* pessimistic, eh? */
     vector v1,v2,v3,v4;
@@ -144,7 +145,8 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft, 
-                    Tcl_Interp *ip, const char *progvar, int pmsk) {
+                    Tcl_Interp *ip, const char *progvar, int pmsk,
+		    int *LINALG_INTERRUPT_VARIABLE) {
 
     int i,j,cols, spr, uspr;
     int failure=1;
@@ -231,7 +233,8 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im, 
-                    Tcl_Interp *ip, const char *progvar, int pmsk) {
+                    Tcl_Interp *ip, const char *progvar, int pmsk,
+		    int *LINALG_INTERRUPT_VARIABLE) {
     int i,j,cols, spr;
     cint prime = pi->prime;
     int failure = 1;

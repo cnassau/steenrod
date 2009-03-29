@@ -24,7 +24,7 @@
 #include "lepar.h"
 #include "adlin.h"
 
-static int SIGNAL_FLAG;
+static volatile int SIGNAL_FLAG;
 
 #ifndef NO_SIGNALS
 #include <signal.h>

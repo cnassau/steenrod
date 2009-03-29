@@ -24,21 +24,20 @@
 /* orthonormalize the input matrix, return basis of kernel 
  * and (optionally) the base change description */
 matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb, 
-                     Tcl_Interp *ip, const char *progvar, int pmsk);
+                     Tcl_Interp *ip, const char *progvar, int pmsk,
+		     int *LINALG_INTERRUPT_VARIABLE);
 
 /* orthonormalize inp and reduce rows of lft against it; 
  * returns preimages for these rows if they reduce to zero. */
 matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft, 
-             Tcl_Interp *ip, const char *progvar, int pmsk);
+             Tcl_Interp *ip, const char *progvar, int pmsk,
+		    int *LINALG_INTERRUPT_VARIABLE);
 
 /* reduce ker modulo im; im is assumed to be the result of matrix_ortho,
  * so we can take the obvious pivots for it; the result is returned in ker,
  * which is shrunken automatically. */
 int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im, 
-             Tcl_Interp *ip, const char *progvar, int pmsk);
-
-/* all three routines can be interrupted if a progress variable is set and 
- * the following int is non-zero. note that this is a process-wide flag.  */
-extern volatile int LINALG_INTERRUPT_VARIABLE;
+             Tcl_Interp *ip, const char *progvar, int pmsk,
+		    int *LINALG_INTERRUPT_VARIABLE);
 
 #endif

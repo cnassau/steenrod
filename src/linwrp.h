@@ -21,6 +21,7 @@ typedef struct {
     Tcl_Interp *ip;
     const char *progvar;
     int         pmsk;
+    int        *interruptVar;
 } progressInfo;
 
 /* I'm too tired right now, to put comments into this code! */

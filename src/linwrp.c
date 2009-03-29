@@ -89,15 +89,17 @@ int stdReduceMatrix(void *mat, int prime) {
     return SUCCESS;
 }
 
+static int zero;
+
 void *stdOrthoFunc(primeInfo *pi, void *inp, void *urb, progressInfo *prg) {
     matrix *ker;
     Tcl_Interp *ip = NULL; 
     const char *progvar = NULL;
-    int pmsk = 0;
+    int pmsk = 0, *ivarp = NULL;
     if (NULL != prg) { 
-        ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; 
+        ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; ivarp = prg->interruptVar;
     }
-    ker = matrix_ortho(pi, (matrix *) inp, (matrix **) urb, ip, progvar, pmsk);
+    ker = matrix_ortho(pi, (matrix *) inp, (matrix **) urb, ip, progvar, pmsk, ivarp ? ivarp : &zero);
     return ker;
 }
 
@@ -105,18 +107,18 @@ void *stdLiftFunc(primeInfo *pi, void *inp, void *lft, progressInfo *prg) {
     matrix *res;
     Tcl_Interp *ip = NULL; 
     const char *progvar = NULL;
-    int pmsk = 0;
-    if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; }
-    res = matrix_lift(pi, (matrix *) inp, lft, ip, progvar, pmsk);
+    int pmsk = 0, *ivarp = NULL;
+    if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk;  ivarp = prg->interruptVar;}
+    res = matrix_lift(pi, (matrix *) inp, lft, ip, progvar, pmsk, ivarp ? ivarp : &zero);
     return res;
 }
 
 void stdQuotFunc(primeInfo *pi, void *ker, void *im, progressInfo *prg) {
     Tcl_Interp *ip = NULL; 
     const char *progvar = NULL;
-    int pmsk = 0;
-    if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; }
-    matrix_quotient(pi, (matrix *) ker, (matrix *) im, ip, progvar, pmsk);
+    int pmsk = 0, *ivarp = NULL;
+    if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk;  ivarp = prg->interruptVar;}
+    matrix_quotient(pi, (matrix *) ker, (matrix *) im, ip, progvar, pmsk, ivarp ? ivarp : &zero);
 }
 
 int stdMAdd(void *vv1, void *vv2, int scale, int mod) {
