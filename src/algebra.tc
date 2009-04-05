@@ -370,3 +370,43 @@ proc steenrod::algebra::verify {alg} {
     if {[steenrod::algebra equal $span $alg]} return
     error "profile $alg is not complete: it spans $span"
 }
+
+
+# poly encoding routines for the "bin" format:
+
+namespace eval steenrod::binfmt {
+
+    namespace path [list [namespace parent]]
+
+    proc encode {poly} {
+        set res {}
+        poly foreach $poly m {
+            foreach {c e r g} $m break
+            append res [binary format cSccS* $c $g $e [llength $r] $r]
+        }
+        # hack: make sure the result is represented by a binary 
+        # Tcl_Object - otherwise sqlite will not store it as X'...'
+        tcl_binary $res
+    }
+
+    proc decode {input} {
+        set res {}
+        set idx 0
+        set len [string length $input]
+        while {$idx<$len} {
+            binary scan $input @${idx}cScc c g e cnt
+            incr idx 5
+            binary scan $input @${idx}S$cnt r
+            lappend res [list $c $e $r $g]
+            incr idx $cnt
+            incr idx $cnt
+        }
+        return $res
+    }
+
+    namespace export encode decode
+    namespace ensemble create
+}
+
+    
+

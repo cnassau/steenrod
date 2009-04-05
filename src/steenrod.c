@@ -597,7 +597,28 @@ int TMakeImages(ClientData cd, Tcl_Interp *ip,
     return TCL_OK;
 }
 
+/* Convert input into a Tcl_ByteArray object. Required
+ * for sqlite if value should be treated as blob */
 
+int MakeBinaryCmd(ClientData cd, Tcl_Interp *ip,
+                  int objc, Tcl_Obj * CONST objv[]) {
+    Tcl_ObjType *bin = (Tcl_ObjType *) cd;
+    Tcl_Obj *res = objv[1];
+
+    if (objc != 2) {
+        Tcl_WrongNumArgs(ip, 1, objv, "stringValue");
+        return TCL_ERROR;
+    }
+
+    if (res->typePtr != bin) {
+        int len; 
+        unsigned char *bytes = Tcl_GetByteArrayFromObj(res,&len);
+        res = Tcl_NewByteArrayObj(bytes,len);
+    }
+
+    Tcl_SetObjResult(ip, res);
+    return TCL_OK;
+}
 
 /* Removing the string representation can sometimes help to save memory: */
 
@@ -697,6 +718,13 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_CreateObjCommand(ip, POLYNSP "interruptible",
 			 InterruptibleCmd, (ClientData) 0, NULL);
+
+    {
+        Tcl_Obj * bin = Tcl_NewByteArrayObj((unsigned char *) &bin,1);
+        Tcl_CreateObjCommand(ip, POLYNSP "tcl_binary",
+                             MakeBinaryCmd, (ClientData) bin->typePtr, NULL);
+        Tcl_DecrRefCount(bin);
+    }
 
     /* create links for progress reporting */
     Tcl_UnlinkVar(ip, POLYNSP "_progvarname");
