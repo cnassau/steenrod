@@ -1081,16 +1081,16 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
 /**** Implementation of the mono combi-command ********************************/
 
-typedef enum { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING, 
+typedef enum { MTEST, ISABOVE, ISBELOW, MCOMPARE, LENGTH, RLENGTH, PADDING, 
                GEN, MCOEFF, MEXT, MEXP, MDEG, MRDEG, MEDEG } mcmdcode;
 
-static CONST char *mCmdNames[] = { "test", "isabove", "isbelow", 
+static CONST char *mCmdNames[] = { "test", "isabove", "isbelow", "compare",
                                    "length", "rlength", "padding",
-                   "gen", "coeff", "exterior", "exponent",
+                                   "gen", "coeff", "exterior", "exponent",
                                    "degree", "rdegree", "edegree",
                                    (char *) NULL };
 
-static mcmdcode mCmdmap[] = { MTEST, ISABOVE, ISBELOW, LENGTH, RLENGTH, PADDING, 
+static mcmdcode mCmdmap[] = { MTEST, ISABOVE, ISBELOW, MCOMPARE, LENGTH, RLENGTH, PADDING, 
                               GEN, MCOEFF, MEXT, MEXP, MDEG, MRDEG, MEDEG };
 
 int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
@@ -1206,6 +1206,20 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             Tcl_SetObjResult(ip, Tcl_NewIntObj(
                                  exmoIsAbove(exmoFromTclObj(objv[2]),
+                                             exmoFromTclObj(objv[3]))));
+            return TCL_OK;
+
+        case MCOMPARE:
+            EXPECTARGS(2, 2, 2, "<monomial> <monomial>");
+            
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+                return TCL_ERROR;
+
+            if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(
+                                 compareExmo(exmoFromTclObj(objv[2]),
                                              exmoFromTclObj(objv[3]))));
             return TCL_OK;
 

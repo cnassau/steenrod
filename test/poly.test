@@ -217,6 +217,44 @@ test mono-1.11 {mono exponent} {
     set res
 } {{0 0 1 0 0} {1 2 3 0 0} {0 0 1 0 0} {-1 -1 -1 -1 -1} {-8 -4 -2 -1 -1}}
 
+proc signonly {x} {
+    expr {($x<0) ? "-" : (($x>0) ? "+" : "0")}
+}
+
+test mono-1.13 {mono compare, negative} {
+    set res {}
+    set m1 {0 -8 {-4 -2} 0}
+    foreach h {
+        {0 -8 {-4 -2} 0}
+        {0 -8 {-4 -2 -1} 0}
+        {0 -8 {-4 -2} 1}
+        {0 -8 {-4 -1} 0}
+        {0 -6 {-4 -2} 0}
+        {0 8 {4 2} 0}
+    } {
+        lappend res [signonly [mono compare $h $m1]]
+        lappend res [signonly [mono compare $m1 $h]]
+    }
+    set res
+} {0 0 0 0 + - + - + - + -}
+
+test mono-1.14 {mono compare, positive} {
+    set res {}
+    set m1 {0 8 {4 2} 0}
+    foreach h {
+        {0 8 {4 2} 0}
+        {0 8 {4 2 0} 0}
+        {0 8 {4 2} 1}
+        {0 8 {3 1} 0}
+        {0 6 {4 2} 0}
+        {0 -8 {-4 -2} 0}
+    } {
+        lappend res [signonly [mono compare $h $m1]]
+        lappend res [signonly [mono compare $m1 $h]]
+    }
+    set res
+} {0 0 0 0 + - - + - + - +}
+
 test mono-1. {mono } {
 
 }
