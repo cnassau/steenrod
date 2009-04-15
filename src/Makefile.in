@@ -198,7 +198,9 @@ libraries:
 # end user machine when building from source.
 #========================================================================
 
+export PACKAGE_VERSION
 doc:
+	$(TCLSH) ./doc/makedocs.tcl
 	@echo "If you have documentation to create, place the commands to"
 	@echo "build the docs in the 'doc:' target.  For example:"
 	@echo "        xml2nroff sample.xml > sample.n"
@@ -229,9 +231,9 @@ install-libraries: libraries
 install-doc: doc
 	@mkdir -p $(DESTDIR)$(mandir)/mann
 	@echo "Installing documentation in $(DESTDIR)$(mandir)"
-	@list='$(srcdir)/doc/*.n'; for i in $$list; do \
+	@list='$(srcdir)/../doc/man/man3/*.*steenrod'; for i in $$list; do \
 	    echo "Installing $$i"; \
-	    $(INSTALL_DATA) $$i $(DESTDIR)$(mandir)/mann ; \
+		$(INSTALL_DATA) $$i $(DESTDIR)$(mandir)/man3 ; \
 	done
 
 test-installation:

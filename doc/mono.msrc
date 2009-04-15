@@ -1,4 +1,4 @@
-[manpage_begin mono 3st 0.75]
+[manpage_begin mono 3st STEENRODVERSION]
 
 [moddesc {Steenrod Tcl package}]
 
@@ -6,7 +6,7 @@
 
 [copyright %copyright%]
 
-[require Steenrod 0.75]
+[require Steenrod STEENRODVERSION]
 
 [description]
 

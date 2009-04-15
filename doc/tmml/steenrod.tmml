@@ -1,7 +1,7 @@
 <!-- Generated from file '' by tcllib/doctools with format 'tmml' -->
-<manpage id='' cat='cmd' title='Steenrod' version='0.75' package=''>
+<manpage id='' cat='cmd' title='Steenrod' version='1.0' package=''>
 <head>
-<info key='copyright' value='Copyright (c) 2005 Christian Nassau'/>
+<info key='copyright' value='Copyright (c) 2004-2009 Christian Nassau'/>
 </head>
 <namesection>
 <name>Steenrod</name>
@@ -20,7 +20,7 @@
 
 <synopsis>
 <syntax>
-package require <package>Steenrod</package> 0.75
+package require <package>Steenrod</package> 1.0
 </syntax>
 </synopsis>
 <section>

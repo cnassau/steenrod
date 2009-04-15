@@ -2,7 +2,7 @@
 #
 # Create html, tmml, and manpage from *.msrc
 #
-# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
+# Copyright (C) 2009 Christian Nassau <nassau@nullhomotopie.de>
 #
 #  $Id$
 #
@@ -11,7 +11,7 @@
 # published by the Free Software Foundation.
 #
 
-lappend auto_path /usr/share/tcl
+lappend auto_path  . doc /usr/share/tcl
 lappend auto_path /home/cn/ActiveTcl8.4.3.0-linux-ix86/lib/
 
 package require doctools
@@ -20,7 +20,7 @@ proc preformat {data} {
     foreach {kw text} {
         %crossrefs% "enumerator linalg matrix vector mono monomap poly prime"
         %keywords%  "Mathematics {Steenrod algebra} {Tcl package}"
-        %copyright% "{2005 Christian Nassau}"
+        %copyright% "{2004-2009 Christian Nassau}"
         %homepage%  "http://www.nullhomotopie.de/"
     } {
         set data [regsub -all $kw $data $text]
@@ -30,6 +30,8 @@ proc preformat {data} {
 
 # hack: we 'cd html' because '-format html' would otherwise 
 # get confused by the directory 'html'  
+set cwd [pwd]
+cd [file dirname [info script]]
 cd html
 ::doctools::new 2html -format html 
 ::doctools::new 2man  -format nroff
@@ -39,6 +41,9 @@ cd ..
 set flst [glob -nocomplain *.msrc]
 
 puts "Converting documentation, file pattern = *.msrc"
+
+lappend replmap STEENRODVERSION $::env(PACKAGE_VERSION)
+interp alias {} repl {} string map $replmap
 
 foreach name $flst {
 
@@ -56,18 +61,18 @@ foreach name $flst {
     
     set mname [file join man man3 $rname.3steenrod]
     set ch [open aux.n w]
-    puts $ch [2man format $data]
+    puts $ch [repl [2man format $data]]
     close $ch
     exec sed -e "/man\.macros/r man.macros" -e "/man\.macros/d" aux.n > $mname
     file delete aux.n
 
     set ch [open [file join tmml $rname.tmml] w]
-    puts $ch [2tmml format $data]
+    puts $ch [repl [2tmml format $data]]
     close $ch
     
     if 1 {
         set ch [open [file join html $rname.html] w]
-        puts $ch [2html format $data]
+        puts $ch [repl [2html format $data]]
         close $ch
     } else {
         exec tclsh tmml-html.tcl [file join tmml $rname.tmml] > [file join html $rname.html]
