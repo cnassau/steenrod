@@ -14,7 +14,7 @@
 #ifndef LINWRP_DEF
 #define LINWRP_DEF
 
-#include <prime.h>
+#include "prime.h"
 #include <tcl.h>
 
 typedef struct {

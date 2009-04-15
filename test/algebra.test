@@ -13,6 +13,8 @@
 
 #source ../src/algebra.tc  
 
+package require Steenrod
+
 namespace import -force steenrod::*
 
 if {[lsearch [namespace children] ::tcltest] == -1} {

@@ -9,4 +9,3 @@
 # full path name of this file's directory.
 
 package ifneeded Steenrod 0.7651 [list source [file join $dir steenrod.tcl]]
-package ifneeded scrobjy 1.0 [list source [file join $dir steenrod.tcl]]
