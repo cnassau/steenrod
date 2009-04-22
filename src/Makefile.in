@@ -247,7 +247,6 @@ test-installation:
 .PHONY: test-installation
  
 test: binaries libraries test-installation
-	echo hi
 	$(TCLSH) `@CYGPATH@ $(srcdir)/../test/all.tcl` $(TESTFLAGS)
 
 bigtest: binaries libraries test-installation
