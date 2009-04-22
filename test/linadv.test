@@ -16,7 +16,11 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
     namespace import -force ::tcltest::*
 }
 
-lappend auto_path ../lib
+if {[file exists pkgIndex.tcl]} {
+    set dir [pwd]
+    source pkgIndex.tcl
+    set auto_path something_useless
+}
 package require Steenrod
 namespace import -force steenrod::*
 
@@ -230,3 +234,4 @@ test "segfault" "sage 1" {
 # cleanup
 ::tcltest::cleanupTests
 return
+

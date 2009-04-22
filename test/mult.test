@@ -16,8 +16,12 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
     namespace import -force ::tcltest::*
 }
 
-lappend auto_path ../lib
-package require Steenrod 0.75
+if {[file exists pkgIndex.tcl]} {
+    set dir [pwd]
+    source pkgIndex.tcl
+    set auto_path something_useless
+}
+package require Steenrod 
 
 namespace import -force steenrod::*
 
@@ -73,4 +77,5 @@ foreach fname [lsort -dictionary $flist] {
 # cleanup
 ::tcltest::cleanupTests
 return
+
 
