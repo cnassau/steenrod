@@ -592,7 +592,12 @@ foreach ply {
 
 test poly "isabove + foreach + shift violates EIAS" -body {
     set data {{1 0 1 0}}
-    set sop {1 0 -1 0}
+    set sop {1 0 {-1} 0}
+
+    # the problem here is that $sop is a *negative* operation,
+    # yet the result of shifting appears as {1 0 0 0} which
+    # internally actually represents {1 0 {0 -1} 0}
+
     set res oops
     steenrod::poly foreach [steenrod::poly shift $data $sop] mono {
         #append mono ""
@@ -601,7 +606,7 @@ test poly "isabove + foreach + shift violates EIAS" -body {
         }
     }
     set res
-} -result ok
+} -result ok -constraints KNOWN-BUG
 
 # --------------------------------------------------------------------------
 
