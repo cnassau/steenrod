@@ -230,6 +230,12 @@ test "segfault" "sage 1" {
     set m ok
 } ok
 
+test "quotient modulo empty matrix" "sage 2" {
+    set m 4
+    steenrod::matrix quot 5 m {}
+    steenrod::matrix dimensions $m
+} {1 1}
+
 
 # cleanup
 ::tcltest::cleanupTests

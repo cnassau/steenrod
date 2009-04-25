@@ -392,7 +392,10 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp,
 
     Tcl_MatrixGetDimensions(ip, ker, &krows, &kcols);
     Tcl_MatrixGetDimensions(ip, inp, &irows, &icols);
-    if (irows == 0) icols = kcols;
+    if (irows == 0) {
+        /* quotient modulo empty matrix: nothing to do */
+        return TCL_OK;
+    }
     if (kcols != icols) {
         Tcl_SetResult(ip, "inconsistent dimensions", TCL_STATIC);
         return TCL_ERROR;
