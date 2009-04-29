@@ -374,6 +374,80 @@ proc steenrod::algebra::verify {alg} {
 
 # poly encoding routines for the "bin" format:
 
+namespace eval steenrod::7bit {
+
+    # encode a list of integers as a sequence of 7-bit quantities
+    # where 0x80 is used as continuation marker. we store least 
+    # significant bytes first
+
+    proc EncodeInt {int} {
+	set res {}
+	while on {
+	    set next [expr {$int & 0x7f}]
+	    set int [expr {$int>>7}] 
+	    if {$int == 0 || $int == -1} break
+	    lappend res [expr {($next-0x80)}]
+	}
+	if {$int>=0 && (0x40 & $next)} {
+	    # need an extra zero to mark this value as positive
+	    lappend res [expr {($next-0x80)}] 0
+	} elseif {$int<0 && (0 == (0x40 & $next))} {
+	    # need an extra -1 to mark this value as negative
+	    lappend res [expr {($next-0x80)}] 0x7f
+	} else {
+	    lappend res $next
+	}
+	return $res
+    }
+
+    proc encode {intlist} {
+	set aux {}
+	foreach n $intlist {
+	    lappend aux {*}[EncodeInt $n]
+	}
+	if {[llength $aux]} {
+	    return [binary format c* $aux]
+	}
+	return
+    }
+
+
+    proc decode-foreach {varname data script} {
+	upvar 1 $varname v
+	set len [string length $data]
+	set pval 0
+	set off 0
+	for {set idx 0} {$idx<$len} {incr idx} {
+	    binary scan $data @${idx}c x
+	    set cont [expr {0x80 & $x}]
+	    set pval [expr {$pval | (0x7f&$x)<<$off}]
+	    incr off 7
+	    if {!$cont} {
+		if {0x40 & $x} {
+		    # value is negative
+		    set pval [expr {$pval + (-1<<$off)}]
+		}
+		set v $pval
+		uplevel 1 $script
+		set pval 0
+		set off 0
+	    }
+	}
+    }
+
+    proc decode {data} {
+	set res {}
+	decode-foreach v $data {
+	    lappend res $v
+	}
+	return $res
+    }
+
+    namespace export encode decode decode-foreach
+    namespace ensemble create
+}
+
+
 namespace eval steenrod::binfmt {
 
     namespace path [list [namespace parent]]
@@ -382,24 +456,27 @@ namespace eval steenrod::binfmt {
         set res {}
         poly foreach $poly m {
             foreach {c e r g} $m break
-            append res [binary format cSccS* $c $g $e [llength $r] $r]
+            lappend res $c $g $e [llength $r] {*}$r
         }
         # hack: make sure the result is represented by a binary 
         # Tcl_Object - otherwise sqlite will not store it as X'...'
-        tcl_binary $res
+        tcl_binary [steenrod::7bit encode $res]
     }
 
     proc decode {input} {
+        set intlist [steenrod::7bit decode $input]
         set res {}
         set idx 0
-        set len [string length $input]
+        set len [llength $intlist]
         while {$idx<$len} {
-            binary scan $input @${idx}cScc c g e cnt
-            incr idx 5
-            binary scan $input @${idx}S$cnt r
+            set c [lindex $intlist $idx]
+            set g [lindex $intlist [incr idx]]
+            set e [lindex $intlist [incr idx]]
+            set cnt [lindex $intlist [incr idx]]
+            incr idx
+            set r [lrange $intlist $idx [expr {$idx+$cnt-1}]]
+            set idx [expr {$idx+$cnt}]
             lappend res [list $c $e $r $g]
-            incr idx $cnt
-            incr idx $cnt
         }
         return $res
     }
