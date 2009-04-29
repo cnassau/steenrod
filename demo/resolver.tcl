@@ -294,7 +294,7 @@ while {$repcnt} {
             rename d[expr $sdeg-2] ""
         }
 
-        set maxi [expr 2*$maxdim + $sdeg]
+        set maxi [expr $maxdim + $sdeg]
         
         for {set ideg $sdeg} {$ideg<=$maxi} {incr ideg} {
 

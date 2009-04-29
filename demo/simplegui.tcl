@@ -100,7 +100,7 @@ proc degchange {name1 name2 op} {
     incr s 1 
 
     if {$wpl != {}} { $cvs delete $wpl } 
-    set x [expr $i/2 - $s]
+    set x [expr $i - $s]
     set y [expr -$s]
 
     set wpl [$cvs create polygon \
@@ -158,10 +158,10 @@ proc myfilter {m} {
 }
     
 proc newgen {id s e i diff} {
-# puts [format "%3d / %3d : gen %d (diff = %s)" $s $i $id $diff]
+    # puts [format "%3d / %3d : gen %d (diff = %s)" $s $i $id $diff]
     set ::currgenid $id
     set ::currs $s
-    addDot [expr $i/2-$s] $s $e $id $s
+    addDot [expr $i-$s] $s $e $id $s
     poly split $diff ::myfilter
 
     update
