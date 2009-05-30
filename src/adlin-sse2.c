@@ -16,6 +16,17 @@
 #include <tcl.h>
 #include "linalg.h"
 
+#define  PROGVARINIT     \
+    double perc = 0;     \
+    if (NULL != progvar) Tcl_LinkVar(ip, progvar, (char *) &perc, TCL_LINK_DOUBLE);
+
+#define PROGVARSET(val)  \
+    if (NULL != progvar) Tcl_UpdateLinkedVar(ip, progvar); \
+    if (*LINALG_INTERRUPT_VARIABLE) goto done;
+
+#define PROGVARDONE \
+    if (NULL != progvar) Tcl_UnlinkVar(ip, progvar);
+
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 /* orthonormalize the input matrix, return basis of kernel */

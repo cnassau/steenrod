@@ -13,31 +13,20 @@
 
 #include "adlin.h"
 
-#include <time.h>
-
-static clock_t LastProgressCB; /* yes, we shouldn't be using a static here... */
-
-#define  PROGVARINIT             \
-    double perc = 0;             \
-    if (NULL != progvar) {       \
-      LastProgressCB = clock();  \
-      Tcl_LinkVar(ip, progvar, (char *) &perc, TCL_LINK_DOUBLE); };
-
-#define PROGVARSET(val)     \
-    if (NULL != progvar) {  \
-       clock_t clicks = clock();  \
-       if ((clicks-LastProgressCB) > (CLOCKS_PER_SEC / 10)) {       \
-          LastProgressCB=clicks; Tcl_UpdateLinkedVar(ip, progvar);  \
-          if (*LINALG_INTERRUPT_VARIABLE) goto done;                \
-       }; \
-    }
-
-#define PROGVARDONE \
-    if (NULL != progvar) Tcl_UnlinkVar(ip, progvar);
-
 #ifdef USESSE2
 #  include "adlin-sse2.c"
 #else
+
+#define  PROGVARINIT     \
+    double perc = 0;     \
+    if (NULL != progvar) Tcl_LinkVar(ip, progvar, (char *) &perc, TCL_LINK_DOUBLE);
+
+#define PROGVARSET(val)  \
+    if (NULL != progvar) Tcl_UpdateLinkedVar(ip, progvar); \
+    if (*LINALG_INTERRUPT_VARIABLE) goto done;
+
+#define PROGVARDONE \
+    if (NULL != progvar) Tcl_UnlinkVar(ip, progvar);
 
 #if 0
 #  define DBGPRINT1(fmt) { printf(fmt "\n"); }
