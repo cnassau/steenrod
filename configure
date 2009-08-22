@@ -6758,7 +6758,7 @@ echo "$as_me: error: could not find stub source file '$i'" >&2;}
 
 
 
-    vars="startup.tcl algebra.tc"
+    vars="startup.tcl algebra.tc conj.tc"
     for i in $vars; do
 	# check for existence, be strict because it is installed
 	if test ! -f "${srcdir}/$i" ; then
