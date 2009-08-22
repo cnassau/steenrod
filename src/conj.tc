@@ -1,0 +1,105 @@
+# -*-tcl-*-
+# Implementation of the steenrod::_conjugate command
+#
+# Copyright (C) 2009 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+proc steenrod::_conjugate {prime poly} {
+    set res [poly create] 
+    poly foreach $poly m {
+        poly varappend res [_conjugate_mono $prime $m]
+    }
+    poly varcancel res $prime
+    return $res
+}
+
+proc steenrod::_conjugate_mono {prime mono} {
+    variable conjcache
+    if {![info exists conjcache($prime,$mono)]} {
+        set conjcache($prime,$mono) [_conjugate_mono.impl $prime $mono]
+    }
+    return $conjcache($prime,$mono)
+}
+
+proc foreach-reduced-coproduct {av bv mono script} {
+    upvar 1 $av a $bv b
+    set zero [list 1 0 0 [mono gen $mono]]
+    foreach-coproduct a b $mono {
+        if {[mono compare $a $zero] && [mono compare $b $zero]} {
+            uplevel 1 $script
+        } 
+    }
+}
+
+proc steenrod::_conjugate_mono.impl {prime mono} {
+    set res [poly create]
+    foreach-reduced-coproduct a b $mono {
+        poly varappend res [poly steenmult [_conjugate_mono $prime $a] $b $prime] -1
+    }
+    poly varappend res $mono -1
+    poly varcancel res $prime
+    return $res
+}
+
+proc steenrod::tcl::mathfunc::bitcount {x} {
+    set bx [expr {$x - (($x>>1)&0x77777777) - (($x>>2)&0x33333333) - (($x>>3)&0x11111111)}]
+    expr {(($bx + ($bx >> 4)) & 0x0f0f0f0f) % 255}
+}
+
+proc steenrod::tcl::mathfunc::signfunc {a b} {
+    if {$a & $b} {return 0}
+    set res [set cnt 0]
+    while {$a} {
+        set z [expr {$a ^ ($a & ($a-1))}]
+        incr cnt
+        incr res [bitcount [expr {($z-1) & $b}]]
+        set a [expr {$a & ($a-1)}]
+        set b [expr {$b | $z}]
+    }
+    # implicitly we've had to reverse a, since it's easier to isolate the
+    # lowest bit than the highest. Here we make up for the reversion
+    if {2 & $cnt} {incr res}
+    expr {(1 & $res) ? -1 : 1}
+}
+
+proc foreach-redcop {ra rb red script} {
+    upvar 1 $ra a $rb b 
+    if {[llength $red] == 0} {
+        set a $red
+        set b $red
+        uplevel 1 $script
+        return
+    } 
+    set f [lindex $red 0]
+    foreach-redcop ra2 rb2 [lrange $red 1 end] {
+        for {set i 0} {$i<=$f} {incr i} {
+            set a [list $i {*}$ra2]
+            set b [list [expr {$f-$i}] {*}$rb2]
+            uplevel 1 $script
+        }
+    }
+}
+
+proc foreach-coproduct {av bv mono script} {
+    upvar 1 $av a $bv b
+    foreach {cf e r g} $mono break
+    set edeco {}
+    for {set i 0} {$i<=$e} {incr i} {
+        if {($i & $e) == $i} {
+            lappend edeco $i [set j [expr {$e^$i}]] [expr {signfunc($i,$j)}]
+        }
+    }
+    foreach-redcop ra rb $r {
+        foreach {ea eb sign} $edeco {
+            set a [list [expr {$sign*$cf}] $ea $ra $g]
+            set b [list 1 $eb $rb $g]
+            uplevel 1 $script
+        }
+    }
+}
