@@ -27,7 +27,7 @@ proc steenrod::_conjugate_mono {prime mono} {
     return $conjcache($prime,$mono)
 }
 
-proc foreach-reduced-coproduct {av bv mono script} {
+proc steenrod::foreach-reduced-coproduct {av bv mono script} {
     upvar 1 $av a $bv b
     set zero [list 1 0 0 [mono gen $mono]]
     foreach-coproduct a b $mono {
@@ -40,11 +40,15 @@ proc foreach-reduced-coproduct {av bv mono script} {
 proc steenrod::_conjugate_mono.impl {prime mono} {
     set res [poly create]
     foreach-reduced-coproduct a b $mono {
-        poly varappend res [poly steenmult [_conjugate_mono $prime $a] $b $prime] -1
+        poly varappend res [poly steenmult [_conjugate_mono $prime $a] [list $b] $prime] -1
     }
-    poly varappend res $mono -1
+    poly varappend res [list $mono] -1
     poly varcancel res $prime
     return $res
+}
+
+namespace eval steenrod::tcl {
+    namespace eval mathfunc {}
 }
 
 proc steenrod::tcl::mathfunc::bitcount {x} {
@@ -68,7 +72,7 @@ proc steenrod::tcl::mathfunc::signfunc {a b} {
     expr {(1 & $res) ? -1 : 1}
 }
 
-proc foreach-redcop {ra rb red script} {
+proc steenrod::foreach-redcop {ra rb red script} {
     upvar 1 $ra a $rb b 
     if {[llength $red] == 0} {
         set a $red
@@ -86,7 +90,7 @@ proc foreach-redcop {ra rb red script} {
     }
 }
 
-proc foreach-coproduct {av bv mono script} {
+proc steenrod::foreach-coproduct {av bv mono script} {
     upvar 1 $av a $bv b
     foreach {cf e r g} $mono break
     set edeco {}
