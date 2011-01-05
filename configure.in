@@ -60,6 +60,8 @@ TEA_PREFIX
 #-----------------------------------------------------------------------
 
 TEA_SETUP_COMPILER
+#-----------------------------------------------------------------------
+
 
 # detect SSE2-capable processor
 
@@ -91,7 +93,36 @@ AC_MSG_RESULT([$usesse2])
 
 AS_IF([test "$usesse2" = yes], [AC_DEFINE(USESSE2,1)])
 
-#-----------------------------------------------------------------------
+# detect opencl-support
+
+AC_MSG_CHECKING([whether to use opencl])
+
+    AC_ARG_ENABLE(opencl,
+	AC_HELP_STRING([--enable-opencl],
+	    [use opencl (default: detect)]),
+	[opencl=$enableval], [opencl=detect])
+
+if test "$opencl" != "no"; then
+   
+    AC_TRY_LINK([
+	    #include <emmieeentrin.h>
+	    void f(void) {__m128i var = _mm_set_epi16(7,6,5,4,3,2,1,0);}], [f();],
+	usecl=yes,
+	usecl=no)
+else
+    usecl=no
+fi
+
+if test "$usecl" = "no"; then
+    if test "$opencl" = "yes"; then
+	AC_MSG_ERROR( "opencl requested but not available", 1)
+    fi
+fi
+    
+AC_MSG_RESULT([$usecl])
+
+AS_IF([test "$usecl" = yes], [AC_DEFINE(USECL,1)])
+
 # __CHANGE__
 # Specify the C source files to compile in TEA_ADD_SOURCES,
 # public headers that need to be installed in TEA_ADD_HEADERS,
