@@ -112,8 +112,12 @@ if test "$opencl" != "no"; then
     LDFLAGS="${LDFLAGS} ${CL_LIBS}"
 
     AC_TRY_LINK([
-	    #include <CL/opencl.h>
-	    void f(void) { cl_platform_id m; cl_uint n; clGetPlatformIDs(1,&m,&n);  }], [f();],
+	    #ifdef HAVE_CL_CL_H
+            #  include <CL/cl.h>
+            #else 
+            #  include <OpenCL/cl.h>
+	    #endif
+            void f(void) { cl_platform_id m; cl_uint n; clGetPlatformIDs(1,&m,&n);  }], [f();],
 	usecl=yes,
 	usecl=no)
 else
