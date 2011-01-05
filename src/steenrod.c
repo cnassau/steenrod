@@ -735,7 +735,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     }
 
 #ifdef USECL
-    CL_Init(ip);
+    OPCL_Init(ip);
 #endif
 
     /* create links for progress reporting */

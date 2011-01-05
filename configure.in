@@ -144,6 +144,10 @@ TEA_ADD_SOURCES([
 		  linwrp.c   prime.c     tenum.c
 	 linwrp2.c   tlin.c  common.c	 	momap.c  tpoly.c
 ])
+if test "$usecl" = "yes"; then
+   TEA_ADD_SOURCES([opcl.c])
+fi
+
 TEA_ADD_HEADERS()
 #[adlin.h   hmap.h    linwrp.h  poly.h	scrobjy.h   steenrod.h	tpoly.h
 #common.h  lepar.h   momap.h   prime.h	secmult2.h  tenum.h	tprime.h
