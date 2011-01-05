@@ -33,6 +33,11 @@ void SignalHandler(int c) {
 }
 #endif
 
+#ifdef USECL
+#  include "opcl.h"
+#endif
+
+
 int InterruptibleCmd(ClientData cd, Tcl_Interp *ip,
 		     int objc, Tcl_Obj * CONST objv[]) {    
     int rc;
@@ -658,6 +663,9 @@ int VersionCmd(ClientData cd, Tcl_Interp *ip,
 #ifdef USESSE2
                   "-sse2"
 #endif
+#ifdef USECL
+                  "-opencl"
+#endif
            ,TCL_STATIC);
     return TCL_OK;
 }
@@ -725,6 +733,10 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
                              MakeBinaryCmd, (ClientData) bin->typePtr, NULL);
         Tcl_DecrRefCount(bin);
     }
+
+#ifdef USECL
+    CL_Init(ip);
+#endif
 
     /* create links for progress reporting */
     Tcl_UnlinkVar(ip, POLYNSP "_progvarname");

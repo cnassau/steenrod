@@ -62,6 +62,8 @@ TEA_PREFIX
 TEA_SETUP_COMPILER
 #-----------------------------------------------------------------------
 
+m4_include([ax_check_cl.m4])
+
 
 # detect SSE2-capable processor
 
@@ -103,10 +105,15 @@ AC_MSG_CHECKING([whether to use opencl])
 	[opencl=$enableval], [opencl=detect])
 
 if test "$opencl" != "no"; then
-   
+
+    AX_CHECK_CL
+
+    CFLAGS="${CFLAGS} ${CL_CFLAGS}"
+    LDFLAGS="${LDFLAGS} ${CL_LIBS}"
+
     AC_TRY_LINK([
-	    #include <emmieeentrin.h>
-	    void f(void) {__m128i var = _mm_set_epi16(7,6,5,4,3,2,1,0);}], [f();],
+	    #include <CL/opencl.h>
+	    void f(void) { cl_platform_id m; cl_uint n; clGetPlatformIDs(1,&m,&n);  }], [f();],
 	usecl=yes,
 	usecl=no)
 else
@@ -119,8 +126,6 @@ if test "$usecl" = "no"; then
     fi
 fi
     
-AC_MSG_RESULT([$usecl])
-
 AS_IF([test "$usecl" = yes], [AC_DEFINE(USECL,1)])
 
 # __CHANGE__
