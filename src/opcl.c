@@ -12,6 +12,7 @@
  */
 
 #include "opcl.h"
+#include <stdio.h>
 
 
 void TclCLError(Tcl_Interp *ip, cl_uint errorcode) {
@@ -58,9 +59,61 @@ typedef struct {
    cl_platform_id pid;
    cl_device_id   did;
    cl_context     ctx;
-
+   cl_program     prg;
 } CLCTX;
 
+int CLCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
+   CLCTX *clc = (CLCTX *) cd;
+
+if(0==strcmp(Tcl_GetString(objv[1]),"program")) {
+   const char *src = Tcl_GetString(objv[2]);
+   cl_int err;
+   clc->prg = clCreateProgramWithSource(clc->ctx,1,&src,NULL,&err);
+   if(CL_SUCCESS != err) {
+    TclCLError(ip,err);
+return TCL_ERROR;
+}
+
+#define ckerr if(CL_SUCCESS != err) { TclCLError(ip,err);return TCL_ERROR;}
+err = clBuildProgram(clc->prg,1,&(clc->did),NULL,NULL,NULL);
+//ckerr;   
+
+cl_build_status build_status;
+ err = clGetProgramBuildInfo(clc->prg, clc->did,
+   CL_PROGRAM_BUILD_STATUS, sizeof(cl_build_status), &build_status, NULL);
+
+
+// if program built fails, print out error messages
+ if (build_status != CL_SUCCESS) {
+       char *build_log;
+       size_t ret_val_size;
+       err = clGetProgramBuildInfo(clc->prg, clc->did, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+//       checkErr(err, "clGetProgramBuildInfo");
+ckerr;
+       build_log = malloc(ret_val_size+1);
+       err = clGetProgramBuildInfo(clc->prg, clc->did, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
+//       checkErr(err, "clGetProgramBuildInfo");
+ckerr;
+//fprintf(stderr,"rvs=%d\n",ret_val_size);
+//fprintf(stderr,"blg=%s\n",build_log);
+
+       // to be carefully, terminate with \0
+       // there's no information in the reference whether the string is 0 terminated or not
+       build_log[ret_val_size] = '\0';
+//fprintf(stderr,build_log);
+Tcl_SetResult(ip,"program compilation error:\n",TCL_STATIC);
+Tcl_AppendResult(ip,build_log,NULL);
+return TCL_ERROR;
+ }
+
+
+
+    return TCL_OK;
+}
+
+
+   return TCL_ERROR;
+}
 
 int CLInitCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
 
@@ -77,6 +130,9 @@ int CLInitCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
       TclCLError(ip,rc);
       return TCL_ERROR;
    }
+
+
+   Tcl_CreateObjCommand(ip,"::steenrod::cl::impl::combi",CLCombiCmd,clc,NULL);
 
    return TCL_OK;
 }
