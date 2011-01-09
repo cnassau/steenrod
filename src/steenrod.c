@@ -276,20 +276,23 @@ if(useOpenCL) {
     
     outval=0;
 
-    cl_command_queue que = clCreateCommandQueue(ctx->ctx,ctx->did,0,&clerr);
-    CHKERR(clerr);
+#if 0
+    static cl_command_queue que, havecq = 0;
+if (!havecq) {havecq=1;que = clCreateCommandQueue(ctx->ctx,ctx->did,0,&clerr);
+    CHKERR(clerr);}
+#endif
 
-    size_t locws = 128, globws = 128;
-    clerr = clEnqueueNDRangeKernel(que,krn,1,NULL,&globws,/*&locws*/NULL,0,NULL,NULL);
+    size_t locws = 128, globws = 100000;
+    clerr = clEnqueueNDRangeKernel(ctx->que,krn,1,NULL,&globws,/*&locws*/NULL,0,NULL,NULL);
     CHKERR(clerr);
 
 int orr = 0; 
-    clEnqueueReadBuffer(que,clov,CL_TRUE,0,sizeof(int),&orr,0,NULL,NULL);
+    clEnqueueReadBuffer(ctx->que,clov,CL_TRUE,0,sizeof(int),&orr,0,NULL,NULL);
 
-fprintf(stderr,"%d\n",orr);
+//fprintf(stderr,"%d\n",orr);
 
     clReleaseKernel(krn);
-    clReleaseCommandQueue(que);
+    //clReleaseCommandQueue(que);
     clReleaseMemObject(clpi);
     clReleaseMemObject(clov);
 

@@ -148,12 +148,12 @@ int CLInitCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
    if(CL_SUCCESS==rc) clc->ctx=clCreateContext(NULL,1,&clc->did,
                                                NULL /* notify cb */, 
                                                NULL /* user data */,(cl_int *)&rc);
-   
+   if(CL_SUCCESS==rc) clc->que=clCreateCommandQueue(clc->ctx,clc->did,0,(cl_int *)&rc);
+ 
    if(CL_SUCCESS!=rc) {
       TclCLError(ip,rc);
       return TCL_ERROR;
    }
-
 
    Tcl_CreateObjCommand(ip,"::steenrod::cl::impl::combi",CLCombiCmd,clc,NULL);
    Tcl_CreateObjCommand(ip,"::steenrod::cl::impl::enmtest",CLEnmtestCmd,clc,NULL);

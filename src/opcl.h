@@ -25,10 +25,11 @@
 const char *clerrorstring(cl_int errcode);
 
 typedef struct {
-   cl_platform_id pid;
-   cl_device_id   did;
-   cl_context     ctx;
-   cl_program     prg;
+   cl_platform_id    pid;
+   cl_device_id      did;
+   cl_context        ctx;
+   cl_program        prg;
+   cl_command_queue  que;
 } CLCTX;
 
 CLCTX *GetCLCtx(Tcl_Interp *ip);
