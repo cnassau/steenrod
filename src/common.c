@@ -16,3 +16,5 @@
 #include "common.h"
 
 int objCount; 
+int useOpenCL;
+

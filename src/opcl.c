@@ -14,18 +14,25 @@
 #include "opcl.h"
 #include <stdio.h>
 
+#include "tenum.h"
+
+const char *clerrorstring(errorcode) {
+#define errcode(code,txt) {if(code==errorcode){return txt;} }
+#include "opclerrcodes.c"
+   return "unknown cl error code";
+}
 
 void TclCLError(Tcl_Interp *ip, cl_uint errorcode) {
    char emsg[200];
-   char cstr[20];
-   const char *ecd = cstr;
-   sprintf(cstr,"%d",errorcode);
-
-#define errcode(code,txt) {if(code==errorcode){ecd=txt;} }
-#include "opclerrcodes.c"
-
-   snprintf(emsg,200,"open cl error code %s", ecd);
+   snprintf(emsg,200,"open cl error code %s", clerrorstring(errorcode));
    Tcl_SetResult(ip,emsg,TCL_VOLATILE);
+}
+
+
+static CLCTX *ctx_global;
+
+CLCTX *GetCLCtx(Tcl_Interp *ip) {
+    return ctx_global;
 }
 
 
@@ -55,12 +62,28 @@ REPPAR(CL_PLATFORM_EXTENSIONS);
    return TCL_OK;
 }
 
-typedef struct {
-   cl_platform_id pid;
-   cl_device_id   did;
-   cl_context     ctx;
-   cl_program     prg;
-} CLCTX;
+int CLEnmtestCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
+   CLCTX *clc = (CLCTX *) cd;
+   enumerator *enm;
+   int obc, i;
+   Tcl_Obj **obv;
+
+   enm = Tcl_EnumFromObj(ip,objv[1]);
+   if(NULL == enm) {
+      return TCL_ERROR;
+   }
+
+   if( TCL_OK != Tcl_ListObjGetElements(ip,objv[2],&obc,&obv)) {
+      return TCL_ERROR;
+   }
+
+    
+
+   
+
+   return TCL_OK;
+}
+
 
 int CLCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
    CLCTX *clc = (CLCTX *) cd;
@@ -133,6 +156,9 @@ int CLInitCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
 
 
    Tcl_CreateObjCommand(ip,"::steenrod::cl::impl::combi",CLCombiCmd,clc,NULL);
+   Tcl_CreateObjCommand(ip,"::steenrod::cl::impl::enmtest",CLEnmtestCmd,clc,NULL);
+
+ctx_global = clc; /* hack! */
 
    return TCL_OK;
 }

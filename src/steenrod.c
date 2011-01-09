@@ -235,6 +235,70 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
     PROGVARINIT; 
 
+
+if(useOpenCL) {
+#ifdef USECL
+    cl_int clerr;
+    CLCTX *ctx = GetCLCtx(ip);
+
+#define CHKERR(errcode) if (CL_SUCCESS != errcode) \
+{ char x[300]; snprintf(x,300,"%s (file " __FILE__ ", line %d)",clerrorstring(errcode),__LINE__); \
+  Tcl_SetResult(ip,x,TCL_VOLATILE); return FAIL; }
+
+
+    cl_mem clpi = clCreateBuffer(ctx->ctx,
+                                 CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR,
+                                 sizeof(primeInfo),
+                                 dst->pi,
+                                 &clerr);            
+
+    CHKERR(clerr);
+
+    int outval;
+
+    cl_mem clov = clCreateBuffer(ctx->ctx,
+                                 CL_MEM_WRITE_ONLY|CL_MEM_COPY_HOST_PTR,
+                                 sizeof(int),
+                                 &outval,
+                                 &clerr);
+
+    CHKERR(clerr);
+
+    
+    cl_kernel krn = clCreateKernel(ctx->prg,"pipeek",&clerr);
+    CHKERR(clerr);
+
+    clerr = clSetKernelArg(krn,0,sizeof(cl_mem),&clpi);
+    CHKERR(clerr);
+
+    clerr = clSetKernelArg(krn,1,sizeof(cl_mem),&clov);
+    CHKERR(clerr);
+    
+    outval=0;
+
+    cl_command_queue que = clCreateCommandQueue(ctx->ctx,ctx->did,0,&clerr);
+    CHKERR(clerr);
+
+    size_t locws = 128, globws = 128;
+    clerr = clEnqueueNDRangeKernel(que,krn,1,NULL,&globws,/*&locws*/NULL,0,NULL,NULL);
+    CHKERR(clerr);
+
+int orr = 0; 
+    clEnqueueReadBuffer(que,clov,CL_TRUE,0,sizeof(int),&orr,0,NULL,NULL);
+
+fprintf(stderr,"%d\n",orr);
+
+    clReleaseKernel(krn);
+    clReleaseCommandQueue(que);
+    clReleaseMemObject(clpi);
+    clReleaseMemObject(clov);
+
+
+#else
+   return FAIL;
+#endif
+} else {
+
     if (mc->firstSource(mc)) 
         do {
             ma->cd5 = VPTRFROMUSGN(mc->currow); /* row indicator */
@@ -325,6 +389,8 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
             }
 
         } while (mc->nextSource(mc));
+
+}
     
     PROGVARDONE;
     RELEASEGOBJ;
@@ -674,6 +740,9 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_InitStubs(ip, "8.0", 0);
 
+    objCount = 0;
+    useOpenCL = 0;
+
 #ifdef USESSE2
     {
         /* check whether SSE2 instructions seem to work */
@@ -735,6 +804,8 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     }
 
 #ifdef USECL
+    Tcl_UnlinkVar(ip, POLYNSP "useOpenCL");
+    Tcl_LinkVar(ip, POLYNSP "useOpenCL", (char *) &useOpenCL, TCL_LINK_INT);
     OPCL_Init(ip);
 #endif
 

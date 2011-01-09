@@ -22,6 +22,17 @@
 #  include <OpenCL/cl.h>
 #endif
 
+const char *clerrorstring(cl_int errcode);
+
+typedef struct {
+   cl_platform_id pid;
+   cl_device_id   did;
+   cl_context     ctx;
+   cl_program     prg;
+} CLCTX;
+
+CLCTX *GetCLCtx(Tcl_Interp *ip);
+
 int OPCL_Init(Tcl_Interp *ip) ;
 
 #endif

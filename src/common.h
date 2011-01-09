@@ -98,6 +98,7 @@ if (_res) memset(_res, 0,_sz); (void *) _res; })
 
 #ifndef COMMONC
 extern int objCount; /* for refCount debgging */
+extern int useOpenCL; 
 #endif
 
 #define DONT_USE_VERB_REFCOUNTS
