@@ -154,8 +154,26 @@ typedef struct {
      perc = 0;                                                       \
  }
 
-
 #define PROGVARDONE { if (NULL != THEPROGVAR) Tcl_UnlinkVar(ip, THEPROGVAR); }
+
+#ifdef USECL
+typedef struct {
+    short rdat[8];
+    int   edat;
+    int   id;
+} clexmo;
+
+void clcopyExmo(clexmo *dst, exmo *src)
+{
+   int k;
+   for (k=0;k<8;k++) {
+      dst->rdat[k] = src->r.dat[k];
+   }
+   dst->id   = src->gen;
+   dst->edat = src->ext;
+}; 
+
+#endif
 
 /* MakeMatrix carries out the computation that's described in the 
  * MatCompTaskInfo argument. */
@@ -247,17 +265,17 @@ if(useOpenCL) {
 
 
     cl_mem clpi = clCreateBuffer(ctx->ctx,
-                                 CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR,
+                                 CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
                                  sizeof(primeInfo),
                                  dst->pi,
                                  &clerr);            
 
     CHKERR(clerr);
 
-    int outval;
+    int outval = dstdim;
 
     cl_mem clov = clCreateBuffer(ctx->ctx,
-                                 CL_MEM_WRITE_ONLY|CL_MEM_COPY_HOST_PTR,
+                                 CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR,
                                  sizeof(int),
                                  &outval,
                                  &clerr);
@@ -282,20 +300,102 @@ if (!havecq) {havecq=1;que = clCreateCommandQueue(ctx->ctx,ctx->did,0,&clerr);
     CHKERR(clerr);}
 #endif
 
-    size_t locws = 128, globws = 100000;
-    clerr = clEnqueueNDRangeKernel(ctx->que,krn,1,NULL,&globws,/*&locws*/NULL,0,NULL,NULL);
+    clexmo *srcbasis = (clexmo *) calloc(srcdim,sizeof(clexmo));
+    if(NULL == srcbasis) return FAIL;
+    int scnt=0;
+
+
+    if (mc->firstSource(mc)) 
+      do {
+        clcopyExmo(&(srcbasis[scnt++]),mc->srcx);
+      } while (mc->nextSource(mc));
+
+    cl_mem clsbas = clCreateBuffer(ctx->ctx,
+                                   CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+                                   sizeof(clexmo)*srcdim,
+                                   srcbasis,
+                                   &clerr);
+    CHKERR(clerr);
+
+    clerr = clSetKernelArg(krn,2,sizeof(cl_mem),&clsbas);
+    CHKERR(clerr);
+
+
+//fprintf(stderr,"(%d,%d) at %p  (src=%d,dst=%d)\n",mi.rows,mi.cols,mi.data,srcdim,dstdim);
+
+    int bytesperrow = ((dstdim+15)/16)*16,
+        totsize = srcdim*bytesperrow;
+    if(0==totsize) totsize=1; 
+   unsigned char *clmat = (unsigned char *) ckalloc(totsize);
+    if(NULL == clmat) return FAIL;
+
+//fprintf(stderr,"srcdim=%d, dstdim=%d, b/row=%d\n",srcdim,dstdim,bytesperrow);
+ 
+    cl_mem cloutmat = clCreateBuffer(ctx->ctx,
+                                     CL_MEM_READ_WRITE|CL_MEM_USE_HOST_PTR,
+                                     totsize,
+                                     clmat,
+                                     &clerr);
+    CHKERR(clerr);
+
+#if 0
+
+   "plan"
+
+    cpu erzeugt "multiplikationsmatrizen" M1,...,Mk zu den P(r1,...,rn)[g] 
+    mit passender signatur und dimension.
+
+    zu jedem s = P(...)[k] aus d([g]) wird dann ein kernel gestartet, der die
+    resultate aus Ml(s) berechnet und ...
+
+    dies berechnet eine zeile der gesuchten matrix in __global memory. die
+    zeile wird dann asynchron in den host-speicher gemappt, während die nächste 
+    berechnet wird.
+
+
+#endif
+    
+    clerr = clSetKernelArg(krn,6,sizeof(cl_mem),&cloutmat);
+    CHKERR(clerr);
+
+
+    clerr = clSetKernelArg(krn,3,sizeof(int),&srcdim);
+    clerr = clSetKernelArg(krn,4,sizeof(int),&dstdim);
+    clerr = clSetKernelArg(krn,5,sizeof(int),&bytesperrow);
+
+   // not necessary, each kernel clears its own row (if that's a good idea?)
+   // clEnqueueWriteBuffer(ctx->que,cloutmat,CL_TRUE,0,totsize,clmat,0,NULL,NULL);
+
+    size_t locws = 32, globws = srcdim;
+    clerr = clEnqueueNDRangeKernel(ctx->que,krn,1,NULL,&globws,/*&locws/*/NULL,0,NULL,NULL);
     CHKERR(clerr);
 
 int orr = 0; 
     clEnqueueReadBuffer(ctx->que,clov,CL_TRUE,0,sizeof(int),&orr,0,NULL,NULL);
+    clEnqueueReadBuffer(ctx->que,cloutmat,CL_TRUE,0,totsize,clmat,0,NULL,NULL);
+
+    if (0) {
+       int i,j;
+       const unsigned char *data = clmat;
+       for(i=0;i<srcdim;i++) {
+          //fprintf(stderr,"%d:%d\n",i,data[bytesperrow*i]);
+          for(j=0;j<dstdim;j++) {
+               char c = data[bytesperrow*i+j];
+               (*mtp)->setEntry(*mat,i,j,c);
+          }
+       }
+    }
+ckfree((char *)clmat);
 
 //fprintf(stderr,"%d\n",orr);
 
     clReleaseKernel(krn);
     //clReleaseCommandQueue(que);
+    clReleaseMemObject(cloutmat);
     clReleaseMemObject(clpi);
     clReleaseMemObject(clov);
-
+    clReleaseMemObject(clsbas);
+    free((void *) srcbasis);
 
 #else
    return FAIL;
