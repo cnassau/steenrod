@@ -11,10 +11,48 @@
  *
  */
 
+#define OPCL_INCLUDES 1
+
 #include "opcl.h"
 #include <stdio.h>
 
 #include "tenum.h"
+
+
+void DestroyCLMatrix(cl_matrix *res) {
+    if(res->hostbuf) free(res->hostbuf);
+    if(res->buffer) clReleaseMemObject(res->buffer);    
+    free(res);
+}
+
+cl_matrix *CreateCLMatrix(Tcl_Interp *ip, int rows, int cols, int prime) {
+    cl_int errc;
+    CLCTX *ctx = GetCLCtx(ip);
+    cl_matrix *res = (cl_matrix *) ckalloc(sizeof(cl_matrix));
+    if(NULL == res) return NULL;
+    res->rows = rows;
+    res->cols = cols;
+    res->prime = prime;
+    res->bytesperrow = cols;
+    res->size = res->bytesperrow * res->rows;
+    if(0 == res->size) res->size=1;
+    res->ctx = ctx;
+    res->hostbuf = NULL;
+    res->buffer = clCreateBuffer(ctx->ctx,
+                                 CL_MEM_READ_WRITE,
+                                 res->size,
+                                 NULL,
+                                 &errc);
+    if(CL_SUCCESS != errc) {
+         DestroyCLMatrix(res);
+         return NULL;
+    }        
+    return res;
+}
+
+
+
+
 
 const char *clerrorstring(errorcode) {
 #define errcode(code,txt) {if(code==errorcode){return txt;} }

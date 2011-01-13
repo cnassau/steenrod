@@ -173,6 +173,31 @@ void clcopyExmo(clexmo *dst, exmo *src)
    dst->edat = src->ext;
 }; 
 
+typedef struct {
+   CLCTX *ctx;
+   cl_kernel krn;
+   size_t rowsize;
+   cl_mem cloutrow;
+   int    *outrow;
+
+   cl_event evt;
+} cl_mult_data;
+
+
+void clFetchFuncSF(struct multArgs *ma, int coeff) {
+   cl_mult_data *clmd = (cl_mult_data *) ma->cd6;
+   CLCTX *ctx = clmd->ctx;
+
+
+   if(clmd->evt) clWaitForEvents(1,&(clmd->evt));
+//fprintf(stderr,"reading %d bytes from %p to %p\n",clmd->rowsize,clmd->cloutrow,clmd->outrow);
+   clEnqueueReadBuffer(ctx->que,clmd->cloutrow,CL_FALSE,0,clmd->rowsize,clmd->outrow,0,NULL,&(clmd->evt));
+//fprintf(stderr,"done\n");
+};
+
+
+
+
 #endif
 
 /* MakeMatrix carries out the computation that's described in the 
@@ -192,6 +217,10 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     momap *map = mc->map;
 
     double perc; /* progress indicator */
+
+#ifdef USECL
+    cl_mult_data clmd;
+#endif
 
     *mtp = NULL; *mat = NULL; /* if non-zero, caller will free this */
 
@@ -248,6 +277,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     ma->cd3 = dst;
     ma->cd4 = SUCCESS;
     ma->cd5 = (void *) -1;
+    ma->cd6 = (void *) 0;
     ma->TclInterp = ip;
     ma->stdSummandFunc = &addToMatrixCB;
 
@@ -256,22 +286,42 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
 if(useOpenCL) {
 #ifdef USECL
+
+    clmd.outrow = NULL;
+    clmd.cloutrow = NULL;
+    clmd.krn = NULL;
+    clmd.evt = NULL;
+
+    ma->fetchFuncSF = &clFetchFuncSF;
+    ma->cd6 = &clmd;
+
     cl_int clerr;
     CLCTX *ctx = GetCLCtx(ip);
+    clmd.ctx = ctx;
 
 #define CHKERR(errcode) if (CL_SUCCESS != errcode) \
 { char x[300]; snprintf(x,300,"%s (file " __FILE__ ", line %d)",clerrorstring(errcode),__LINE__); \
   Tcl_SetResult(ip,x,TCL_VOLATILE); return FAIL; }
 
 
-    cl_mem clpi = clCreateBuffer(ctx->ctx,
-                                 CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
-                                 sizeof(primeInfo),
-                                 dst->pi,
-                                 &clerr);            
+#define DOFAIL(txt) { Tcl_SetResult(ip,txt,TCL_VOLATILE); return FAIL; }
 
+    clmd.rowsize = sizeof(char)*dstdim;
+    if(0 == clmd.rowsize) clmd.rowsize=1;
+    clmd.outrow = malloc(clmd.rowsize);
+    if(NULL == clmd.outrow) DOFAIL("out of memory");
+
+    clmd.cloutrow = clCreateBuffer(ctx->ctx,
+                                   CL_MEM_WRITE_ONLY,
+                                   clmd.rowsize,
+                                   NULL,
+                                   &clerr);            
     CHKERR(clerr);
 
+    clmd.krn = clCreateKernel(ctx->prg,"pipeek",&clerr);
+    CHKERR(clerr);
+
+#if 0
     int outval = dstdim;
 
     cl_mem clov = clCreateBuffer(ctx->ctx,
@@ -283,8 +333,6 @@ if(useOpenCL) {
     CHKERR(clerr);
 
     
-    cl_kernel krn = clCreateKernel(ctx->prg,"pipeek",&clerr);
-    CHKERR(clerr);
 
     clerr = clSetKernelArg(krn,0,sizeof(cl_mem),&clpi);
     CHKERR(clerr);
@@ -396,12 +444,14 @@ ckfree((char *)clmat);
     clReleaseMemObject(clov);
     clReleaseMemObject(clsbas);
     free((void *) srcbasis);
+#endif
 
 #else
+   Tcl_SetResult(ip,"this library has not been compiled with opencl support",TCL_STATIC);
    return FAIL;
 #endif
-} else {
-
+}
+ if (1) {
     if (mc->firstSource(mc)) 
         do {
             ma->cd5 = VPTRFROMUSGN(mc->currow); /* row indicator */
@@ -497,7 +547,17 @@ ckfree((char *)clmat);
     
     PROGVARDONE;
     RELEASEGOBJ;
-    
+ 
+#ifdef USECL
+
+    if(useOpenCL) {
+     if(clmd.evt) clWaitForEvents(1,&(clmd.evt));
+     if(clmd.outrow) free(clmd.outrow);
+     if(clmd.cloutrow) clReleaseMemObject(clmd.cloutrow);
+     if(clmd.krn) clReleaseKernel(clmd.krn);
+    }
+#endif
+   
     return SUCCESS;
 }
 

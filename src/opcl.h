@@ -36,5 +36,20 @@ CLCTX *GetCLCtx(Tcl_Interp *ip);
 
 int OPCL_Init(Tcl_Interp *ip) ;
 
+
+typedef struct {
+    CLCTX *ctx;
+    int rows, cols, bytesperrow, prime;
+    size_t size;
+    cl_mem buffer;
+    unsigned char *hostbuf;
+} cl_matrix;
+
+cl_matrix *CreateCLMatrix(Tcl_Interp *ip, int rows, int cols, int prime);
+
+#ifndef OPCL_INCLUDES
+extern matrixType clMatrixType;
+#endif
+
 #endif
 

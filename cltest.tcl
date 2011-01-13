@@ -40,7 +40,7 @@ __kernel void do4711(__global unsigned char *out, char val) {
 
 }
 
-set testsz 110
+set testsz 60
 
 
 proc runtest {enmconfig} {

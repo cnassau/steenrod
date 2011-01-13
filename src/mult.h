@@ -122,7 +122,7 @@ typedef struct multArgs {
         esum[NALG+1];
 
     /* client data -- interpretation is up to the callbacks */
-    void *cd1, *cd2, *cd3, *cd4, *cd5;
+    void *cd1, *cd2, *cd3, *cd4, *cd5, *cd6;
     exmo fcdexmo, scdexmo;
 
     /* reserved for a "Tcl_Interp *" that could be used for error reporting */
