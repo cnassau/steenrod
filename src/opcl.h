@@ -37,6 +37,8 @@ CLCTX *GetCLCtx(Tcl_Interp *ip);
 int OPCL_Init(Tcl_Interp *ip) ;
 
 
+#include "linwrp.h"
+
 typedef struct {
     CLCTX *ctx;
     int rows, cols, bytesperrow, prime;

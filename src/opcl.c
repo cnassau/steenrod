@@ -19,10 +19,15 @@
 #include "tenum.h"
 
 
+#define MATLOG(res,txt) if (0) {					  \
+  fprintf(stderr,"%s cl_matrix %p (%d,%d), device=%p, host=%p\n", \
+	  txt,res,res->rows,res->cols,res->buffer,res->hostbuf); }
+
 void DestroyCLMatrix(cl_matrix *res) {
-    if(res->hostbuf) free(res->hostbuf);
-    if(res->buffer) clReleaseMemObject(res->buffer);    
-    free(res);
+  MATLOG(res,"destroying");
+  if(res->hostbuf) free(res->hostbuf);
+  if(res->buffer) clReleaseMemObject(res->buffer);    
+  ckfree((char *)res);
 }
 
 cl_matrix *CreateCLMatrix(Tcl_Interp *ip, int rows, int cols, int prime) {
@@ -43,16 +48,111 @@ cl_matrix *CreateCLMatrix(Tcl_Interp *ip, int rows, int cols, int prime) {
                                  res->size,
                                  NULL,
                                  &errc);
+    // fprintf(stderr,"size=%ld\n",res->size);
     if(CL_SUCCESS != errc) {
          DestroyCLMatrix(res);
          return NULL;
     }        
+    MATLOG(res,"created");
     return res;
 }
 
+int clMapMatrix(cl_matrix *mat) {
+  if(NULL == mat->hostbuf) {
+    mat->hostbuf = malloc(mat->size);
+  }
+  clEnqueueReadBuffer(mat->ctx->que,mat->buffer,
+		      CL_TRUE,0,mat->size,mat->hostbuf,0,NULL,NULL);
+  MATLOG(mat,"mapped");
+  return SUCCESS;
+}
+
+int  (clGetEntry)(void *mat, int row, int col, int *val) {
+  cl_matrix *m = (cl_matrix *) mat;
+  if(NULL==m->hostbuf) clMapMatrix(m);
+  *val = m->hostbuf[m->bytesperrow*row+col];
+  //fprintf(stderr,"(%d,%d)=%d\n",row,col,*val);
+  MATLOG(m,"getentry");
+  return SUCCESS;
+}
+int  (clSetEntry)(void *mat, int row, int col, int val) {
+  cl_matrix *m = (cl_matrix *) mat;
+  if(NULL==m->hostbuf) clMapMatrix(m);
+  m->hostbuf[m->bytesperrow*row+col] = val;
+  return SUCCESS;
+};
+int  (clAddEntry)(void *mat, int row, int col, int val, int mod) {
+  cl_matrix *m = (cl_matrix *) mat;
+  if(NULL==m->hostbuf) clMapMatrix(m);
+  m->hostbuf[m->bytesperrow*row+col] += val;
+  return SUCCESS;
+};
+void (clGetDimensions)(void *mat, int *row, int *col) {
+  cl_matrix *m = (cl_matrix *) mat;
+  *row = m->rows;
+  *col = m->cols;
+  MATLOG(m,"get dimensions");
+};
+void *(clCreateCopy)(void *mat) {
+  cl_matrix *m = (cl_matrix *) mat, *res=malloc(sizeof(cl_matrix));
+  if(NULL==m->hostbuf) clMapMatrix(m);
+  memcpy(res,m,sizeof(cl_matrix));
+  res->buffer = NULL;
+  res->hostbuf = malloc(res->size);
+  memcpy(res->hostbuf,m->hostbuf,res->size);
+  MATLOG(m,"copy: in ");
+  MATLOG(res,"copy: out");
+  return res;
+};
+void (clDestroyMatrix)(void *mat) {
+  DestroyCLMatrix((cl_matrix *) mat);
+};
+void (clClearMatrix)(void *mat) {
+};
+void (clUnitMatrix)(void *mat) {
+};
+int  (clReduce)(void *mat, int prime) {
+  return SUCCESS;
+};
+int  (clIsZero)(void *mat) {
+  return SUCCESS;
+};
+void *(clShrink)(void *mat, int *idx, int num) {
+  cl_matrix *m = (cl_matrix *) mat;
+  MATLOG(m,"shrinking");
+  return NULL;
+};
+int  (clAdd)(void *v1, void *v2, int scale, int mod) {
+};
+void *(clOrtho)(primeInfo *pi, void *inp, void *urb, progressInfo *prg) {
+  return NULL;
+};
+void *(clLift)(primeInfo *pi, void *inp, void *lft, progressInfo *prg) {
+  return NULL;
+};
+void (clQuot)(primeInfo *pi, void *ker, void *im, progressInfo *prg) {
+};
 
 
-
+matrixType clMatrixType = {
+    .name = "opencl matrix",
+    .getEntry = clGetEntry,
+    .setEntry = clSetEntry,
+    .addToEntry = clAddEntry,
+    .getDimensions = clGetDimensions,
+    .createMatrix = NULL,
+    .createCopy = clCreateCopy,
+    .destroyMatrix = clDestroyMatrix,
+    .clearMatrix = clClearMatrix,
+    .unitMatrix = clUnitMatrix,
+    .reduce = clReduce,
+    .iszero = clIsZero,
+    .shrinkRows = clShrink,
+    .add = clAdd,
+    .orthoFunc = clOrtho,
+    .liftFunc = clLift,
+    .quotFunc = clQuot
+};
 
 const char *clerrorstring(errorcode) {
 #define errcode(code,txt) {if(code==errorcode){return txt;} }

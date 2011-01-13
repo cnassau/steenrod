@@ -29,7 +29,7 @@ static volatile int SIGNAL_FLAG;
 #ifndef NO_SIGNALS
 #include <signal.h>
 void SignalHandler(int c) {
-    SIGNAL_FLAG = 1;
+  SIGNAL_FLAG = 1;
 }
 #endif
 
@@ -40,26 +40,26 @@ void SignalHandler(int c) {
 
 int InterruptibleCmd(ClientData cd, Tcl_Interp *ip,
 		     int objc, Tcl_Obj * CONST objv[]) {    
-    int rc;
-    void (*sigint)(int);
+  int rc;
+  void (*sigint)(int);
 
-    if (objc != 3) {
-        Tcl_WrongNumArgs(ip, 1, objv, "varname script");
-        return TCL_ERROR;
-    }
+  if (objc != 3) {
+    Tcl_WrongNumArgs(ip, 1, objv, "varname script");
+    return TCL_ERROR;
+  }
     
-    Tcl_LinkVar(ip, Tcl_GetString(objv[1]), (char *) &SIGNAL_FLAG, TCL_LINK_INT | TCL_LINK_READ_ONLY);
+  Tcl_LinkVar(ip, Tcl_GetString(objv[1]), (char *) &SIGNAL_FLAG, TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
-    SIGNAL_FLAG = 0;
+  SIGNAL_FLAG = 0;
 #ifndef NO_SIGNALS
-    sigint = signal(SIGINT, SignalHandler);
+  sigint = signal(SIGINT, SignalHandler);
 #endif
-    rc = Tcl_EvalObj(ip, objv[2]);
+  rc = Tcl_EvalObj(ip, objv[2]);
 #ifndef NO_SIGNALS
-    signal(SIGINT, sigint);
+  signal(SIGINT, sigint);
 #endif
 
-    return rc;
+  return rc;
 }
 
 
@@ -79,42 +79,42 @@ int   theprogmsk; /* progress reporting granularity */
  */
 
 void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
-    matrixType *mtp = (matrixType *) ma->cd1;
-    void *mat = ma->cd2;
-    enumerator *dst = (enumerator *) ma->cd3;
-    unsigned row = USGNFROMVPTR(ma->cd5);
-    int idx;
-    int rcode;
-    Tcl_Interp *ip = (Tcl_Interp *) ma->TclInterp;
+  matrixType *mtp = (matrixType *) ma->cd1;
+  void *mat = ma->cd2;
+  enumerator *dst = (enumerator *) ma->cd3;
+  unsigned row = USGNFROMVPTR(ma->cd5);
+  int idx;
+  int rcode;
+  Tcl_Interp *ip = (Tcl_Interp *) ma->TclInterp;
     
-    idx = SeqnoFromEnum(dst, (exmo *) smd);
+  idx = SeqnoFromEnum(dst, (exmo *) smd);
     
-    if (idx < 0) { 
-        ma->cd4 = (void *) FAIL;
-        goto error;
-    }
+  if (idx < 0) { 
+    ma->cd4 = (void *) FAIL;
+    goto error;
+  }
 
-    /* TODO: support optional checking whether dst[idx] really equals *smd */
+  /* TODO: support optional checking whether dst[idx] really equals *smd */
 
-    rcode = mtp->addToEntry(mat, row, idx, smd->coeff, ma->prime);
+  rcode = mtp->addToEntry(mat, row, idx, smd->coeff, ma->prime);
 
-    if (SUCCESS == rcode)
-        return;
+  if (SUCCESS == rcode)
+    return;
    
-    ma->cd4 = VPTRFROMUSGN(rcode);
+  ma->cd4 = VPTRFROMUSGN(rcode);
    
  error:
  
-    if (NULL != ip) {
-        char err[200];
-        Tcl_Obj *aux = Tcl_NewExmoCopyObj((exmo *) smd);
-        sprintf(err, 
-                "cannot account for monomial {%s}\n"
-                "    (found sequence number %d)", 
-                Tcl_GetString(aux), idx);
-        Tcl_SetResult(ip, err, TCL_VOLATILE);
-        DECREFCNT(aux);
-    }
+  if (NULL != ip) {
+    char err[200];
+    Tcl_Obj *aux = Tcl_NewExmoCopyObj((exmo *) smd);
+    sprintf(err, 
+	    "cannot account for monomial {%s}\n"
+	    "    (found sequence number %d)", 
+	    Tcl_GetString(aux), idx);
+    Tcl_SetResult(ip, err, TCL_VOLATILE);
+    DECREFCNT(aux);
+  }
 }
 
 /* A MatCompTaskInfo structure is used to compute the differential of
@@ -123,76 +123,76 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
  * carry out such a computation. */
 
 typedef struct { 
-    /* description of the result matrix */
-    int srcdim;   /* number of rows to allocate */
-    int currow;   /* number of row that is currently used */
+  /* description of the result matrix */
+  int srcdim;   /* number of rows to allocate */
+  int currow;   /* number of row that is currently used */
 
-    int srcIspos; /* our exmos should either be all positive or all negative */
+  int srcIspos; /* our exmos should either be all positive or all negative */
 
-    /* callbacks for going through the exmo; the "void *" points to ourself  */
-    exmo *srcx;                  /* read-only pointer to the current exmo */
-    int (*firstSource)(void *);  /* start iteration, setup srcx and currow */
-    int (*nextSource)(void *);   /* go to next iteration, update src and currow */
+  /* callbacks for going through the exmo; the "void *" points to ourself  */
+  exmo *srcx;                  /* read-only pointer to the current exmo */
+  int (*firstSource)(void *);  /* start iteration, setup srcx and currow */
+  int (*nextSource)(void *);   /* go to next iteration, update src and currow */
 
-    /* Client data, used by iterator callbacks */
-    void *cd1;
+  /* Client data, used by iterator callbacks */
+  void *cd1;
     
-    /* data needed to interpret the result(s) */
-    momap *map;                    /* the map */
-    enumerator *dst;               /* where the targets live */ 
+  /* data needed to interpret the result(s) */
+  momap *map;                    /* the map */
+  enumerator *dst;               /* where the targets live */ 
 
 } MatCompTaskInfo;
 
-#define RETERR(msg)\
-{ if (NULL != ip) Tcl_SetResult(ip,msg,TCL_VOLATILE); return FAIL; }
+#define RETERR(msg)							\
+  { if (NULL != ip) Tcl_SetResult(ip,msg,TCL_VOLATILE); return FAIL; }
 
 
-#define PROGVARINIT \
- if (NULL != THEPROGVAR) {                                           \
-     Tcl_UnlinkVar(ip, THEPROGVAR);                                  \
-     Tcl_LinkVar(ip, THEPROGVAR, (char *) &perc, TCL_LINK_DOUBLE);   \
-     perc = 0;                                                       \
- }
+#define PROGVARINIT							\
+  if (NULL != THEPROGVAR) {						\
+    Tcl_UnlinkVar(ip, THEPROGVAR);					\
+    Tcl_LinkVar(ip, THEPROGVAR, (char *) &perc, TCL_LINK_DOUBLE);	\
+    perc = 0;								\
+  }
 
 #define PROGVARDONE { if (NULL != THEPROGVAR) Tcl_UnlinkVar(ip, THEPROGVAR); }
 
 #ifdef USECL
 typedef struct {
-    short rdat[8];
-    int   edat;
-    int   id;
+  short rdat[8];
+  int   edat;
+  int   id;
 } clexmo;
 
 void clcopyExmo(clexmo *dst, exmo *src)
 {
-   int k;
-   for (k=0;k<8;k++) {
-      dst->rdat[k] = src->r.dat[k];
-   }
-   dst->id   = src->gen;
-   dst->edat = src->ext;
+  int k;
+  for (k=0;k<8;k++) {
+    dst->rdat[k] = src->r.dat[k];
+  }
+  dst->id   = src->gen;
+  dst->edat = src->ext;
 }; 
 
 typedef struct {
-   CLCTX *ctx;
-   cl_kernel krn;
-   size_t rowsize;
-   cl_mem cloutrow;
-   int    *outrow;
+  CLCTX *ctx;
+  cl_kernel krn;
+  size_t rowsize;
+  cl_mem cloutrow;
+  int    *outrow;
 
-   cl_event evt;
+  cl_event evt;
 } cl_mult_data;
 
 
 void clFetchFuncSF(struct multArgs *ma, int coeff) {
-   cl_mult_data *clmd = (cl_mult_data *) ma->cd6;
-   CLCTX *ctx = clmd->ctx;
+  cl_mult_data *clmd = (cl_mult_data *) ma->cd6;
+  CLCTX *ctx = clmd->ctx;
 
 
-   if(clmd->evt) clWaitForEvents(1,&(clmd->evt));
-//fprintf(stderr,"reading %d bytes from %p to %p\n",clmd->rowsize,clmd->cloutrow,clmd->outrow);
-   clEnqueueReadBuffer(ctx->que,clmd->cloutrow,CL_FALSE,0,clmd->rowsize,clmd->outrow,0,NULL,&(clmd->evt));
-//fprintf(stderr,"done\n");
+  //if(clmd->evt) clWaitForEvents(1,&(clmd->evt));
+  //fprintf(stderr,"reading %d bytes from %p to %p\n",clmd->rowsize,clmd->cloutrow,clmd->outrow);
+  //clEnqueueReadBuffer(ctx->que,clmd->cloutrow,CL_FALSE,0,clmd->rowsize,clmd->outrow,0,NULL,&(clmd->evt));
+  //fprintf(stderr,"done\n");
 };
 
 
@@ -206,85 +206,68 @@ void clFetchFuncSF(struct multArgs *ma, int coeff) {
 int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                progressInfo *pinf, matrixType **mtp, void **mat) {
     
-    int srcdim, dstdim;
-    Tcl_Obj *dg = NULL, *theGObj;
-    exmo theG; 
-    polyType *dgpolyType;
-    void *dgpoly;
-    int dgispos, dgnumsum = 0; 
-    multArgs ourMA, *ma = &ourMA;
-    enumerator *dst = mc->dst;
-    momap *map = mc->map;
+  int srcdim, dstdim;
+  Tcl_Obj *dg = NULL, *theGObj;
+  exmo theG; 
+  polyType *dgpolyType;
+  void *dgpoly;
+  int dgispos, dgnumsum = 0; 
+  multArgs ourMA, *ma = &ourMA;
+  enumerator *dst = mc->dst;
+  momap *map = mc->map;
 
-    double perc; /* progress indicator */
+  double perc; /* progress indicator */
 
 #ifdef USECL
-    cl_mult_data clmd;
+  cl_mult_data clmd;
 #endif
 
-    *mtp = NULL; *mat = NULL; /* if non-zero, caller will free this */
+  *mtp = NULL; *mat = NULL; /* if non-zero, caller will free this */
 
-    /* see what kind of dg's we have to expect */
-    if (mc->srcIspos) {
-        dgispos = dst->ispos;
-    } else {
-        if (dst->ispos) {
-            RETERR("map from negative to positive not possible");
-        } 
-        dgispos = 1;
-    }
+  /* see what kind of dg's we have to expect */
+  if (mc->srcIspos) {
+    dgispos = dst->ispos;
+  } else {
+    if (dst->ispos) {
+      RETERR("map from negative to positive not possible");
+    } 
+    dgispos = 1;
+  }
 
-    theGObj = Tcl_NewExmoObj(&theG);
-    INCREFCNT(theGObj);
+  theGObj = Tcl_NewExmoObj(&theG);
+  INCREFCNT(theGObj);
 
-    /* "theGObj"'s (exmo *) always points to the non-dynamic "theG", so don't free it when done */
+  /* "theGObj"'s (exmo *) always points to the non-dynamic "theG", so don't free it when done */
 #define RELEASEGOBJ { theGObj->typePtr = NULL; DECREFCNT(theGObj); }
 
-    srcdim = mc->srcdim;
-    dstdim = DimensionFromEnum(dst);
+  srcdim = mc->srcdim;
+  dstdim = DimensionFromEnum(dst);
 
-    if (2 == dst->pi->prime) {
-        *mtp = stdmatrix2;
-    } else {
-        *mtp = stdmatrix;
-    }
+  memset(&theG, 0, sizeof(exmo));
+  theG.gen = -653421; /* invalid (=highly unusual) generator id */
 
-    *mat = (*mtp)->createMatrix(srcdim, dstdim);
+  initMultargs(ma, dst->pi, profile);
 
-    if (NULL == *mat) {
-        RELEASEGOBJ;
-        RETERR("out of memory");
-    }
+  ma->ffIsPos = mc->srcIspos;
+  ma->sfIsPos = dgispos;
 
-    (*mtp)->clearMatrix(*mat);
+  ma->getExmoFF = &stdGetSingleExmoFunc;
+  ma->getExmoSF = &stdGetExmoFunc;
 
-    memset(&theG, 0, sizeof(exmo));
-    theG.gen = -653421; /* invalid (=highly unusual) generator id */
+  ma->fetchFuncFF = &stdFetchFuncFF;
+  ma->fetchFuncSF = &stdFetchFuncSF;
 
-    initMultargs(ma, dst->pi, profile);
+  ma->cd3 = dst;
+  ma->cd4 = SUCCESS;
+  ma->cd5 = (void *) -1;
+  ma->cd6 = (void *) 0;
+  ma->TclInterp = ip;
+  ma->stdSummandFunc = &addToMatrixCB;
 
-    ma->ffIsPos = mc->srcIspos;
-    ma->sfIsPos = dgispos;
-
-    ma->getExmoFF = &stdGetSingleExmoFunc;
-    ma->getExmoSF = &stdGetExmoFunc;
-
-    ma->fetchFuncFF = &stdFetchFuncFF;
-    ma->fetchFuncSF = &stdFetchFuncSF;
-
-    ma->cd1 = *mtp;
-    ma->cd2 = *mat;
-    ma->cd3 = dst;
-    ma->cd4 = SUCCESS;
-    ma->cd5 = (void *) -1;
-    ma->cd6 = (void *) 0;
-    ma->TclInterp = ip;
-    ma->stdSummandFunc = &addToMatrixCB;
-
-    PROGVARINIT; 
+  PROGVARINIT; 
 
 
-if(useOpenCL) {
+  if(useOpenCL) {
 #ifdef USECL
 
     clmd.outrow = NULL;
@@ -299,9 +282,9 @@ if(useOpenCL) {
     CLCTX *ctx = GetCLCtx(ip);
     clmd.ctx = ctx;
 
-#define CHKERR(errcode) if (CL_SUCCESS != errcode) \
-{ char x[300]; snprintf(x,300,"%s (file " __FILE__ ", line %d)",clerrorstring(errcode),__LINE__); \
-  Tcl_SetResult(ip,x,TCL_VOLATILE); return FAIL; }
+#define CHKERR(errcode) if (CL_SUCCESS != errcode)			\
+      { char x[300]; snprintf(x,300,"%s (file " __FILE__ ", line %d)",clerrorstring(errcode),__LINE__); \
+	Tcl_SetResult(ip,x,TCL_VOLATILE); return FAIL; }
 
 
 #define DOFAIL(txt) { Tcl_SetResult(ip,txt,TCL_VOLATILE); return FAIL; }
@@ -344,8 +327,8 @@ if(useOpenCL) {
 
 #if 0
     static cl_command_queue que, havecq = 0;
-if (!havecq) {havecq=1;que = clCreateCommandQueue(ctx->ctx,ctx->did,0,&clerr);
-    CHKERR(clerr);}
+    if (!havecq) {havecq=1;que = clCreateCommandQueue(ctx->ctx,ctx->did,0,&clerr);
+      CHKERR(clerr);}
 #endif
 
     clexmo *srcbasis = (clexmo *) calloc(srcdim,sizeof(clexmo));
@@ -369,15 +352,15 @@ if (!havecq) {havecq=1;que = clCreateCommandQueue(ctx->ctx,ctx->did,0,&clerr);
     CHKERR(clerr);
 
 
-//fprintf(stderr,"(%d,%d) at %p  (src=%d,dst=%d)\n",mi.rows,mi.cols,mi.data,srcdim,dstdim);
+    //fprintf(stderr,"(%d,%d) at %p  (src=%d,dst=%d)\n",mi.rows,mi.cols,mi.data,srcdim,dstdim);
 
     int bytesperrow = ((dstdim+15)/16)*16,
-        totsize = srcdim*bytesperrow;
+      totsize = srcdim*bytesperrow;
     if(0==totsize) totsize=1; 
-   unsigned char *clmat = (unsigned char *) ckalloc(totsize);
+    unsigned char *clmat = (unsigned char *) ckalloc(totsize);
     if(NULL == clmat) return FAIL;
 
-//fprintf(stderr,"srcdim=%d, dstdim=%d, b/row=%d\n",srcdim,dstdim,bytesperrow);
+    //fprintf(stderr,"srcdim=%d, dstdim=%d, b/row=%d\n",srcdim,dstdim,bytesperrow);
  
     cl_mem cloutmat = clCreateBuffer(ctx->ctx,
                                      CL_MEM_READ_WRITE|CL_MEM_USE_HOST_PTR,
@@ -388,22 +371,22 @@ if (!havecq) {havecq=1;que = clCreateCommandQueue(ctx->ctx,ctx->did,0,&clerr);
 
 #if 0
 
-   "plan"
+    "plan"
 
-    cpu erzeugt "multiplikationsmatrizen" M1,...,Mk zu den P(r1,...,rn)[g] 
-    mit passender signatur und dimension.
+      cpu erzeugt "multiplikationsmatrizen" M1,...,Mk zu den P(r1,...,rn)[g] 
+      mit passender signatur und dimension.
 
-    zu jedem s = P(...)[k] aus d([g]) wird dann ein kernel gestartet, der die
-    resultate aus Ml(s) berechnet und ...
+      zu jedem s = P(...)[k] aus d([g]) wird dann ein kernel gestartet, der die
+      resultate aus Ml(s) berechnet und ...
 
-    dies berechnet eine zeile der gesuchten matrix in __global memory. die
-    zeile wird dann asynchron in den host-speicher gemappt, während die nächste 
-    berechnet wird.
+      dies berechnet eine zeile der gesuchten matrix in __global memory. die
+      zeile wird dann asynchron in den host-speicher gemappt, während die nächste 
+      berechnet wird.
 
 
 #endif
     
-    clerr = clSetKernelArg(krn,6,sizeof(cl_mem),&cloutmat);
+      clerr = clSetKernelArg(krn,6,sizeof(cl_mem),&cloutmat);
     CHKERR(clerr);
 
 
@@ -411,31 +394,31 @@ if (!havecq) {havecq=1;que = clCreateCommandQueue(ctx->ctx,ctx->did,0,&clerr);
     clerr = clSetKernelArg(krn,4,sizeof(int),&dstdim);
     clerr = clSetKernelArg(krn,5,sizeof(int),&bytesperrow);
 
-   // not necessary, each kernel clears its own row (if that's a good idea?)
-   // clEnqueueWriteBuffer(ctx->que,cloutmat,CL_TRUE,0,totsize,clmat,0,NULL,NULL);
+    // not necessary, each kernel clears its own row (if that's a good idea?)
+    // clEnqueueWriteBuffer(ctx->que,cloutmat,CL_TRUE,0,totsize,clmat,0,NULL,NULL);
 
     size_t locws = 32, globws = srcdim;
     clerr = clEnqueueNDRangeKernel(ctx->que,krn,1,NULL,&globws,/*&locws/*/NULL,0,NULL,NULL);
     CHKERR(clerr);
 
-int orr = 0; 
+    int orr = 0; 
     clEnqueueReadBuffer(ctx->que,clov,CL_TRUE,0,sizeof(int),&orr,0,NULL,NULL);
     clEnqueueReadBuffer(ctx->que,cloutmat,CL_TRUE,0,totsize,clmat,0,NULL,NULL);
 
     if (0) {
-       int i,j;
-       const unsigned char *data = clmat;
-       for(i=0;i<srcdim;i++) {
-          //fprintf(stderr,"%d:%d\n",i,data[bytesperrow*i]);
-          for(j=0;j<dstdim;j++) {
-               char c = data[bytesperrow*i+j];
-               (*mtp)->setEntry(*mat,i,j,c);
-          }
-       }
+      int i,j;
+      const unsigned char *data = clmat;
+      for(i=0;i<srcdim;i++) {
+	//fprintf(stderr,"%d:%d\n",i,data[bytesperrow*i]);
+	for(j=0;j<dstdim;j++) {
+	  char c = data[bytesperrow*i+j];
+	  (*mtp)->setEntry(*mat,i,j,c);
+	}
+      }
     }
-ckfree((char *)clmat);
+    ckfree((char *)clmat);
 
-//fprintf(stderr,"%d\n",orr);
+    //fprintf(stderr,"%d\n",orr);
 
     clReleaseKernel(krn);
     //clReleaseCommandQueue(que);
@@ -447,209 +430,232 @@ ckfree((char *)clmat);
 #endif
 
 #else
-   Tcl_SetResult(ip,"this library has not been compiled with opencl support",TCL_STATIC);
-   return FAIL;
+    Tcl_SetResult(ip,"this library has not been compiled with opencl support",TCL_STATIC);
+    return FAIL;
 #endif
-}
- if (1) {
-    if (mc->firstSource(mc)) 
-        do {
-            ma->cd5 = VPTRFROMUSGN(mc->currow); /* row indicator */
+  }
+  if (useOpenCL) {
+    *mtp = &clMatrixType;
+    *mat = CreateCLMatrix(ip, srcdim, dstdim, dst->pi->prime);
+  } else {
+    if (2 == dst->pi->prime) {
+      *mtp = stdmatrix2;
+    } else {
+      *mtp = stdmatrix;
+    }
+   
+    *mat = (*mtp)->createMatrix(srcdim, dstdim);
+  }
 
-            if ((0 == (mc->currow & theprogmsk)) && (NULL != THEPROGVAR)) {
-                perc = mc->currow; perc /= srcdim; 
-                Tcl_UpdateLinkedVar(ip, THEPROGVAR);
-            }
-
-            /* find differential of mc->srcx'es generator */
-            ma->ffdat = mc->srcx;
-            ma->ffMaxLength = exmoGetRedLen(mc->srcx);
-            ma->ffMaxLength = MIN(ma->ffMaxLength, NALG-2);
-
-            if (theG.gen != mc->srcx->gen) {
-                /* new generator: need to get its differential dg */
-
-                theG.gen = mc->srcx->gen; 
-                dg = momapGetValPtr(map, theGObj);
-                
-                if (NULL == dg) continue;
-
-                if (TCL_OK != Tcl_ConvertToPoly(ip, dg)) {
-                    char err[200];
-                    sprintf(err,"target of generator #%d not of polynomial type", 
-                            theG.gen);
-                    PROGVARDONE;
-                    RELEASEGOBJ;
-                    RETERR(err);
-                }
-
-                dgpolyType = polyTypeFromTclObj(dg);
-                dgpoly     = polyFromTclObj(dg);
-                dgnumsum   = PLgetNumsum(dgpolyType, dgpoly);
-
-                if (dgispos) {
-                    if (SUCCESS != PLtest(dgpolyType, dgpoly, ISPOSITIVE)) { 
-                        char err[200];
-                        /* TODO: should we make sure and check each summand ? */ 
-                        sprintf(err,"target of generator #%d not positive (?)", 
-                                theG.gen);
-                        PROGVARDONE;
-                        RELEASEGOBJ;
-                        RETERR(err);
-                    }
-                } else {
-                    if (SUCCESS != PLtest(dgpolyType, dgpoly, ISNEGATIVE)) { 
-                        char err[200];
-                        /* TODO: should we make sure and check each summand ? */ 
-                        sprintf(err,"target of generator #%d not negative (?)", 
-                                theG.gen);
-                        PROGVARDONE;
-                        RELEASEGOBJ;
-                        RETERR(err);
-                    }
-                }
-
-                ma->sfdat  = dgpolyType; 
-                ma->sfdat2 = dgpoly;
-                ma->sfMaxLength = PLgetMaxRedLength(dgpolyType, dgpoly);
-                ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
-
-            }
-
-            if (NULL == dg) continue;
-     
-            /* compute mc->srcx * dg */
-            
-            if (mc->srcIspos)
-                workPAchain(ma);
-            else
-                workAPchain(ma);
-
-            multCount += dgnumsum;
-
-            if (SUCCESS != USGNFROMVPTR(ma->cd4)) {
-                if (NULL != ip) {
-                    char err[500];
-                    Tcl_Obj *aux = Tcl_NewExmoCopyObj(mc->srcx);
-                    sprintf(err, "\nwhile computing image of {%s}", 
-                            Tcl_GetString(aux));
-                    DECREFCNT(aux);
-                    Tcl_AddObjErrorInfo(ip, err, strlen(err));
-                }
-                PROGVARDONE;
-                RELEASEGOBJ;
-                return FAIL;
-            }
-
-        } while (mc->nextSource(mc));
-
-}
-    
-    PROGVARDONE;
+  if (NULL == *mat) {
     RELEASEGOBJ;
+    RETERR("out of memory");
+  }
+ 
+  ma->cd1 = *mtp;
+  ma->cd2 = *mat;
+
+  (*mtp)->clearMatrix(*mat);
+
+ 
+  if (mc->firstSource(mc)) 
+    do {
+      ma->cd5 = VPTRFROMUSGN(mc->currow); /* row indicator */
+
+      if ((0 == (mc->currow & theprogmsk)) && (NULL != THEPROGVAR)) {
+	perc = mc->currow; perc /= srcdim; 
+	Tcl_UpdateLinkedVar(ip, THEPROGVAR);
+      }
+
+      /* find differential of mc->srcx'es generator */
+      ma->ffdat = mc->srcx;
+      ma->ffMaxLength = exmoGetRedLen(mc->srcx);
+      ma->ffMaxLength = MIN(ma->ffMaxLength, NALG-2);
+
+      if (theG.gen != mc->srcx->gen) {
+	/* new generator: need to get its differential dg */
+
+	theG.gen = mc->srcx->gen; 
+	dg = momapGetValPtr(map, theGObj);
+                
+	if (NULL == dg) continue;
+
+	if (TCL_OK != Tcl_ConvertToPoly(ip, dg)) {
+	  char err[200];
+	  sprintf(err,"target of generator #%d not of polynomial type", 
+		  theG.gen);
+	  PROGVARDONE;
+	  RELEASEGOBJ;
+	  RETERR(err);
+	}
+
+	dgpolyType = polyTypeFromTclObj(dg);
+	dgpoly     = polyFromTclObj(dg);
+	dgnumsum   = PLgetNumsum(dgpolyType, dgpoly);
+
+	if (dgispos) {
+	  if (SUCCESS != PLtest(dgpolyType, dgpoly, ISPOSITIVE)) { 
+	    char err[200];
+	    /* TODO: should we make sure and check each summand ? */ 
+	    sprintf(err,"target of generator #%d not positive (?)", 
+		    theG.gen);
+	    PROGVARDONE;
+	    RELEASEGOBJ;
+	    RETERR(err);
+	  }
+	} else {
+	  if (SUCCESS != PLtest(dgpolyType, dgpoly, ISNEGATIVE)) { 
+	    char err[200];
+	    /* TODO: should we make sure and check each summand ? */ 
+	    sprintf(err,"target of generator #%d not negative (?)", 
+		    theG.gen);
+	    PROGVARDONE;
+	    RELEASEGOBJ;
+	    RETERR(err);
+	  }
+	}
+
+	ma->sfdat  = dgpolyType; 
+	ma->sfdat2 = dgpoly;
+	ma->sfMaxLength = PLgetMaxRedLength(dgpolyType, dgpoly);
+	ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
+
+      }
+
+      if (NULL == dg) continue;
+     
+      /* compute mc->srcx * dg */
+            
+      if (mc->srcIspos)
+	workPAchain(ma);
+      else
+	workAPchain(ma);
+
+      multCount += dgnumsum;
+
+      if (SUCCESS != USGNFROMVPTR(ma->cd4)) {
+	if (NULL != ip) {
+	  char err[500];
+	  Tcl_Obj *aux = Tcl_NewExmoCopyObj(mc->srcx);
+	  sprintf(err, "\nwhile computing image of {%s}", 
+		  Tcl_GetString(aux));
+	  DECREFCNT(aux);
+	  Tcl_AddObjErrorInfo(ip, err, strlen(err));
+	}
+	PROGVARDONE;
+	RELEASEGOBJ;
+	return FAIL;
+      }
+
+    } while (mc->nextSource(mc));
+
+
+    
+  PROGVARDONE;
+  RELEASEGOBJ;
  
 #ifdef USECL
 
-    if(useOpenCL) {
-     if(clmd.evt) clWaitForEvents(1,&(clmd.evt));
-     if(clmd.outrow) free(clmd.outrow);
-     if(clmd.cloutrow) clReleaseMemObject(clmd.cloutrow);
-     if(clmd.krn) clReleaseKernel(clmd.krn);
-    }
+  if(useOpenCL) {
+    if(clmd.evt) clWaitForEvents(1,&(clmd.evt));
+    if(clmd.outrow) free(clmd.outrow);
+    if(clmd.cloutrow) clReleaseMemObject(clmd.cloutrow);
+    if(clmd.krn) clReleaseKernel(clmd.krn);
+  }
 #endif
    
-    return SUCCESS;
+  return SUCCESS;
 }
 
 /* --------- MakeMatrixSameSig */
 
 int MCTfsourceEnum(void *s) {
-    MatCompTaskInfo *mc = (MatCompTaskInfo *) s;
-    enumerator *enu = (enumerator *) mc->cd1;
-    mc->currow = 0; mc->srcx = &(enu->theex); 
-    return firstRedmon(enu);
+  MatCompTaskInfo *mc = (MatCompTaskInfo *) s;
+  enumerator *enu = (enumerator *) mc->cd1;
+  mc->currow = 0; mc->srcx = &(enu->theex); 
+  return firstRedmon(enu);
 }
 
 int MCTnsourceEnum(void *s) {
-    MatCompTaskInfo *mc = (MatCompTaskInfo *) s;
-    enumerator *enu = (enumerator *) mc->cd1;
-    ++(mc->currow); 
-    return nextRedmon(enu);
+  MatCompTaskInfo *mc = (MatCompTaskInfo *) s;
+  enumerator *enu = (enumerator *) mc->cd1;
+  ++(mc->currow); 
+  return nextRedmon(enu);
 }
 
 int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *dst, 
                       progressInfo *pinf, matrixType **mtp, void **mat) {
-    MatCompTaskInfo mct; 
+  MatCompTaskInfo mct; 
 
-    /* check whether src and target are compatible */
-    if ((NULL == src->pi) || (src->pi != dst->pi))
-        RETERR("prime mismatch");
+  /* check whether src and target are compatible */
+  if ((NULL == src->pi) || (src->pi != dst->pi))
+    RETERR("prime mismatch");
 
-    mct.srcIspos = src->ispos;
-    mct.srcdim = DimensionFromEnum(src);
+  mct.srcIspos = src->ispos;
+  mct.srcdim = DimensionFromEnum(src);
 
-    mct.cd1 = (void *) src; 
-    mct.srcx = &(src->theex);
-    mct.firstSource = MCTfsourceEnum;
-    mct.nextSource  = MCTnsourceEnum;
+  mct.cd1 = (void *) src; 
+  mct.srcx = &(src->theex);
+  mct.firstSource = MCTfsourceEnum;
+  mct.nextSource  = MCTnsourceEnum;
 
-    mct.dst = dst; 
-    mct.map = map;
+  mct.dst = dst; 
+  mct.map = map;
 
-    return MakeMatrix(ip, &mct, &(src->profile), pinf, mtp, mat);
+  return MakeMatrix(ip, &mct, &(src->profile), pinf, mtp, mat);
 }
 
 int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
                        int objc, Tcl_Obj * CONST objv[]) {
 
-    enumerator *src, *dst;
-    momap *map; 
-    progressInfo info, *infoptr;
-    matrixType *mtp;
-    void *mat;
+  enumerator *src, *dst;
+  momap *map; 
+  progressInfo info, *infoptr;
+  matrixType *mtp;
+  void *mat;
 
-    if ((objc<4) || (objc>6)) {
-        Tcl_WrongNumArgs(ip, 1, objv, 
-                         "<enumerator> <monomap> <enumerator> ?<varname>? ?<int>?");
-        return TCL_ERROR;
-    }
+  if ((objc<4) || (objc>6)) {
+    Tcl_WrongNumArgs(ip, 1, objv, 
+		     "<enumerator> <monomap> <enumerator> ?<varname>? ?<int>?");
+    return TCL_ERROR;
+  }
     
-    info.ip = ip; 
-    info.progvar = NULL;
-    info.pmsk = 0;
-    infoptr = NULL;
+  info.ip = ip; 
+  info.progvar = NULL;
+  info.pmsk = 0;
+  infoptr = NULL;
 
-    if (objc > 4) { 
-        info.progvar = Tcl_GetString(objv[4]);
-        infoptr = &info;
-    }
+  if (objc > 4) { 
+    info.progvar = Tcl_GetString(objv[4]);
+    infoptr = &info;
+  }
 
-    if (objc > 5) 
-        if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &info.pmsk))
-            return TCL_ERROR;
+  if (objc > 5) 
+    if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &info.pmsk))
+      return TCL_ERROR;
 
-    if (NULL == (src = Tcl_EnumFromObj(ip, objv[1]))) {
-        Tcl_AppendResult(ip, " (argument #1)", NULL);
-        return TCL_ERROR;
-    }
+  if (NULL == (src = Tcl_EnumFromObj(ip, objv[1]))) {
+    Tcl_AppendResult(ip, " (argument #1)", NULL);
+    return TCL_ERROR;
+  }
 
-    if (NULL == (map = Tcl_MomapFromObj(ip, objv[2]))) {
-        Tcl_AppendResult(ip, " (argument #2)", NULL);
-        return TCL_ERROR;
-    }
+  if (NULL == (map = Tcl_MomapFromObj(ip, objv[2]))) {
+    Tcl_AppendResult(ip, " (argument #2)", NULL);
+    return TCL_ERROR;
+  }
 
-    if (NULL == (dst = Tcl_EnumFromObj(ip, objv[3]))) {
-        Tcl_AppendResult(ip, " (argument #3)", NULL);
-        return TCL_ERROR;
-    }
+  if (NULL == (dst = Tcl_EnumFromObj(ip, objv[3]))) {
+    Tcl_AppendResult(ip, " (argument #3)", NULL);
+    return TCL_ERROR;
+  }
 
-    if (SUCCESS != MakeMatrixSameSig(ip, src, map, dst, infoptr, &mtp, &mat)) {
-        if (NULL != mat) mtp->destroyMatrix(mat);
-        return TCL_ERROR;
-    }
+  if (SUCCESS != MakeMatrixSameSig(ip, src, map, dst, infoptr, &mtp, &mat)) {
+    if (NULL != mat) mtp->destroyMatrix(mat);
+    return TCL_ERROR;
+  }
   
-    Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mtp, mat));
-    return TCL_OK;
+  Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mtp, mat));
+  return TCL_OK;
 }
 
 
@@ -659,176 +665,176 @@ int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
  * of polynomials. This is a utility for the "MakeImages" function below. */
 
 typedef struct {
-    polyType **pt;
-    void     **pdat;
-    int npoly;
-    int idx, aux, pcnt;
-    exmo xm;
-    int ispos;
+  polyType **pt;
+  void     **pdat;
+  int npoly;
+  int idx, aux, pcnt;
+  exmo xm;
+  int ispos;
 } PlistCtrlStruct; 
 
 int MCTnpcs(void *s) {
-    MatCompTaskInfo *mct = (MatCompTaskInfo *) s;
-    PlistCtrlStruct *pcs = (PlistCtrlStruct *) mct->cd1;
-    ++(pcs->idx);
-    do {
-        if (pcs->idx < pcs->aux) {
-            polyType *pt = pcs->pt[pcs->pcnt];
-            void *pdat = pcs->pdat[pcs->pcnt];
-            if (SUCCESS != PLgetExmo(pt, pdat, &(pcs->xm), pcs->idx))
-                return 0;
-            return 1;
-        }
-        pcs->idx = 0; 
-        if (++(pcs->pcnt) >= pcs->npoly) break;
-        pcs->aux = PLgetNumsum(pcs->pt[pcs->pcnt], pcs->pdat[pcs->pcnt]);  
-        ++(mct->currow);
-    } while (1);
-    return 0;
+  MatCompTaskInfo *mct = (MatCompTaskInfo *) s;
+  PlistCtrlStruct *pcs = (PlistCtrlStruct *) mct->cd1;
+  ++(pcs->idx);
+  do {
+    if (pcs->idx < pcs->aux) {
+      polyType *pt = pcs->pt[pcs->pcnt];
+      void *pdat = pcs->pdat[pcs->pcnt];
+      if (SUCCESS != PLgetExmo(pt, pdat, &(pcs->xm), pcs->idx))
+	return 0;
+      return 1;
+    }
+    pcs->idx = 0; 
+    if (++(pcs->pcnt) >= pcs->npoly) break;
+    pcs->aux = PLgetNumsum(pcs->pt[pcs->pcnt], pcs->pdat[pcs->pcnt]);  
+    ++(mct->currow);
+  } while (1);
+  return 0;
 }
 
 int MCTfpcs(void *s) {
-    MatCompTaskInfo *mct = (MatCompTaskInfo *) s;
-    PlistCtrlStruct *pcs = (PlistCtrlStruct *) mct->cd1;
-    if (0 == pcs->npoly) return 0;
-    pcs->idx = pcs->pcnt = 0; 
-    pcs->aux = PLgetNumsum(pcs->pt[0], pcs->pdat[0]);
-    mct->currow = 0;
-    if (0 == pcs->aux) return MCTnpcs(s);
-    if (SUCCESS != PLgetExmo(pcs->pt[0], pcs->pdat[0], &(pcs->xm), 0))
-        return 0;
-    return 1;
+  MatCompTaskInfo *mct = (MatCompTaskInfo *) s;
+  PlistCtrlStruct *pcs = (PlistCtrlStruct *) mct->cd1;
+  if (0 == pcs->npoly) return 0;
+  pcs->idx = pcs->pcnt = 0; 
+  pcs->aux = PLgetNumsum(pcs->pt[0], pcs->pdat[0]);
+  mct->currow = 0;
+  if (0 == pcs->aux) return MCTnpcs(s);
+  if (SUCCESS != PLgetExmo(pcs->pt[0], pcs->pdat[0], &(pcs->xm), 0))
+    return 0;
+  return 1;
 }
 
 void destroyPCS(PlistCtrlStruct *pcs) {
-    if (NULL != pcs->pt) freex(pcs->pt);
-    if (NULL != pcs->pdat) freex(pcs->pdat);
+  if (NULL != pcs->pt) freex(pcs->pt);
+  if (NULL != pcs->pdat) freex(pcs->pdat);
 }
 
 #define THROWUP { destroyPCS(pcs); return FAILMEM; }
 
 int makePCS(PlistCtrlStruct *pcs, Tcl_Obj *plist) {
-    int i, ispos, isneg, obc; Tcl_Obj **obv;
+  int i, ispos, isneg, obc; Tcl_Obj **obv;
     
-    pcs->pt = NULL; pcs->pdat = NULL;
+  pcs->pt = NULL; pcs->pdat = NULL;
 
-    if (TCL_OK != Tcl_ListObjGetElements(NULL, plist, &obc, &obv))
-        return FAIL;
+  if (TCL_OK != Tcl_ListObjGetElements(NULL, plist, &obc, &obv))
+    return FAIL;
 
-    pcs->npoly = obc;
-    pcs->ispos = 1;
-    pcs->pt    = mallox(obc * sizeof(polyType *));
-    pcs->pdat  = mallox(obc * sizeof(void *));
+  pcs->npoly = obc;
+  pcs->ispos = 1;
+  pcs->pt    = mallox(obc * sizeof(polyType *));
+  pcs->pdat  = mallox(obc * sizeof(void *));
     
-    if ((NULL == pcs->pt) || (NULL == pcs->pdat)) 
-        THROWUP;
+  if ((NULL == pcs->pt) || (NULL == pcs->pdat)) 
+    THROWUP;
 
-    ispos = isneg = 1;
-    for (i=0; i<obc; i++) 
-        if (TCL_OK == Tcl_ConvertToPoly(NULL, obv[i])) {
-            pcs->pt[i]   = polyTypeFromTclObj(obv[i]);
-            pcs->pdat[i] = polyFromTclObj(obv[i]);
-            ispos = ispos && 
-                (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISPOSITIVE)); 
-            isneg = isneg && 
-                (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISNEGATIVE));
-        } else THROWUP;
+  ispos = isneg = 1;
+  for (i=0; i<obc; i++) 
+    if (TCL_OK == Tcl_ConvertToPoly(NULL, obv[i])) {
+      pcs->pt[i]   = polyTypeFromTclObj(obv[i]);
+      pcs->pdat[i] = polyFromTclObj(obv[i]);
+      ispos = ispos && 
+	(SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISPOSITIVE)); 
+      isneg = isneg && 
+	(SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISNEGATIVE));
+    } else THROWUP;
         
-    if (!ispos && !isneg) 
-        THROWUP;
+  if (!ispos && !isneg) 
+    THROWUP;
 
-    pcs->ispos = ispos;
+  pcs->ispos = ispos;
 
-    return SUCCESS;
+  return SUCCESS;
 }
 
 int MakeImages(Tcl_Interp *ip, Tcl_Obj *plist, momap *map, enumerator *dst,
                progressInfo *pinf, matrixType **mtp, void **mat) {
-    MatCompTaskInfo mct; 
-    int rcode;
-    PlistCtrlStruct pcs;
+  MatCompTaskInfo mct; 
+  int rcode;
+  PlistCtrlStruct pcs;
     
-    if (SUCCESS != makePCS(&pcs, plist))
-        return FAIL;
+  if (SUCCESS != makePCS(&pcs, plist))
+    return FAIL;
 
-    mct.srcIspos = pcs.ispos;
-    mct.srcdim = pcs.npoly;
+  mct.srcIspos = pcs.ispos;
+  mct.srcdim = pcs.npoly;
 
-    mct.cd1 = &pcs; 
-    mct.srcx = &(pcs.xm);
-    mct.firstSource = MCTfpcs;
-    mct.nextSource  = MCTnpcs;
+  mct.cd1 = &pcs; 
+  mct.srcx = &(pcs.xm);
+  mct.firstSource = MCTfpcs;
+  mct.nextSource  = MCTnpcs;
 
-    mct.dst = dst; 
-    mct.map = map;
+  mct.dst = dst; 
+  mct.map = map;
 
-    rcode = MakeMatrix(ip, &mct, &(dst->profile), pinf, mtp, mat);
+  rcode = MakeMatrix(ip, &mct, &(dst->profile), pinf, mtp, mat);
 
-    destroyPCS(&pcs);
+  destroyPCS(&pcs);
 
-    return rcode;
+  return rcode;
 }
 
 int TMakeImages(ClientData cd, Tcl_Interp *ip,
                 int objc, Tcl_Obj * CONST objv[]) {
 
-    enumerator *dst;
-    momap *map; 
-    progressInfo info, *infoptr;
-    matrixType *mtp = NULL;
-    void *mat = NULL;
-    int i, obc; Tcl_Obj **obv;
+  enumerator *dst;
+  momap *map; 
+  progressInfo info, *infoptr;
+  matrixType *mtp = NULL;
+  void *mat = NULL;
+  int i, obc; Tcl_Obj **obv;
     
-    if ((objc<4) || (objc>6)) {
-        Tcl_WrongNumArgs(ip, 1, objv, 
-                         "<monomap> <enumerator> <list of polynomials>"
-                         " ?<varname>? ?<int>?");
-        return TCL_ERROR;
-    }
+  if ((objc<4) || (objc>6)) {
+    Tcl_WrongNumArgs(ip, 1, objv, 
+		     "<monomap> <enumerator> <list of polynomials>"
+		     " ?<varname>? ?<int>?");
+    return TCL_ERROR;
+  }
     
-    info.ip = ip; 
-    info.progvar = NULL;
-    info.pmsk = 0;
-    infoptr = NULL;
+  info.ip = ip; 
+  info.progvar = NULL;
+  info.pmsk = 0;
+  infoptr = NULL;
 
-    if (objc > 4) { 
-        info.progvar = Tcl_GetString(objv[4]);
-        infoptr = &info;
-    }
+  if (objc > 4) { 
+    info.progvar = Tcl_GetString(objv[4]);
+    infoptr = &info;
+  }
 
-    if (objc > 5) 
-        if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &info.pmsk))
-            return TCL_ERROR;
+  if (objc > 5) 
+    if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &info.pmsk))
+      return TCL_ERROR;
 
-    if (NULL == (map = Tcl_MomapFromObj(ip, objv[1]))) {
-        Tcl_AppendResult(ip, " (argument #1)", NULL);
-        return TCL_ERROR;
-    }
+  if (NULL == (map = Tcl_MomapFromObj(ip, objv[1]))) {
+    Tcl_AppendResult(ip, " (argument #1)", NULL);
+    return TCL_ERROR;
+  }
 
-    if (NULL == (dst = Tcl_EnumFromObj(ip, objv[2]))) {
-        Tcl_AppendResult(ip, " (argument #2)", NULL);
-        return TCL_ERROR;
-    }
+  if (NULL == (dst = Tcl_EnumFromObj(ip, objv[2]))) {
+    Tcl_AppendResult(ip, " (argument #2)", NULL);
+    return TCL_ERROR;
+  }
 
-    /* check that objv[3] is a list of polynomials */
+  /* check that objv[3] is a list of polynomials */
     
-    if (TCL_OK != Tcl_ListObjGetElements(ip, objv[3], &obc, &obv)) {
-        Tcl_AppendResult(ip, " (expected list of polynomials)", NULL);
-        return TCL_ERROR;
-    }
+  if (TCL_OK != Tcl_ListObjGetElements(ip, objv[3], &obc, &obv)) {
+    Tcl_AppendResult(ip, " (expected list of polynomials)", NULL);
+    return TCL_ERROR;
+  }
 
-    for (i=0;i<obc;i++) 
-        if (TCL_OK != Tcl_ConvertToPoly(ip, obv[i])) 
-            RETERR("argument 3 should be a list of polynomials");
+  for (i=0;i<obc;i++) 
+    if (TCL_OK != Tcl_ConvertToPoly(ip, obv[i])) 
+      RETERR("argument 3 should be a list of polynomials");
        
-    if (SUCCESS != MakeImages(ip, objv[3], map, dst, infoptr, &mtp, &mat)) {
-        if (NULL != mat) mtp->destroyMatrix(mat);
-        return TCL_ERROR;
-    }
+  if (SUCCESS != MakeImages(ip, objv[3], map, dst, infoptr, &mtp, &mat)) {
+    if (NULL != mat) mtp->destroyMatrix(mat);
+    return TCL_ERROR;
+  }
   
-    Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mtp, mat));
+  Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mtp, mat));
 
-    return TCL_OK;
+  return TCL_OK;
 }
 
 /* Convert input into a Tcl_ByteArray object. Required
@@ -836,22 +842,22 @@ int TMakeImages(ClientData cd, Tcl_Interp *ip,
 
 int MakeBinaryCmd(ClientData cd, Tcl_Interp *ip,
                   int objc, Tcl_Obj * CONST objv[]) {
-    Tcl_ObjType *bin = (Tcl_ObjType *) cd;
-    Tcl_Obj *res = objv[1];
+  Tcl_ObjType *bin = (Tcl_ObjType *) cd;
+  Tcl_Obj *res = objv[1];
 
-    if (objc != 2) {
-        Tcl_WrongNumArgs(ip, 1, objv, "stringValue");
-        return TCL_ERROR;
-    }
+  if (objc != 2) {
+    Tcl_WrongNumArgs(ip, 1, objv, "stringValue");
+    return TCL_ERROR;
+  }
 
-    if (res->typePtr != bin) {
-        int len; 
-        unsigned char *bytes = Tcl_GetByteArrayFromObj(res,&len);
-        res = Tcl_NewByteArrayObj(bytes,len);
-    }
+  if (res->typePtr != bin) {
+    int len; 
+    unsigned char *bytes = Tcl_GetByteArrayFromObj(res,&len);
+    res = Tcl_NewByteArrayObj(bytes,len);
+  }
 
-    Tcl_SetObjResult(ip, res);
-    return TCL_OK;
+  Tcl_SetObjResult(ip, res);
+  return TCL_OK;
 }
 
 /* Removing the string representation can sometimes help to save memory: */
@@ -859,135 +865,135 @@ int MakeBinaryCmd(ClientData cd, Tcl_Interp *ip,
 #define STEALCOMMAND "StealStringRep"
 int StealStringRep(ClientData cd, Tcl_Interp *ip,
                    int objc, Tcl_Obj * CONST objv[]) {
-    Tcl_Obj *obj;
+  Tcl_Obj *obj;
 
-    if (objc != 2) 
-        RETERR("usage: " STEALCOMMAND " <argument>");
+  if (objc != 2) 
+    RETERR("usage: " STEALCOMMAND " <argument>");
     
-    obj = objv[1];
+  obj = objv[1];
 
-    if (NULL != obj->typePtr) 
-        if (NULL != obj->typePtr->updateStringProc)
-            Tcl_InvalidateStringRep(obj);
+  if (NULL != obj->typePtr) 
+    if (NULL != obj->typePtr->updateStringProc)
+      Tcl_InvalidateStringRep(obj);
 
-    return TCL_OK;
+  return TCL_OK;
 }
 
 int GetRefCount(ClientData cd, Tcl_Interp *ip,
                 int objc, Tcl_Obj * CONST objv[]) {
-    if (objc != 2) {
-        Tcl_SetResult(ip, "usage: ", TCL_STATIC);
-        Tcl_AppendResult(ip, Tcl_GetString(objv[0]), " <argument>", NULL);
-        return TCL_ERROR;
-    }
+  if (objc != 2) {
+    Tcl_SetResult(ip, "usage: ", TCL_STATIC);
+    Tcl_AppendResult(ip, Tcl_GetString(objv[0]), " <argument>", NULL);
+    return TCL_ERROR;
+  }
     
-    Tcl_SetObjResult(ip, Tcl_NewIntObj(objv[1]->refCount));
+  Tcl_SetObjResult(ip, Tcl_NewIntObj(objv[1]->refCount));
 
-    return TCL_OK;
+  return TCL_OK;
 }
 
 int VersionCmd(ClientData cd, Tcl_Interp *ip,
                int objc, Tcl_Obj * CONST objv[]) {
-    Tcl_SetResult(ip, PACKAGE_NAME "-" PACKAGE_VERSION 
+  Tcl_SetResult(ip, PACKAGE_NAME "-" PACKAGE_VERSION 
 #ifdef USESSE2
-                  "-sse2"
+		"-sse2"
 #endif
 #ifdef USECL
-                  "-opencl"
+		"-opencl"
 #endif
-           ,TCL_STATIC);
-    return TCL_OK;
+		,TCL_STATIC);
+  return TCL_OK;
 }
 
 EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
-    Tcl_InitStubs(ip, "8.0", 0);
+  Tcl_InitStubs(ip, "8.0", 0);
 
-    objCount = 0;
-    useOpenCL = 0;
+  objCount = 0;
+  useOpenCL = 0;
 
 #ifdef USESSE2
-    {
-        /* check whether SSE2 instructions seem to work */
-        int sse2ok = 1;
-        __m128i var = _mm_set_epi16(7,6,5,4,3,2,1,0);
+  {
+    /* check whether SSE2 instructions seem to work */
+    int sse2ok = 1;
+    __m128i var = _mm_set_epi16(7,6,5,4,3,2,1,0);
 #define TESTENT(i) { if (i != _mm_extract_epi16(var,i)) sse2ok = 0; }
-        TESTENT(0);
-        TESTENT(1);
-        TESTENT(2);
-        TESTENT(3);
-        TESTENT(4);
-        TESTENT(5);
-        TESTENT(6);
-        TESTENT(7);
-        if(!sse2ok) {
-            Tcl_SetResult(ip, "library requires sse2"
-                          " capable processor"
-                          " (recompile without -DUSESSE2)", 
-                          TCL_STATIC);
-            return TCL_ERROR;
-        }
+    TESTENT(0);
+    TESTENT(1);
+    TESTENT(2);
+    TESTENT(3);
+    TESTENT(4);
+    TESTENT(5);
+    TESTENT(6);
+    TESTENT(7);
+    if(!sse2ok) {
+      Tcl_SetResult(ip, "library requires sse2"
+		    " capable processor"
+		    " (recompile without -DUSESSE2)", 
+		    TCL_STATIC);
+      return TCL_ERROR;
     }
+  }
 #endif
 
-    Tptr_Init(ip);
-    Tprime_Init(ip);
-    Tpoly_Init(ip);
-    Momap_Init(ip);
-    Tenum_Init(ip);
-    Tlin_Init(ip);
-    Hmap_Init(ip);
+  Tptr_Init(ip);
+  Tprime_Init(ip);
+  Tpoly_Init(ip);
+  Momap_Init(ip);
+  Tenum_Init(ip);
+  Tlin_Init(ip);
+  Hmap_Init(ip);
 #if 0
-    Lepar_Init(ip);
+  Lepar_Init(ip);
 #endif
 
-    Tcl_CreateObjCommand(ip, POLYNSP "ComputeMatrix",
-                         TMakeMatrixSameSig, (ClientData) 0, NULL);
+  Tcl_CreateObjCommand(ip, POLYNSP "ComputeMatrix",
+		       TMakeMatrixSameSig, (ClientData) 0, NULL);
 
-    Tcl_CreateObjCommand(ip, POLYNSP "ComputeImage",
-                         TMakeImages, (ClientData) 0, NULL);
+  Tcl_CreateObjCommand(ip, POLYNSP "ComputeImage",
+		       TMakeImages, (ClientData) 0, NULL);
 
-    Tcl_CreateObjCommand(ip, STEALCOMMAND,
-                         StealStringRep, (ClientData) 0, NULL);
+  Tcl_CreateObjCommand(ip, STEALCOMMAND,
+		       StealStringRep, (ClientData) 0, NULL);
 
-    Tcl_CreateObjCommand(ip, POLYNSP "_refcount",
-                         GetRefCount, (ClientData) 0, NULL);
+  Tcl_CreateObjCommand(ip, POLYNSP "_refcount",
+		       GetRefCount, (ClientData) 0, NULL);
 
-    Tcl_CreateObjCommand(ip, POLYNSP "Version",
-                         VersionCmd, (ClientData) 0, NULL);
+  Tcl_CreateObjCommand(ip, POLYNSP "Version",
+		       VersionCmd, (ClientData) 0, NULL);
 
-    Tcl_CreateObjCommand(ip, POLYNSP "interruptible",
-			 InterruptibleCmd, (ClientData) 0, NULL);
+  Tcl_CreateObjCommand(ip, POLYNSP "interruptible",
+		       InterruptibleCmd, (ClientData) 0, NULL);
 
-    {
-        Tcl_Obj * bin = Tcl_NewByteArrayObj((unsigned char *) &bin,1);
-        Tcl_CreateObjCommand(ip, POLYNSP "tcl_binary",
-                             MakeBinaryCmd, (ClientData) bin->typePtr, NULL);
-        Tcl_DecrRefCount(bin);
-    }
+  {
+    Tcl_Obj * bin = Tcl_NewByteArrayObj((unsigned char *) &bin,1);
+    Tcl_CreateObjCommand(ip, POLYNSP "tcl_binary",
+			 MakeBinaryCmd, (ClientData) bin->typePtr, NULL);
+    Tcl_DecrRefCount(bin);
+  }
 
 #ifdef USECL
-    Tcl_UnlinkVar(ip, POLYNSP "useOpenCL");
-    Tcl_LinkVar(ip, POLYNSP "useOpenCL", (char *) &useOpenCL, TCL_LINK_INT);
-    OPCL_Init(ip);
+  Tcl_UnlinkVar(ip, POLYNSP "useOpenCL");
+  Tcl_LinkVar(ip, POLYNSP "useOpenCL", (char *) &useOpenCL, TCL_LINK_INT);
+  OPCL_Init(ip);
 #endif
 
-    /* create links for progress reporting */
-    Tcl_UnlinkVar(ip, POLYNSP "_progvarname");
-    Tcl_UnlinkVar(ip, POLYNSP "_progsteps");
+  /* create links for progress reporting */
+  Tcl_UnlinkVar(ip, POLYNSP "_progvarname");
+  Tcl_UnlinkVar(ip, POLYNSP "_progsteps");
 
-    Tcl_LinkVar(ip, POLYNSP "_progvarname", (char *) &theprogvar, TCL_LINK_STRING);
-    Tcl_LinkVar(ip, POLYNSP "_progsteps", (char *) &theprogmsk, TCL_LINK_INT);
+  Tcl_LinkVar(ip, POLYNSP "_progvarname", (char *) &theprogvar, TCL_LINK_STRING);
+  Tcl_LinkVar(ip, POLYNSP "_progsteps", (char *) &theprogmsk, TCL_LINK_INT);
 
-    theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 0x1;
+  theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 0x1;
 
-    Tcl_UnlinkVar(ip, POLYNSP "_objCount");
-    Tcl_LinkVar(ip, POLYNSP "_objCount", (char *) &objCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
+  Tcl_UnlinkVar(ip, POLYNSP "_objCount");
+  Tcl_LinkVar(ip, POLYNSP "_objCount", (char *) &objCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
-    Tcl_Eval(ip, "namespace eval " POLYNSP 
-             " { namespace export -clear \\[a-z\\]* }");
+  Tcl_Eval(ip, "namespace eval " POLYNSP 
+	   " { namespace export -clear \\[a-z\\]* }");
 
-    Tcl_PkgProvide(ip, PACKAGE_NAME, PACKAGE_VERSION);
+  Tcl_PkgProvide(ip, PACKAGE_NAME, PACKAGE_VERSION);
 
-    return TCL_OK;
+  return TCL_OK;
 }
