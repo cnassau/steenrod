@@ -27,12 +27,33 @@ __kernel void do4711(__global unsigned char *out, char val) {
     } exmo;
 
     __kernel void pipeek(__constant int *seqinfo,
-                         __constant int *multmatrix,
+                         __constant short *multmatrix,
                          __global unsigned char *outmatrix,
-                         int rowoffset) {
+                         int rowoffset,
+                         __constant short16 *dg,
+short mx0,
+short mx1,
+short mx2,
+short mx3,
+short mx4,
+short mx5,
+short mx6,
+short mx7,
+short mx8,
+short mx9,
+short mx10,
+short mx11,
+short mx12,
+short mx13,
+short mx14,
+short mx15,
+short esum,
+short emsk,
+short coeff
+                         ) {
          const int idx = get_global_id(0);
 
-         outmatrix[idx] = idx;
+         outmatrix[rowoffset+idx] = coeff;
 #if 0
        int srcdim = outmat[0];
        int dstdim = *(outmat+1);
@@ -52,7 +73,7 @@ __kernel void do4711(__global unsigned char *out, char val) {
 
 set testsz 268
 set testsz 168
-set testsz 35
+#set testsz 35
 
 
 proc runtest {enmconfig} {
@@ -102,12 +123,14 @@ proc runtest {enmconfig} {
        foreach mode {cpu gpu} {
         set ::steenrod::useOpenCL [expr {($mode == "gpu") ? 1 : 0}]
         set msecs [lindex [time {      
-           steenrod::ComputeMatrix A d B
+           set r [steenrod::ComputeMatrix A d B]
+           unset r
         } 4] 0]
         set cfg(time-$mode) [expr {$cfg(time-$mode)+$msecs}]
         set res [steenrod::ComputeMatrix A d B]
         #puts [join $res \n]
-        puts $mode:$res
+       puts $mode:$xcnt;#:[steenrod::matrix dimensions $res];#[string range $res 0 60]...
+        unset res
         #puts [steenrod::matrix dimensions $res]
        }
        incr dmi $off 

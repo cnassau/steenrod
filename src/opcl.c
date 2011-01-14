@@ -303,6 +303,13 @@ int CLCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
   return TCL_ERROR;
 }
 
+void DeleteCTX(void *cd) {
+   CLCTX *ctx = GetCLCtx((Tcl_Interp *) cd);
+   clReleaseCommandQueue(ctx->que);
+   clReleaseProgram(ctx->prg);
+   clReleaseContext(ctx->ctx);
+}
+
 int CLInitCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
 
   CLCTX *clc = (CLCTX *) ckalloc(sizeof(CLCTX));
@@ -346,7 +353,7 @@ int OPCL_Init(Tcl_Interp *ip) {
   Tcl_Eval(ip,"namespace eval ::steenrod::cl { namespace eval impl {} }");
   Tcl_SetVar2Ex(ip,"steenrod::cl::_info", NULL, x,0);   
 
-  Tcl_CreateObjCommand(ip,"::steenrod::cl::impl::init",CLInitCmd,0 /* client data */,NULL);
+  Tcl_CreateObjCommand(ip,"::steenrod::cl::impl::init",CLInitCmd,ip /* client data */,DeleteCTX);
   return TCL_OK;
 }
 
