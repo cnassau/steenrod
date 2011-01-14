@@ -4,8 +4,17 @@ package req Steenrod
 steenrod::cl::impl::init
 puts $steenrod::cl::_info
 steenrod::cl::impl::combi program {
+
+    __kernel void memset0(__global uint4 *mem) {
+	mem[get_global_id(0)] = 0;
+    }
+
+    /* we can't write to a char* without this pragma */
+    #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
+
     void f() {};
 //uuh
+
 
 __kernel void do4711(__global unsigned char *out, char val) {
    *out = val;
@@ -40,7 +49,8 @@ __kernel void do4711(__global unsigned char *out, char val) {
 
 }
 
-set testsz 20
+set testsz 68
+#set testsz 5
 
 
 proc runtest {enmconfig} {
