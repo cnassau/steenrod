@@ -26,17 +26,17 @@ __kernel void do4711(__global unsigned char *out, char val) {
        int   id;
     } exmo;
 
-    __kernel void pipeek(__constant char *pi,
-                         __global int *out,
-                         __constant exmo *srcbas,
-                         int srcdim, int dstdim, int bytesperrow,
-                         __global unsigned char *outmat) {
+    __kernel void pipeek(__constant int *seqinfo,
+                         __constant int *multmatrix,
+                         __global unsigned char *outmatrix,
+                         int rowoffset) {
          const int idx = get_global_id(0);
+
+         outmatrix[idx] = idx;
 #if 0
        int srcdim = outmat[0];
        int dstdim = *(outmat+1);
        const int bytesperrow = outmat[2];
-#endif
        __global unsigned char *data = outmat;
        int i,cnt=0;
          for(i=0;i<dstdim;i++)
@@ -45,12 +45,14 @@ __kernel void do4711(__global unsigned char *out, char val) {
        cnt=0;
        int val=srcdim;
        //for(;cnt<8;) {do4711(data + cnt++,val&0xff); val>>=8;}
+#endif
     }
 
 }
 
-set testsz 68
-#set testsz 5
+set testsz 268
+set testsz 168
+set testsz 35
 
 
 proc runtest {enmconfig} {
@@ -64,9 +66,13 @@ proc runtest {enmconfig} {
     steenrod::monomap d
     set cnt 0
     set gl {}
+    set gcnt -1
     foreach m [A basis] {
-       lappend gl [list $cnt 0 0]
-       lset m end $cnt
+       if {($cnt&0xf)==0} {
+          incr gcnt
+          lappend gl [list $gcnt 0 0]
+       }
+       lset m end $gcnt
        d add [list 1 0 {} 0] [list $m]
        incr cnt
     }

@@ -24,6 +24,10 @@
 
 const char *clerrorstring(cl_int errcode);
 
+#define REPCLERR(errc) do { \
+  if(CL_SUCCESS != errc) { fprintf(stderr,__FILE__ ", line %d: %s\n",__LINE__,clerrorstring(errc)); } \
+  } while (0) 
+
 typedef struct {
   cl_platform_id    pid;
   cl_device_id      did;

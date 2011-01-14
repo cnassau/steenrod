@@ -180,14 +180,79 @@ typedef struct {
   cl_mem cloutrow;
   int    *outrow;
 
+  cl_mem cldg;
+  unsigned short *cldghst;
+  size_t dgnumsmds;
+  cl_event evtdg;
+
+  cl_mem curmat;
+  cl_mem seqinf;
+
   cl_event evt;
 } cl_mult_data;
 
+/* load polynomial into gpu-memory */
+cl_int clMapPoly(CLCTX *ctx, polyType *ptp, void *ply, 
+                 cl_mem *devmem, unsigned short **hstmem, size_t *numsmds, cl_event *evtptr) {
+   size_t nsum = (ptp->getNumsum)(ply), size = 16*nsum*sizeof(unsigned short);
+   unsigned short *hbf = (unsigned short *) ckalloc(size?size:1),*wrk;
+   cl_mem res = NULL;
+   int i,j;
+   cl_int errc;
+   exmo exlocal, *ex = &exlocal;
+   *numsmds = nsum;
+
+   for (i=0,wrk=hbf;i<nsum;i++,wrk+=16) {
+      if(NULL != ptp->getExmoPtr)
+         (ptp->getExmoPtr)(ply,&ex,i);
+      else 
+         (ptp->getExmo)(ply,&exlocal,i);
+      for(j=0;j<NALG;j++) wrk[j] = ex->r.dat[j];
+      wrk[15] = ex->gen & 0xffff;
+      wrk[14] = ((ex->gen >> 16) & 0xffff);
+      wrk[13] = ex->ext;
+   }
+   
+   res = clCreateBuffer(ctx->ctx,
+                        CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+                        size,
+                        hbf,
+                        &errc);
+  // clEnqueueWriteBuffer(ctx->que,res,CL_FALSE /* blocking? */,0,size,hbf,0,NULL,evtptr);
+
+   // fprintf(stderr,"created cl poly at %p (device) %p (host) with %d smds\n",res,hbf,(int) nsum);
+
+   if(CL_SUCCESS != errc) {
+       REPCLERR(errc);
+   }
+   *devmem = res;
+   *hstmem = hbf;
+   return errc;
+}
 
 void clFetchFuncSF(struct multArgs *ma, int coeff) {
   cl_mult_data *clmd = (cl_mult_data *) ma->cd6;
   CLCTX *ctx = clmd->ctx;
+  cl_int clerr;
 
+  /* do we need to make sure dg has been transferred? */
+  if(0 && clmd->evtdg) {
+    clWaitForEvents(1,&(clmd->evtdg));
+    clmd->evtdg = NULL;
+  }
+
+  unsigned row = USGNFROMVPTR(ma->cd5);
+
+  cl_matrix *outmat = (cl_matrix *) (ma->cd2);
+  int rowoffset = outmat->bytesperrow * row;
+
+  clerr = clSetKernelArg(clmd->krn,3,sizeof(int),&rowoffset);
+  REPCLERR(clerr);
+
+  size_t globws = clmd->dgnumsmds, locws;
+  clerr = clEnqueueNDRangeKernel(ctx->que,clmd->krn,1,
+                                 NULL,&globws,/*&locws/*/NULL,0,NULL,NULL);
+  REPCLERR(clerr);
 
   //if(clmd->evt) clWaitForEvents(1,&(clmd->evt));
   //fprintf(stderr,"reading %d bytes from %p to %p\n",clmd->rowsize,clmd->cloutrow,clmd->outrow);
@@ -196,6 +261,47 @@ void clFetchFuncSF(struct multArgs *ma, int coeff) {
 };
 
 
+
+void xxxstdFetchFuncSFNoSSE(struct multArgs *ma, int coeff) {
+    const exmo *sfx; int idx, i; cint c; 
+    const int prime = ma->pi->prime; 
+    const primeInfo * const pi = ma->pi;
+    const int proext = (NULL == ma->profile) ? 0 : ma->profile->ext;
+    for (idx = 0; SUCCESS == (ma->getExmoSF)(ma,SECOND_FACTOR,&sfx,idx); idx++) {
+        exmo res; int hlp1;
+        c = coeff;
+        /* first check exterior part */
+        if (ma->esum[1] != (sfx->ext & ma->esum[1])) continue;
+        hlp1 = (sfx->ext ^ ma->esum[1]);
+        if (0 != (hlp1 & proext)) continue; 
+        if (0 != (hlp1 & ma->emsk[1])) continue;
+        /* now check reduced part */
+        for (i=NALG;c && i--;) {
+            xint aux, aux2;
+            aux  = sfx->r.dat[i] + ma->sum[0][i+1];
+            if (NULL != ma->profile)
+                if (0 != (aux % (ma->profile->r.dat[i]))) {
+                    c = 0; 
+                    break;
+                }
+            aux2 = ma->msk[1][i];
+            if ((0 > (res.r.dat[i] = aux + aux2)) && ma->sfIsPos) {
+                c = 0;
+            } else {
+                c = XINTMULT(c, binomp(pi, res.r.dat[i], aux), prime);
+            }
+        }
+        if (0 == c) continue;
+        res.ext = hlp1 | ma->emsk[1];
+        if (0 != (1 & (SIGNFUNC(ma->emsk[1], hlp1)
+                       + SIGNFUNC(ma->esum[1], hlp1))))
+            c = prime - c;
+        res.coeff = XINTMULT(c, sfx->coeff, prime);
+        res.gen   = sfx->gen; /* should this be done in the callback function ? */
+        /* invoke callback */
+        (ma->stdSummandFunc)(ma, &res);
+    }
+}
 
 
 #endif
@@ -272,8 +378,13 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
     clmd.outrow = NULL;
     clmd.cloutrow = NULL;
+    clmd.cldg = NULL;
+    clmd.cldghst = NULL;
+    clmd.evtdg = NULL;
     clmd.krn = NULL;
     clmd.evt = NULL;
+    clmd.seqinf = NULL;
+    clmd.curmat = NULL;
 
     ma->fetchFuncSF = &clFetchFuncSF;
     ma->cd6 = &clmd;
@@ -301,8 +412,29 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                                    &clerr);            
     CHKERR(clerr);
 
+        
     clmd.krn = clCreateKernel(ctx->prg,"pipeek",&clerr);
     CHKERR(clerr);
+
+    clmd.seqinf = clCreateBuffer(ctx->ctx,
+                                 CL_MEM_READ_ONLY,
+                                 999,
+                                 NULL,
+                                 &clerr);
+    CHKERR(clerr);
+
+    clmd.curmat = clCreateBuffer(ctx->ctx,
+                                 CL_MEM_READ_ONLY,
+                                 727,
+                                 NULL,
+                                 &clerr);
+    CHKERR(clerr);
+    
+    clerr = clSetKernelArg(clmd.krn,0,sizeof(cl_mem),&clmd.seqinf);
+    CHKERR(clerr);    
+    
+    clerr = clSetKernelArg(clmd.krn,1,sizeof(cl_mem),&clmd.curmat);
+    CHKERR(clerr);    
 
 #if 0
     int outval = dstdim;
@@ -368,23 +500,6 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                                      clmat,
                                      &clerr);
     CHKERR(clerr);
-
-#if 0
-
-    "plan"
-
-      cpu erzeugt "multiplikationsmatrizen" M1,...,Mk zu den P(r1,...,rn)[g] 
-      mit passender signatur und dimension.
-
-      zu jedem s = P(...)[k] aus d([g]) wird dann ein kernel gestartet, der die
-      resultate aus Ml(s) berechnet und ...
-
-      dies berechnet eine zeile der gesuchten matrix in __global memory. die
-      zeile wird dann asynchron in den host-speicher gemappt, während die nächste 
-      berechnet wird.
-
-
-#endif
     
       clerr = clSetKernelArg(krn,6,sizeof(cl_mem),&cloutmat);
     CHKERR(clerr);
@@ -435,8 +550,12 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 #endif
   }
   if (useOpenCL) {
+    cl_int clerr;
+    cl_matrix *clmat = CreateCLMatrix(ip, srcdim, dstdim, dst->pi->prime);
     *mtp = &clMatrixType;
-    *mat = CreateCLMatrix(ip, srcdim, dstdim, dst->pi->prime);
+    *mat = clmat;
+    clerr = clSetKernelArg(clmd.krn,2,sizeof(cl_mem),&(clmat->buffer));
+    CHKERR(clerr);
   } else {
     if (2 == dst->pi->prime) {
       *mtp = stdmatrix2;
@@ -520,6 +639,13 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 	ma->sfMaxLength = PLgetMaxRedLength(dgpolyType, dgpoly);
 	ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
 
+        if(useOpenCL) {
+           if(clmd.evtdg) clWaitForEvents(1,&(clmd.evtdg));
+           if(clmd.cldg) clReleaseMemObject(clmd.cldg);
+           if(clmd.cldghst) ckfree((char *) clmd.cldghst);
+           clMapPoly(clmd.ctx,dgpolyType, dgpoly, 
+                     &(clmd.cldg), &(clmd.cldghst), &(clmd.dgnumsmds), &(clmd.evtdg));
+        }
       }
 
       if (NULL == dg) continue;
@@ -560,6 +686,14 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     if(clmd.evt) clWaitForEvents(1,&(clmd.evt));
     if(clmd.outrow) free(clmd.outrow);
     if(clmd.cloutrow) clReleaseMemObject(clmd.cloutrow);
+
+    if(clmd.evtdg) clWaitForEvents(1,&(clmd.evtdg));
+    if(clmd.cldg) clReleaseMemObject(clmd.cldg);
+    if(clmd.cldghst) ckfree((char *) clmd.cldghst);
+
+    if(clmd.curmat) clReleaseMemObject(clmd.curmat);
+    if(clmd.seqinf) clReleaseMemObject(clmd.seqinf);
+
     if(clmd.krn) clReleaseKernel(clmd.krn);
   }
 #endif
