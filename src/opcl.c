@@ -51,6 +51,9 @@ cl_matrix *CreateCLMatrix(Tcl_Interp *ip, int rows, int cols, int prime) {
 			       &errc);
   // fprintf(stderr,"size=%ld\n",res->size);
   if(CL_SUCCESS != errc) {
+    res->buffer = NULL;
+    fprintf(stderr,"could not allocate opencl matrix of size %d x %d: %s\n",
+	    rows,cols,clerrorstring(errc));
     DestroyCLMatrix(res);
     return NULL;
   }        
@@ -96,7 +99,8 @@ void (clGetDimensions)(void *mat, int *row, int *col) {
   MATLOG(m,"get dimensions");
 };
 void *(clCreateCopy)(void *mat) {
-  cl_matrix *m = (cl_matrix *) mat, *res=malloc(sizeof(cl_matrix));
+  cl_matrix *m = (cl_matrix *) mat, 
+    *res=(cl_matrix *) ckalloc(sizeof(cl_matrix));
   if(NULL==m->hostbuf) clMapMatrix(m);
   memcpy(res,m,sizeof(cl_matrix));
   res->buffer = NULL;
@@ -110,6 +114,7 @@ void (clDestroyMatrix)(void *mat) {
   DestroyCLMatrix((cl_matrix *) mat);
 };
 void clUnmapMatrix(cl_matrix * m) {
+  MATLOG(m,"unmapping");
   if(NULL != m->hostbuf) {
     free(m->hostbuf); 
     m->hostbuf = NULL;
@@ -131,6 +136,7 @@ void (clClearMatrix)(void *mat) {
   //fprintf(stderr,"enqueing kernel %p for %d threads and %ld bytes (%d x %d)\n",krn,globws,m->size,m->rows,m->cols);
   clerr = clEnqueueNDRangeKernel(ctx->que,krn,1,NULL,
 				 &globws,/*&locws/*/NULL,0,NULL,NULL);
+  clFlush(ctx->que);
   LOGCLERR(clerr);
 };
 void (clUnitMatrix)(void *mat) {
@@ -305,6 +311,8 @@ int CLCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
 
 void DeleteCTX(void *cd) {
    CLCTX *ctx = GetCLCtx((Tcl_Interp *) cd);
+   if(ctx->memset0) clReleaseKernel(ctx->memset0);
+   if(ctx->multffp) clReleaseKernel(ctx->multffp);
    clReleaseCommandQueue(ctx->que);
    clReleaseProgram(ctx->prg);
    clReleaseContext(ctx->ctx);

@@ -35,6 +35,7 @@ typedef struct {
   cl_program        prg;
   cl_command_queue  que;
   cl_kernel         memset0;
+  cl_kernel         multffp;
 } CLCTX;
 
 CLCTX *GetCLCtx(Tcl_Interp *ip);

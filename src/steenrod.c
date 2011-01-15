@@ -157,28 +157,11 @@ typedef struct {
 #define PROGVARDONE { if (NULL != THEPROGVAR) Tcl_UnlinkVar(ip, THEPROGVAR); }
 
 #ifdef USECL
-typedef struct {
-  short rdat[8];
-  int   edat;
-  int   id;
-} clexmo;
-
-void clcopyExmo(clexmo *dst, exmo *src)
-{
-  int k;
-  for (k=0;k<8;k++) {
-    dst->rdat[k] = src->r.dat[k];
-  }
-  dst->id   = src->gen;
-  dst->edat = src->ext;
-}; 
 
 typedef struct {
   CLCTX *ctx;
   cl_kernel krn;
   size_t rowsize;
-  cl_mem cloutrow;
-  int    *outrow;
 
   cl_mem cldg;
   unsigned short *cldghst;
@@ -194,40 +177,40 @@ typedef struct {
 /* load polynomial into gpu-memory */
 cl_int clMapPoly(CLCTX *ctx, polyType *ptp, void *ply, 
                  cl_mem *devmem, unsigned short **hstmem, size_t *numsmds, cl_event *evtptr) {
-   size_t nsum = (ptp->getNumsum)(ply), size = 16*nsum*sizeof(unsigned short);
-   unsigned short *hbf = (unsigned short *) ckalloc(size?size:1),*wrk;
-   cl_mem res = NULL;
-   int i,j;
-   cl_int errc;
-   exmo exlocal, *ex = &exlocal;
-   *numsmds = nsum;
+  size_t nsum = (ptp->getNumsum)(ply), size = 16*nsum*sizeof(unsigned short);
+  unsigned short *hbf = (unsigned short *) ckalloc(size?size:1),*wrk;
+  cl_mem res = NULL;
+  int i,j;
+  cl_int errc;
+  exmo exlocal, *ex = &exlocal;
+  *numsmds = nsum;
 
-   for (i=0,wrk=hbf;i<nsum;i++,wrk+=16) {
-      if(NULL != ptp->getExmoPtr)
-         (ptp->getExmoPtr)(ply,&ex,i);
-      else 
-         (ptp->getExmo)(ply,&exlocal,i);
-      for(j=0;j<NALG;j++) wrk[j] = ex->r.dat[j];
-      wrk[15] = ex->gen & 0xffff;
-      wrk[14] = ((ex->gen >> 16) & 0xffff);
-      wrk[13] = ex->ext;
-   }
+  for (i=0,wrk=hbf;i<nsum;i++,wrk+=16) {
+    if(NULL != ptp->getExmoPtr)
+      (ptp->getExmoPtr)(ply,&ex,i);
+    else 
+      (ptp->getExmo)(ply,&exlocal,i);
+    for(j=0;j<NALG;j++) wrk[j] = ex->r.dat[j];
+    wrk[15] = ex->gen & 0xffff;
+    wrk[14] = ((ex->gen >> 16) & 0xffff);
+    wrk[13] = ex->ext;
+  }
    
-   res = clCreateBuffer(ctx->ctx,
-                        CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
-                        size,
-                        hbf,
-                        &errc);
+  res = clCreateBuffer(ctx->ctx,
+		       CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+		       size,
+		       hbf,
+		       &errc);
   // clEnqueueWriteBuffer(ctx->que,res,CL_FALSE /* blocking? */,0,size,hbf,0,NULL,evtptr);
 
-   // fprintf(stderr,"created cl poly at %p (device) %p (host) with %d smds\n",res,hbf,(int) nsum);
+  // fprintf(stderr,"created cl poly at %p (device) %p (host) with %d smds\n",res,hbf,(int) nsum);
 
-   if(CL_SUCCESS != errc) {
-       REPCLERR(errc);
-   }
-   *devmem = res;
-   *hstmem = hbf;
-   return errc;
+  if(CL_SUCCESS != errc) {
+    REPCLERR(errc);
+  }
+  *devmem = res;
+  *hstmem = hbf;
+  return errc;
 }
 
 void clFetchFuncSF(struct multArgs *ma, int coeff) {
@@ -235,10 +218,10 @@ void clFetchFuncSF(struct multArgs *ma, int coeff) {
   CLCTX *ctx = clmd->ctx;
   cl_int clerr = CL_SUCCESS;
 
-#define CLFFERR(errc) { \
-if(CL_SUCCESS != errc) {\
-   if(ma->TclInterp) Tcl_SetResult(ma->TclInterp,(char *) clerrorstring(clerr),TCL_VOLATILE);\
-   goto clfferr; } }
+#define CLFFERR(errc) {							\
+    if(CL_SUCCESS != errc) {						\
+      if(ma->TclInterp) Tcl_SetResult(ma->TclInterp,(char *) clerrorstring(clerr),TCL_VOLATILE); \
+      goto clfferr; } }
 
   /* do we need to make sure dg has been transferred? */
   if(0 && clmd->evtdg) {
@@ -250,88 +233,94 @@ if(CL_SUCCESS != errc) {\
 
   cl_matrix *outmat = (cl_matrix *) (ma->cd2);
   int rowoffset = outmat->bytesperrow * row;
-
-  clerr = clSetKernelArg(clmd->krn,3,sizeof(int),&rowoffset);
-  CLFFERR(clerr);
-
   short mx[20];
   int i;
 
   for(i=0;i<8;i++) {
-     mx[i] = (i<NALG) ? ma->sum[0][i+1] : 0;
-     mx[8+i] = (i<NALG) ? ma->msk[1][i] : 0;
+    mx[i] = (i<NALG) ? ma->sum[0][i+1] : 0;
+    mx[8+i] = (i<NALG) ? ma->msk[1][i] : 0;
   }
   mx[16] = ma->esum[1];
   mx[17] = ma->emsk[1];
   mx[18] = coeff;
 
-  //clerr = clEnqueueWriteBuffer(ctx->que,clmd->curmat,CL_FALSE,0,sizeof(mx),mx,0,NULL,NULL);
-  CLFFERR(clerr);
- 
-  //cl_mem xbf = clCreateBuffer(ctx->ctx,CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR,sizeof(mx),mx,&clerr);
-  CLFFERR(clerr);
+  for(i=0;i<19;i++) {
+    clerr = clSetKernelArg(clmd->krn,5+i,sizeof(short),&(mx[i])); 
+    CLFFERR(clerr);
+  }
 
-for(i=0;i<19;i++) {
-  clerr = clSetKernelArg(clmd->krn,5+i,sizeof(short),&(mx[i])); 
+#ifdef KARG2
+  clerr = clSetKernelArg(clmd->krn,2,sizeof(cl_mem),&(outmat->buffer));
   CLFFERR(clerr);
-}
+#endif
+  clerr = clSetKernelArg(clmd->krn,3,sizeof(int),&rowoffset);
+  CLFFERR(clerr);
+#ifdef KARG01
+  clerr = clSetKernelArg(clmd->krn,0,sizeof(cl_mem),&(clmd->seqinf));
+  CLFFERR(clerr);
+  clerr = clSetKernelArg(clmd->krn,1,sizeof(cl_mem),&(clmd->curmat));
+  CLFFERR(clerr);
+#endif
+#ifdef KARG4
+  clerr = clSetKernelArg(clmd->krn,4,sizeof(cl_mem),&(clmd->cldg));
+  CLFFERR(clerr);
+#endif
 
+#if 1
   size_t globws = clmd->dgnumsmds, locws;
   clerr = clEnqueueNDRangeKernel(ctx->que,clmd->krn,1,
                                  NULL,&globws,/*&locws/*/NULL,0,NULL,NULL);
   CLFFERR(clerr);
-
-  clFlush(clmd->ctx->que);
-  //clReleaseMemObject(xbf);
+#endif
 
   return; 
 
  clfferr:
-    ma->cd4 = (void *) FAIL;
+  ma->cd4 = (void *) FAIL;
 
 };
 
 
 
 void xxxstdFetchFuncSFNoSSE(struct multArgs *ma, int coeff) {
-    const exmo *sfx; int idx, i; cint c; 
-    const int prime = ma->pi->prime; 
-    const primeInfo * const pi = ma->pi;
-    const int proext = (NULL == ma->profile) ? 0 : ma->profile->ext;
-    for (idx = 0; SUCCESS == (ma->getExmoSF)(ma,SECOND_FACTOR,&sfx,idx); idx++) {
-        exmo res; int hlp1;
-        c = coeff;
-        /* first check exterior part */
-        if (ma->esum[1] != (sfx->ext & ma->esum[1])) continue;
-        hlp1 = (sfx->ext ^ ma->esum[1]);
-        if (0 != (hlp1 & proext)) continue; 
-        if (0 != (hlp1 & ma->emsk[1])) continue;
-        /* now check reduced part */
-        for (i=NALG;c && i--;) {
-            xint aux, aux2;
-            aux  = sfx->r.dat[i] + ma->sum[0][i+1];
-            if (NULL != ma->profile)
-                if (0 != (aux % (ma->profile->r.dat[i]))) {
-                    c = 0; 
-                    break;
-                }
-            aux2 = ma->msk[1][i];
-            if ((0 > (res.r.dat[i] = aux + aux2)) && ma->sfIsPos) {
-                c = 0;
-            } else {
-                c = XINTMULT(c, binomp(pi, res.r.dat[i], aux), prime);
-            }
-        }
-        if (0 == c) continue;
-        res.ext = hlp1 | ma->emsk[1];
-        if (0 != (1 & (SIGNFUNC(ma->emsk[1], hlp1)
-                       + SIGNFUNC(ma->esum[1], hlp1))))
-            c = prime - c;
-        res.coeff = XINTMULT(c, sfx->coeff, prime);
-        res.gen   = sfx->gen; /* should this be done in the callback function ? */
-        /* invoke callback */
-        (ma->stdSummandFunc)(ma, &res);
+  const exmo *sfx; int idx, i; cint c; 
+  const int prime = ma->pi->prime; 
+  const primeInfo * const pi = ma->pi;
+  const int proext = (NULL == ma->profile) ? 0 : ma->profile->ext;
+  for (idx = 0; SUCCESS == (ma->getExmoSF)(ma,SECOND_FACTOR,&sfx,idx); idx++) {
+    exmo res; int hlp1;
+    c = coeff;
+    /* first check exterior part */
+    if (ma->esum[1] != (sfx->ext & ma->esum[1])) continue;
+    hlp1 = (sfx->ext ^ ma->esum[1]);
+    if (0 != (hlp1 & proext)) continue; 
+    if (0 != (hlp1 & ma->emsk[1])) continue;
+    /* now check reduced part */
+    for (i=NALG;c && i--;) {
+      xint aux, aux2;
+      aux  = sfx->r.dat[i] + ma->sum[0][i+1];
+      if (NULL != ma->profile)
+	if (0 != (aux % (ma->profile->r.dat[i]))) {
+	  c = 0; 
+	  break;
+	}
+      aux2 = ma->msk[1][i];
+      if ((0 > (res.r.dat[i] = aux + aux2)) && ma->sfIsPos) {
+	c = 0;
+      } else {
+	c = XINTMULT(c, binomp(pi, res.r.dat[i], aux), prime);
+      }
     }
+    if (0 == c) continue;
+    res.ext = hlp1 | ma->emsk[1];
+    if (0 != (1 & (SIGNFUNC(ma->emsk[1], hlp1)
+		   + SIGNFUNC(ma->esum[1], hlp1))))
+      c = prime - c;
+    res.coeff = XINTMULT(c, sfx->coeff, prime);
+    res.gen   = sfx->gen; /* should this be done in the callback function ? */
+    /* invoke callback */
+    (ma->stdSummandFunc)(ma, &res);
+  }
 }
 
 
@@ -407,8 +396,6 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
   if(useOpenCL) {
 #ifdef USECL
 
-    clmd.outrow = NULL;
-    clmd.cloutrow = NULL;
     clmd.cldg = NULL;
     clmd.cldghst = NULL;
     clmd.evtdg = NULL;
@@ -431,21 +418,11 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
 #define DOFAIL(txt) { Tcl_SetResult(ip,txt,TCL_VOLATILE); return FAIL; }
 
-    clmd.rowsize = sizeof(char)*dstdim;
-    if(0 == clmd.rowsize) clmd.rowsize=1;
-    clmd.outrow = malloc(clmd.rowsize);
-    if(NULL == clmd.outrow) DOFAIL("out of memory");
-
-    clmd.cloutrow = clCreateBuffer(ctx->ctx,
-                                   CL_MEM_WRITE_ONLY,
-                                   clmd.rowsize,
-                                   NULL,
-                                   &clerr);            
-    CHKERR(clerr);
-
-        
-    clmd.krn = clCreateKernel(ctx->prg,"pipeek",&clerr);
-    CHKERR(clerr);
+    if(NULL == ctx->multffp) {
+      ctx->multffp  = clCreateKernel(ctx->prg,"multffp",&clerr);
+      CHKERR(clerr);
+    } 
+    clmd.krn = ctx->multffp;
 
     clmd.seqinf = clCreateBuffer(ctx->ctx,
                                  CL_MEM_READ_ONLY,
@@ -461,11 +438,13 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                                  &clerr);
     CHKERR(clerr);
     
+#ifndef KARG01
     clerr = clSetKernelArg(clmd.krn,0,sizeof(cl_mem),&clmd.seqinf);
     CHKERR(clerr);    
     
     clerr = clSetKernelArg(clmd.krn,1,sizeof(cl_mem),&clmd.curmat);
     CHKERR(clerr);    
+#endif
 
 #else
     Tcl_SetResult(ip,"this library has not been compiled with opencl support",TCL_STATIC);
@@ -478,8 +457,12 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     cl_matrix *clmat = CreateCLMatrix(ip, srcdim, dstdim, dst->pi->prime);
     *mtp = &clMatrixType;
     *mat = clmat;
-    clerr = clSetKernelArg(clmd.krn,2,sizeof(cl_mem),&(clmat->buffer));
-    CHKERR(clerr);
+#ifndef KARG2
+    if(NULL != *mat) {
+      clerr = clSetKernelArg(clmd.krn,2,sizeof(cl_mem),&(clmat->buffer));
+      CHKERR(clerr);
+    }
+#endif
   } else {
     if (2 == dst->pi->prime) {
       *mtp = stdmatrix2;
@@ -564,14 +547,18 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 	ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
 
         if(useOpenCL) {
-           cl_int clerr;
-           if(clmd.evtdg) clWaitForEvents(1,&(clmd.evtdg));
-           if(clmd.cldg) clReleaseMemObject(clmd.cldg);
-           if(clmd.cldghst) ckfree((char *) clmd.cldghst);
-           clMapPoly(clmd.ctx,dgpolyType, dgpoly, 
-                     &(clmd.cldg), &(clmd.cldghst), &(clmd.dgnumsmds), &(clmd.evtdg));
-           clerr = clSetKernelArg(clmd.krn,4,sizeof(cl_mem),&(clmd.cldg));
-           CHKERR(clerr);
+	  cl_int clerr;
+	  if(clmd.evtdg) clWaitForEvents(1,&(clmd.evtdg));
+	  clFinish(clmd.ctx->que); // otherwise cldg is still in use
+	  if(clmd.cldg) clReleaseMemObject(clmd.cldg);
+	  if(clmd.cldghst) ckfree((char *) clmd.cldghst);
+	  clMapPoly(clmd.ctx,dgpolyType, dgpoly, 
+		    &(clmd.cldg), &(clmd.cldghst), &(clmd.dgnumsmds), 
+		    &(clmd.evtdg));
+#ifndef KARG4
+	  clerr = clSetKernelArg(clmd.krn,4,sizeof(cl_mem),&(clmd.cldg));
+	  CHKERR(clerr);
+#endif
         }
       }
 
@@ -608,11 +595,9 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
   RELEASEGOBJ;
  
 #ifdef USECL
-
   if(useOpenCL) {
+    clFinish(clmd.ctx->que);
     if(clmd.evt) clWaitForEvents(1,&(clmd.evt));
-    if(clmd.outrow) free(clmd.outrow);
-    if(clmd.cloutrow) clReleaseMemObject(clmd.cloutrow);
 
     if(clmd.evtdg) clWaitForEvents(1,&(clmd.evtdg));
     if(clmd.cldg) clReleaseMemObject(clmd.cldg);
@@ -620,8 +605,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
     if(clmd.curmat) clReleaseMemObject(clmd.curmat);
     if(clmd.seqinf) clReleaseMemObject(clmd.seqinf);
-
-    if(clmd.krn) clReleaseKernel(clmd.krn);
+    //if(clmd.krn) clReleaseKernel(clmd.krn);
   }
 #endif
    
