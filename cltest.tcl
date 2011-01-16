@@ -12,8 +12,27 @@ steenrod::cl::impl::combi program {
     /* we can't write to a char* without this pragma */
     #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
 
-
     __kernel void multffp(__constant int *seqinfo,
+			  __constant short *multmatrix,
+			  __global unsigned char *outmatrix,
+			  int bytesperrow,
+			  int rowoffset,
+			  __global short16 *ffarray,
+			  __global short16 *sfarray)
+    {
+	short16 ff = ffarray[get_global_id(0)];
+	short16 sf = ffarray[get_global_id(1)];
+	const int row = rowoffset + get_global_id(0);
+
+	/* compute ff * sf and store result 
+	** in outmatrix[bytesperrow*row+*] */
+
+	outmatrix[bytesperrow*row]=ff.s0;
+	outmatrix[bytesperrow*row+1]=sf.s0;
+
+    }
+
+    __kernel void multffpold(__constant int *seqinfo,
 			  __constant short *multmatrix,
 			  __global unsigned char *outmatrix,
 			  int rowoffset,
@@ -48,7 +67,7 @@ steenrod::cl::impl::combi program {
 set testsz 368
 #set testsz 268
 set testsz 168
-#set testsz 35
+set testsz 35
 
 
 proc runtest {enmconfig} {
@@ -103,7 +122,7 @@ proc runtest {enmconfig} {
 	    set cfg(time-$mode) [expr {$cfg(time-$mode)+$msecs}]
 	    set res [steenrod::ComputeMatrix A d B]
 	    #puts [join $res \n]
-	    puts $mode:$xcnt:[steenrod::matrix dimensions $res];#:[string range $res 0 60]...
+	    puts $mode:$xcnt:[steenrod::matrix dimensions $res]:[string range $res 0 60]...
 	    unset res
 	    #puts [steenrod::matrix dimensions $res]
 	}
@@ -129,7 +148,7 @@ foreach p {3 2 5 7} {
   }
  }
  runtest [lindex $enmlist 0]
-   # break
+    break
 }
 
 

@@ -162,6 +162,7 @@ typedef struct clmemchain {
   cl_event evt;
   cl_mem gpumem;
   char *hstmem;
+  int cd1,cd2,cd3;
   struct clmemchain *next;
 } clmemchain;
 
@@ -191,7 +192,7 @@ typedef struct {
   clmemchain *start, *end;
 } clmemchain2;
 
-void clm2_append(clmemchain2 *clm, cl_event evt, cl_mem mem, char *hmem) {
+clmemchain *clm2_append(clmemchain2 *clm, cl_event evt, cl_mem mem, char *hmem) {
   clmemchain *nw = (clmemchain *) ckalloc(sizeof(clmemchain));
   nw->gpumem = mem;
   nw->hstmem = hmem;
@@ -204,6 +205,7 @@ void clm2_append(clmemchain2 *clm, cl_event evt, cl_mem mem, char *hmem) {
     clm->end->next = nw;
     clm->end = nw;
   }
+  return nw;
 }
 void clm2_release(clmemchain2 *clm) {
   clm_release(clm->start);
@@ -214,7 +216,7 @@ typedef struct {
   cl_kernel krn;
   size_t rowsize;
 
-  clmemchain2 dgchain;
+  clmemchain2 dgchain, srcchain;
 
   cl_mem srcplygpu;
   unsigned short *srcplyhst;
@@ -276,12 +278,6 @@ void clFetchFuncSF(struct multArgs *ma, int coeff) {
       if(ma->TclInterp) Tcl_SetResult(ma->TclInterp,(char *) clerrorstring(clerr),TCL_VOLATILE); \
       goto clfferr; } }
 
-  /* do we need to make sure dg has been transferred? */
-  if(0 && clmd->evtdg) {
-    clWaitForEvents(1,&(clmd->evtdg));
-    clmd->evtdg = NULL;
-  }
-
   unsigned row = USGNFROMVPTR(ma->cd5);
 
   cl_matrix *outmat = (cl_matrix *) (ma->cd2);
@@ -319,7 +315,7 @@ void clFetchFuncSF(struct multArgs *ma, int coeff) {
   CLFFERR(clerr);
 #endif
 
-#if 1
+#if 0
   size_t globws = clmd->dgnumsmds, locws;
   clerr = clEnqueueNDRangeKernel(ctx->que,clmd->krn,1,
                                  NULL,&globws,/*&locws/*/NULL,0,NULL,NULL);
@@ -333,7 +329,48 @@ void clFetchFuncSF(struct multArgs *ma, int coeff) {
 
 };
 
+int clscheduleBlock(Tcl_Interp *ip, 
+		     MatCompTaskInfo *mc,
+		     cl_mult_data *clmd,
+		     clmemchain *curdg,
+		     int dgnsums,
+		     int blockstart,
+		     int blockend) {
+  size_t worksize[2],srcsz = blockend-blockstart;
+  cl_int errc;
+  cl_event evt;
+  
+#define BCERR(errc) do {\
+    if(CL_SUCCESS!=errc) { char x[300];\
+    sprintf(x,__FILE__ ", line %d: %s",__LINE__,clerrorstring(errc)); \
+    Tcl_SetResult(ip,x,TCL_VOLATILE); return 0; } } while(0)
 
+  worksize[0] = srcsz;
+  worksize[1] = dgnsums;
+
+  cl_mem smem = clCreateBuffer(clmd->ctx->ctx,
+			       CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+			       16*sizeof(short)*srcsz,
+			       &(clmd->srcplyhst[blockstart]),
+			       &errc);
+  BCERR(errc);
+
+  clmemchain *srcmem = clm2_append(&(clmd->srcchain),NULL,smem,NULL);
+          
+  errc = clSetKernelArg(clmd->krn,4,sizeof(int),&blockstart);
+  BCERR(errc);
+  errc = clSetKernelArg(clmd->krn,5,sizeof(cl_mem),&smem);
+  BCERR(errc);
+
+  errc = clEnqueueNDRangeKernel(clmd->ctx->que,clmd->krn,2,
+                                 NULL,worksize,/*&locws/*/NULL,0,NULL,&evt);
+  BCERR(errc);
+  
+  srcmem->evt = evt;
+  curdg->evt = evt;
+
+  return 1;
+}
 
 void xxxstdFetchFuncSFNoSSE(struct multArgs *ma, int coeff) {
   const exmo *sfx; int idx, i; cint c; 
@@ -451,14 +488,12 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
     clmd.srcplygpu = NULL;
     clmd.srcplyhst = NULL;
-    clmd.cldg = NULL;
-    clmd.cldghst = NULL;
-    clmd.evtdg = NULL;
     clmd.krn = NULL;
     clmd.evt = NULL;
     clmd.seqinf = NULL;
     clmd.curmat = NULL;
     clmd.dgchain.start = NULL;
+    clmd.srcchain.start = NULL;
 
     ma->fetchFuncSF = &clFetchFuncSF;
     ma->cd6 = &clmd;
@@ -517,6 +552,8 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     if(NULL != *mat) {
       clerr = clSetKernelArg(clmd.krn,2,sizeof(cl_mem),&(clmat->buffer));
       CHKERR(clerr);
+      clerr = clSetKernelArg(clmd.krn,3,sizeof(int),&(clmat->bytesperrow));
+      CHKERR(clerr);
     }
 #endif
   } else {
@@ -539,41 +576,33 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
   (*mtp)->clearMatrix(*mat);
 
-  if(useOpenCL) {
+#ifdef USECL
     cl_int clerr;
     size_t size = 16*srcdim*sizeof(unsigned short);
     unsigned short *wrk;
-    int i;
+    int i,blockstart=0;
+    clmemchain *curdg = NULL;
+    size_t dgnumsmds = 0;
 
-    clmd.srcplyhst = (unsigned short *) ckalloc(size?size:1);
-    clmd.srcplygpu = NULL;
-    i=0;
-    wrk=clmd.srcplyhst;
-    if (mc->firstSource(mc)) 
-      do {
-	clCopyExmo(wrk,mc->srcx);
-	i++;
-	wrk+=16;
-      } while (mc->nextSource(mc));
-
-    clmd.srcplygpu  = clCreateBuffer(clmd.ctx->ctx,
-				     CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
-				     size,
-				     clmd.srcplyhst,
-				     &clerr);
-    CHKERR(clerr);
-    
-    if (mc->firstSource(mc)) 
-      do {
-	
-
-      } while (mc->nextSource(mc));
-
-  } else {
- 
+    if(useOpenCL) {
+      clmd.srcplyhst = (unsigned short *) ckalloc(size?size:1);
+      clmd.srcplygpu = NULL;
+      i=0;
+      wrk=clmd.srcplyhst;
+    }
+#endif
 
     if (mc->firstSource(mc)) 
       do {
+
+	  if(useOpenCL) {
+#ifdef USECL
+	    clCopyExmo(wrk,mc->srcx);
+	    i++;
+	    wrk+=16;
+#endif
+	  }
+
 	ma->cd5 = VPTRFROMUSGN(mc->currow); /* row indicator */
 
 	if ((0 == (mc->currow & theprogmsk)) && (NULL != THEPROGVAR)) {
@@ -635,16 +664,23 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 	  ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
 
 	  if(useOpenCL) {
+#ifdef USECL
+	    cl_mem cldg;
+	    unsigned short *dghst;
 	    cl_int clerr;
-	    if(clmd.evtdg) clWaitForEvents(1,&(clmd.evtdg));
-	    clFinish(clmd.ctx->que); // otherwise cldg is still in use
-	    if(clmd.cldg) clReleaseMemObject(clmd.cldg);
-	    if(clmd.cldghst) ckfree((char *) clmd.cldghst);
+	    cl_event evt;
+
+	    if(curdg) 
+	      if (!clscheduleBlock(ip,mc,&clmd,curdg,
+				   dgnumsmds,blockstart,mc->currow))
+		ma->cd4 = VPTRFROMUSGN(FAIL);
+	    blockstart = mc->currow;
+
 	    clMapPoly(clmd.ctx,dgpolyType, dgpoly, 
-		      &(clmd.cldg), &(clmd.cldghst), &(clmd.dgnumsmds), 
-		      &(clmd.evtdg));
-#ifndef KARG4
-	    clerr = clSetKernelArg(clmd.krn,4,sizeof(cl_mem),&(clmd.cldg));
+		      &cldg, &dghst, &dgnumsmds, &evt);
+	    
+	    curdg = clm2_append(&(clmd.dgchain),NULL,cldg,(char *)dghst);
+	    clerr = clSetKernelArg(clmd.krn,6,sizeof(cl_mem),&cldg);
 	    CHKERR(clerr);
 #endif
 	  }
@@ -653,11 +689,16 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 	if (NULL == dg) continue;
      
 	/* compute mc->srcx * dg */
-            
-	if (mc->srcIspos)
-	  workPAchain(ma);
-	else
-	  workAPchain(ma);
+	if (useOpenCL) {
+#ifdef USECL
+
+#endif
+	} else {
+	  if (mc->srcIspos)
+	    workPAchain(ma);
+	  else
+	    workAPchain(ma);
+	}
 
 	multCount += dgnumsum;
 
@@ -665,31 +706,26 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
       } while (mc->nextSource(mc));
 
-  }
+#ifdef USECL
+    if (useOpenCL) {
+      if(curdg) 
+	if (!clscheduleBlock(ip,mc,&clmd,curdg,
+			     dgnumsmds,blockstart,mc->currow))
+	  ma->cd4 = VPTRFROMUSGN(FAIL);
+    }  
+#endif
     
-  if (SUCCESS != USGNFROMVPTR(ma->cd4)) {
-    if (NULL != ip) {
-      char err[500];
-      Tcl_Obj *aux = Tcl_NewExmoCopyObj(mc->srcx);
-      sprintf(err, "\nwhile computing image of {%s}", 
-	      Tcl_GetString(aux));
-      DECREFCNT(aux);
-      Tcl_AddObjErrorInfo(ip, err, strlen(err));
-    }
-    PROGVARDONE;
-    RELEASEGOBJ;
-    return FAIL;
-  }
-
   PROGVARDONE;
   RELEASEGOBJ;
  
 #ifdef USECL
   if(useOpenCL) {
-    clFinish(clmd.ctx->que);
-    if(clmd.evt) clWaitForEvents(1,&(clmd.evt));
 
     clm2_release(&(clmd.dgchain));
+    clm2_release(&(clmd.srcchain));
+
+    clFinish(clmd.ctx->que);
+    if(clmd.evt) clWaitForEvents(1,&(clmd.evt));
 
     if(clmd.srcplygpu) clReleaseMemObject(clmd.srcplygpu);
     if(clmd.srcplyhst) ckfree((char *) clmd.srcplyhst);
@@ -700,6 +736,18 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
   }
 #endif
    
+  if (SUCCESS != USGNFROMVPTR(ma->cd4)) {
+    if (NULL != ip) {
+      char err[500];
+      Tcl_Obj *aux = Tcl_NewExmoCopyObj(mc->srcx);
+      sprintf(err, "\nwhile computing image of {%s}", 
+	      Tcl_GetString(aux));
+      DECREFCNT(aux);
+      Tcl_AddObjErrorInfo(ip, err, strlen(err));
+    }
+    return FAIL;
+  }
+
   return SUCCESS;
 }
 
