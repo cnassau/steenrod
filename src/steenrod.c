@@ -158,15 +158,66 @@ typedef struct {
 
 #ifdef USECL
 
+typedef struct clmemchain {
+  cl_event evt;
+  cl_mem gpumem;
+  char *hstmem;
+  struct clmemchain *next;
+} clmemchain;
+
+clmemchain *clm_end(clmemchain *c) {
+  while (c->next) c = c->next;
+  return c;
+}
+void clm_append(clmemchain *c, clmemchain *new) {
+  clm_end(c)->next = new;
+  new->next = NULL;
+}
+void clm_release(clmemchain *c) {
+  clmemchain *nx;
+  while(c) {
+    if(c->evt) clWaitForEvents(1,&(c->evt));
+    if(c->gpumem) clReleaseMemObject(c->gpumem);
+    c->gpumem = NULL;
+    if(c->hstmem) ckfree(c->hstmem);
+    c->hstmem = NULL;
+    nx = c->next;
+    ckfree((char *)c);
+    c = nx;
+  }
+}
+
+typedef struct {
+  clmemchain *start, *end;
+} clmemchain2;
+
+void clm2_append(clmemchain2 *clm, cl_event evt, cl_mem mem, char *hmem) {
+  clmemchain *nw = (clmemchain *) ckalloc(sizeof(clmemchain));
+  nw->gpumem = mem;
+  nw->hstmem = hmem;
+  nw->evt = evt;
+  nw->next = NULL;
+  if(NULL == clm->start) {
+    clm->start = nw;
+    clm->end = nw;
+  } else {
+    clm->end->next = nw;
+    clm->end = nw;
+  }
+}
+void clm2_release(clmemchain2 *clm) {
+  clm_release(clm->start);
+}
+
 typedef struct {
   CLCTX *ctx;
   cl_kernel krn;
   size_t rowsize;
 
-  cl_mem cldg;
-  unsigned short *cldghst;
-  size_t dgnumsmds;
-  cl_event evtdg;
+  clmemchain2 dgchain;
+
+  cl_mem srcplygpu;
+  unsigned short *srcplyhst;
 
   cl_mem curmat;
   cl_mem seqinf;
@@ -174,13 +225,21 @@ typedef struct {
   cl_event evt;
 } cl_mult_data;
 
+void clCopyExmo(unsigned short *wrk, const exmo *ex) {
+  int j;
+  for(j=0;j<NALG;j++) wrk[j] = ex->r.dat[j];
+  wrk[15] = ex->gen & 0xffff;
+  wrk[14] = ((ex->gen >> 16) & 0xffff);
+  wrk[13] = ex->ext;
+}
+
 /* load polynomial into gpu-memory */
 cl_int clMapPoly(CLCTX *ctx, polyType *ptp, void *ply, 
                  cl_mem *devmem, unsigned short **hstmem, size_t *numsmds, cl_event *evtptr) {
   size_t nsum = (ptp->getNumsum)(ply), size = 16*nsum*sizeof(unsigned short);
   unsigned short *hbf = (unsigned short *) ckalloc(size?size:1),*wrk;
   cl_mem res = NULL;
-  int i,j;
+  int i;
   cl_int errc;
   exmo exlocal, *ex = &exlocal;
   *numsmds = nsum;
@@ -190,10 +249,7 @@ cl_int clMapPoly(CLCTX *ctx, polyType *ptp, void *ply,
       (ptp->getExmoPtr)(ply,&ex,i);
     else 
       (ptp->getExmo)(ply,&exlocal,i);
-    for(j=0;j<NALG;j++) wrk[j] = ex->r.dat[j];
-    wrk[15] = ex->gen & 0xffff;
-    wrk[14] = ((ex->gen >> 16) & 0xffff);
-    wrk[13] = ex->ext;
+    clCopyExmo(wrk,ex);
   }
    
   res = clCreateBuffer(ctx->ctx,
@@ -201,9 +257,6 @@ cl_int clMapPoly(CLCTX *ctx, polyType *ptp, void *ply,
 		       size,
 		       hbf,
 		       &errc);
-  // clEnqueueWriteBuffer(ctx->que,res,CL_FALSE /* blocking? */,0,size,hbf,0,NULL,evtptr);
-
-  // fprintf(stderr,"created cl poly at %p (device) %p (host) with %d smds\n",res,hbf,(int) nsum);
 
   if(CL_SUCCESS != errc) {
     REPCLERR(errc);
@@ -396,6 +449,8 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
   if(useOpenCL) {
 #ifdef USECL
 
+    clmd.srcplygpu = NULL;
+    clmd.srcplyhst = NULL;
     clmd.cldg = NULL;
     clmd.cldghst = NULL;
     clmd.evtdg = NULL;
@@ -403,6 +458,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     clmd.evt = NULL;
     clmd.seqinf = NULL;
     clmd.curmat = NULL;
+    clmd.dgchain.start = NULL;
 
     ma->fetchFuncSF = &clFetchFuncSF;
     ma->cd6 = &clmd;
@@ -483,114 +539,148 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
   (*mtp)->clearMatrix(*mat);
 
- 
-  if (mc->firstSource(mc)) 
-    do {
-      ma->cd5 = VPTRFROMUSGN(mc->currow); /* row indicator */
+  if(useOpenCL) {
+    cl_int clerr;
+    size_t size = 16*srcdim*sizeof(unsigned short);
+    unsigned short *wrk;
+    int i;
 
-      if ((0 == (mc->currow & theprogmsk)) && (NULL != THEPROGVAR)) {
-	perc = mc->currow; perc /= srcdim; 
-	Tcl_UpdateLinkedVar(ip, THEPROGVAR);
-      }
+    clmd.srcplyhst = (unsigned short *) ckalloc(size?size:1);
+    clmd.srcplygpu = NULL;
+    i=0;
+    wrk=clmd.srcplyhst;
+    if (mc->firstSource(mc)) 
+      do {
+	clCopyExmo(wrk,mc->srcx);
+	i++;
+	wrk+=16;
+      } while (mc->nextSource(mc));
 
-      /* find differential of mc->srcx'es generator */
-      ma->ffdat = mc->srcx;
-      ma->ffMaxLength = exmoGetRedLen(mc->srcx);
-      ma->ffMaxLength = MIN(ma->ffMaxLength, NALG-2);
-
-      if (theG.gen != mc->srcx->gen) {
-	/* new generator: need to get its differential dg */
-
-	theG.gen = mc->srcx->gen; 
-	dg = momapGetValPtr(map, theGObj);
-                
-	if (NULL == dg) continue;
-
-	if (TCL_OK != Tcl_ConvertToPoly(ip, dg)) {
-	  char err[200];
-	  sprintf(err,"target of generator #%d not of polynomial type", 
-		  theG.gen);
-	  PROGVARDONE;
-	  RELEASEGOBJ;
-	  RETERR(err);
-	}
-
-	dgpolyType = polyTypeFromTclObj(dg);
-	dgpoly     = polyFromTclObj(dg);
-	dgnumsum   = PLgetNumsum(dgpolyType, dgpoly);
-
-	if (dgispos) {
-	  if (SUCCESS != PLtest(dgpolyType, dgpoly, ISPOSITIVE)) { 
-	    char err[200];
-	    /* TODO: should we make sure and check each summand ? */ 
-	    sprintf(err,"target of generator #%d not positive (?)", 
-		    theG.gen);
-	    PROGVARDONE;
-	    RELEASEGOBJ;
-	    RETERR(err);
-	  }
-	} else {
-	  if (SUCCESS != PLtest(dgpolyType, dgpoly, ISNEGATIVE)) { 
-	    char err[200];
-	    /* TODO: should we make sure and check each summand ? */ 
-	    sprintf(err,"target of generator #%d not negative (?)", 
-		    theG.gen);
-	    PROGVARDONE;
-	    RELEASEGOBJ;
-	    RETERR(err);
-	  }
-	}
-
-	ma->sfdat  = dgpolyType; 
-	ma->sfdat2 = dgpoly;
-	ma->sfMaxLength = PLgetMaxRedLength(dgpolyType, dgpoly);
-	ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
-
-        if(useOpenCL) {
-	  cl_int clerr;
-	  if(clmd.evtdg) clWaitForEvents(1,&(clmd.evtdg));
-	  clFinish(clmd.ctx->que); // otherwise cldg is still in use
-	  if(clmd.cldg) clReleaseMemObject(clmd.cldg);
-	  if(clmd.cldghst) ckfree((char *) clmd.cldghst);
-	  clMapPoly(clmd.ctx,dgpolyType, dgpoly, 
-		    &(clmd.cldg), &(clmd.cldghst), &(clmd.dgnumsmds), 
-		    &(clmd.evtdg));
-#ifndef KARG4
-	  clerr = clSetKernelArg(clmd.krn,4,sizeof(cl_mem),&(clmd.cldg));
-	  CHKERR(clerr);
-#endif
-        }
-      }
-
-      if (NULL == dg) continue;
-     
-      /* compute mc->srcx * dg */
-            
-      if (mc->srcIspos)
-	workPAchain(ma);
-      else
-	workAPchain(ma);
-
-      multCount += dgnumsum;
-
-      if (SUCCESS != USGNFROMVPTR(ma->cd4)) {
-	if (NULL != ip) {
-	  char err[500];
-	  Tcl_Obj *aux = Tcl_NewExmoCopyObj(mc->srcx);
-	  sprintf(err, "\nwhile computing image of {%s}", 
-		  Tcl_GetString(aux));
-	  DECREFCNT(aux);
-	  Tcl_AddObjErrorInfo(ip, err, strlen(err));
-	}
-	PROGVARDONE;
-	RELEASEGOBJ;
-	return FAIL;
-      }
-
-    } while (mc->nextSource(mc));
-
-
+    clmd.srcplygpu  = clCreateBuffer(clmd.ctx->ctx,
+				     CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+				     size,
+				     clmd.srcplyhst,
+				     &clerr);
+    CHKERR(clerr);
     
+    if (mc->firstSource(mc)) 
+      do {
+	
+
+      } while (mc->nextSource(mc));
+
+  } else {
+ 
+
+    if (mc->firstSource(mc)) 
+      do {
+	ma->cd5 = VPTRFROMUSGN(mc->currow); /* row indicator */
+
+	if ((0 == (mc->currow & theprogmsk)) && (NULL != THEPROGVAR)) {
+	  perc = mc->currow; perc /= srcdim; 
+	  Tcl_UpdateLinkedVar(ip, THEPROGVAR);
+	}
+
+	/* find differential of mc->srcx'es generator */
+	ma->ffdat = mc->srcx;
+	ma->ffMaxLength = exmoGetRedLen(mc->srcx);
+	ma->ffMaxLength = MIN(ma->ffMaxLength, NALG-2);
+
+	if (theG.gen != mc->srcx->gen) {
+	  /* new generator: need to get its differential dg */
+
+	  theG.gen = mc->srcx->gen; 
+	  dg = momapGetValPtr(map, theGObj);
+                
+	  if (NULL == dg) continue;
+
+	  if (TCL_OK != Tcl_ConvertToPoly(ip, dg)) {
+	    char err[200];
+	    sprintf(err,"target of generator #%d not of polynomial type", 
+		    theG.gen);
+	    PROGVARDONE;
+	    RELEASEGOBJ;
+	    RETERR(err);
+	  }
+
+	  dgpolyType = polyTypeFromTclObj(dg);
+	  dgpoly     = polyFromTclObj(dg);
+	  dgnumsum   = PLgetNumsum(dgpolyType, dgpoly);
+
+	  if (dgispos) {
+	    if (SUCCESS != PLtest(dgpolyType, dgpoly, ISPOSITIVE)) { 
+	      char err[200];
+	      /* TODO: should we make sure and check each summand ? */ 
+	      sprintf(err,"target of generator #%d not positive (?)", 
+		      theG.gen);
+	      PROGVARDONE;
+	      RELEASEGOBJ;
+	      RETERR(err);
+	    }
+	  } else {
+	    if (SUCCESS != PLtest(dgpolyType, dgpoly, ISNEGATIVE)) { 
+	      char err[200];
+	      /* TODO: should we make sure and check each summand ? */ 
+	      sprintf(err,"target of generator #%d not negative (?)", 
+		      theG.gen);
+	      PROGVARDONE;
+	      RELEASEGOBJ;
+	      RETERR(err);
+	    }
+	  }
+
+	  ma->sfdat  = dgpolyType; 
+	  ma->sfdat2 = dgpoly;
+	  ma->sfMaxLength = PLgetMaxRedLength(dgpolyType, dgpoly);
+	  ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
+
+	  if(useOpenCL) {
+	    cl_int clerr;
+	    if(clmd.evtdg) clWaitForEvents(1,&(clmd.evtdg));
+	    clFinish(clmd.ctx->que); // otherwise cldg is still in use
+	    if(clmd.cldg) clReleaseMemObject(clmd.cldg);
+	    if(clmd.cldghst) ckfree((char *) clmd.cldghst);
+	    clMapPoly(clmd.ctx,dgpolyType, dgpoly, 
+		      &(clmd.cldg), &(clmd.cldghst), &(clmd.dgnumsmds), 
+		      &(clmd.evtdg));
+#ifndef KARG4
+	    clerr = clSetKernelArg(clmd.krn,4,sizeof(cl_mem),&(clmd.cldg));
+	    CHKERR(clerr);
+#endif
+	  }
+	}
+
+	if (NULL == dg) continue;
+     
+	/* compute mc->srcx * dg */
+            
+	if (mc->srcIspos)
+	  workPAchain(ma);
+	else
+	  workAPchain(ma);
+
+	multCount += dgnumsum;
+
+	if (SUCCESS != USGNFROMVPTR(ma->cd4)) break;
+
+      } while (mc->nextSource(mc));
+
+  }
+    
+  if (SUCCESS != USGNFROMVPTR(ma->cd4)) {
+    if (NULL != ip) {
+      char err[500];
+      Tcl_Obj *aux = Tcl_NewExmoCopyObj(mc->srcx);
+      sprintf(err, "\nwhile computing image of {%s}", 
+	      Tcl_GetString(aux));
+      DECREFCNT(aux);
+      Tcl_AddObjErrorInfo(ip, err, strlen(err));
+    }
+    PROGVARDONE;
+    RELEASEGOBJ;
+    return FAIL;
+  }
+
   PROGVARDONE;
   RELEASEGOBJ;
  
@@ -599,9 +689,10 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     clFinish(clmd.ctx->que);
     if(clmd.evt) clWaitForEvents(1,&(clmd.evt));
 
-    if(clmd.evtdg) clWaitForEvents(1,&(clmd.evtdg));
-    if(clmd.cldg) clReleaseMemObject(clmd.cldg);
-    if(clmd.cldghst) ckfree((char *) clmd.cldghst);
+    clm2_release(&(clmd.dgchain));
+
+    if(clmd.srcplygpu) clReleaseMemObject(clmd.srcplygpu);
+    if(clmd.srcplyhst) ckfree((char *) clmd.srcplyhst);
 
     if(clmd.curmat) clReleaseMemObject(clmd.curmat);
     if(clmd.seqinf) clReleaseMemObject(clmd.seqinf);
