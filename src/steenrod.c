@@ -223,6 +223,7 @@ typedef struct {
 
   cl_mem curmat;
   cl_mem seqinf;
+  cl_mem semaphores;
 
   cl_event evt;
 } cl_mult_data;
@@ -230,6 +231,7 @@ typedef struct {
 void clCopyExmo(unsigned short *wrk, const exmo *ex) {
   int j;
   for(j=0;j<NALG;j++) wrk[j] = ex->r.dat[j];
+  for(;j<8;j++) wrk[j] = 0;
   wrk[15] = ex->gen & 0xffff;
   wrk[14] = ((ex->gen >> 16) & 0xffff);
   wrk[13] = ex->ext;
@@ -256,9 +258,11 @@ cl_int clMapPoly(CLCTX *ctx, polyType *ptp, void *ply,
    
   res = clCreateBuffer(ctx->ctx,
 		       CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
-		       size,
+		       size?size:1,
 		       hbf,
 		       &errc);
+
+  //fprintf(stderr,"> "); for(i=0;i<size;i++) fprintf(stderr," %02x",((unsigned char *) hbf)[i]); fprintf(stderr,"\n"); 
 
   if(CL_SUCCESS != errc) {
     REPCLERR(errc);
@@ -267,67 +271,6 @@ cl_int clMapPoly(CLCTX *ctx, polyType *ptp, void *ply,
   *hstmem = hbf;
   return errc;
 }
-
-void clFetchFuncSF(struct multArgs *ma, int coeff) {
-  cl_mult_data *clmd = (cl_mult_data *) ma->cd6;
-  CLCTX *ctx = clmd->ctx;
-  cl_int clerr = CL_SUCCESS;
-
-#define CLFFERR(errc) {							\
-    if(CL_SUCCESS != errc) {						\
-      if(ma->TclInterp) Tcl_SetResult(ma->TclInterp,(char *) clerrorstring(clerr),TCL_VOLATILE); \
-      goto clfferr; } }
-
-  unsigned row = USGNFROMVPTR(ma->cd5);
-
-  cl_matrix *outmat = (cl_matrix *) (ma->cd2);
-  int rowoffset = outmat->bytesperrow * row;
-  short mx[20];
-  int i;
-
-  for(i=0;i<8;i++) {
-    mx[i] = (i<NALG) ? ma->sum[0][i+1] : 0;
-    mx[8+i] = (i<NALG) ? ma->msk[1][i] : 0;
-  }
-  mx[16] = ma->esum[1];
-  mx[17] = ma->emsk[1];
-  mx[18] = coeff;
-
-  for(i=0;i<19;i++) {
-    clerr = clSetKernelArg(clmd->krn,5+i,sizeof(short),&(mx[i])); 
-    CLFFERR(clerr);
-  }
-
-#ifdef KARG2
-  clerr = clSetKernelArg(clmd->krn,2,sizeof(cl_mem),&(outmat->buffer));
-  CLFFERR(clerr);
-#endif
-  clerr = clSetKernelArg(clmd->krn,3,sizeof(int),&rowoffset);
-  CLFFERR(clerr);
-#ifdef KARG01
-  clerr = clSetKernelArg(clmd->krn,0,sizeof(cl_mem),&(clmd->seqinf));
-  CLFFERR(clerr);
-  clerr = clSetKernelArg(clmd->krn,1,sizeof(cl_mem),&(clmd->curmat));
-  CLFFERR(clerr);
-#endif
-#ifdef KARG4
-  clerr = clSetKernelArg(clmd->krn,4,sizeof(cl_mem),&(clmd->cldg));
-  CLFFERR(clerr);
-#endif
-
-#if 0
-  size_t globws = clmd->dgnumsmds, locws;
-  clerr = clEnqueueNDRangeKernel(ctx->que,clmd->krn,1,
-                                 NULL,&globws,/*&locws/*/NULL,0,NULL,NULL);
-  CLFFERR(clerr);
-#endif
-
-  return; 
-
- clfferr:
-  ma->cd4 = (void *) FAIL;
-
-};
 
 int clscheduleBlock(Tcl_Interp *ip, 
 		     MatCompTaskInfo *mc,
@@ -362,6 +305,7 @@ int clscheduleBlock(Tcl_Interp *ip,
   errc = clSetKernelArg(clmd->krn,5,sizeof(cl_mem),&smem);
   BCERR(errc);
 
+  //fprintf(stderr,"enqueing kernel %d x %d times\n",srcsz,dgnsums);
   errc = clEnqueueNDRangeKernel(clmd->ctx->que,clmd->krn,2,
                                  NULL,worksize,/*&locws/*/NULL,0,NULL,&evt);
   BCERR(errc);
@@ -492,10 +436,11 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     clmd.evt = NULL;
     clmd.seqinf = NULL;
     clmd.curmat = NULL;
+    clmd.semaphores = NULL;
     clmd.dgchain.start = NULL;
     clmd.srcchain.start = NULL;
 
-    ma->fetchFuncSF = &clFetchFuncSF;
+    ma->fetchFuncSF = NULL; //&clFetchFuncSF;
     ma->cd6 = &clmd;
 
     cl_int clerr;
@@ -550,10 +495,33 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     *mat = clmat;
 #ifndef KARG2
     if(NULL != *mat) {
+      size_t nsema = srcdim*dstdim;
+      int nsema2;
+#define MAXSEMA 101111
+      if(nsema>MAXSEMA) nsema=MAXSEMA;
+      nsema2=nsema;
+
+      clmd.semaphores = clCreateBuffer(clmd.ctx->ctx,
+				       CL_MEM_READ_WRITE|CL_MEM_ALLOC_HOST_PTR,
+				       sizeof(int)*nsema,
+				       NULL,
+				       &clerr);
+      CHKERR(clerr);
+      clSetKernelArg(clmd.ctx->memset0,0,sizeof(cl_mem),&(clmd.semaphores));
+      clerr = clEnqueueNDRangeKernel(clmd.ctx->que,clmd.ctx->memset0,1,NULL,
+				     &nsema,NULL,0,NULL,NULL);
+
+
       clerr = clSetKernelArg(clmd.krn,2,sizeof(cl_mem),&(clmat->buffer));
       CHKERR(clerr);
       clerr = clSetKernelArg(clmd.krn,3,sizeof(int),&(clmat->bytesperrow));
       CHKERR(clerr);
+
+      clerr = clSetKernelArg(clmd.krn,7,sizeof(cl_mem),&(clmd.semaphores));
+      CHKERR(clerr);
+      clerr = clSetKernelArg(clmd.krn,8,sizeof(int),&nsema2);
+      CHKERR(clerr);
+
     }
 #endif
   } else {
@@ -732,6 +700,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
     if(clmd.curmat) clReleaseMemObject(clmd.curmat);
     if(clmd.seqinf) clReleaseMemObject(clmd.seqinf);
+    if(clmd.semaphores) clReleaseMemObject(clmd.semaphores);
     //if(clmd.krn) clReleaseKernel(clmd.krn);
   }
 #endif
