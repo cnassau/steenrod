@@ -223,7 +223,7 @@ typedef struct {
 
   cl_mem curmat;
   cl_mem seqinf;
-  cl_mem semaphores;
+  cl_mem outvars;
 
   cl_event evt;
 } cl_mult_data;
@@ -436,9 +436,11 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     clmd.evt = NULL;
     clmd.seqinf = NULL;
     clmd.curmat = NULL;
-    clmd.semaphores = NULL;
+    clmd.outvars = NULL;
     clmd.dgchain.start = NULL;
     clmd.srcchain.start = NULL;
+
+#define NUMOUTVARS 20
 
     ma->fetchFuncSF = NULL; //&clFetchFuncSF;
     ma->cd6 = &clmd;
@@ -495,21 +497,15 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     *mat = clmat;
 #ifndef KARG2
     if(NULL != *mat) {
-      size_t nsema = srcdim*dstdim;
-      int nsema2;
-#define MAXSEMA 101111
-      if(nsema>MAXSEMA) nsema=MAXSEMA;
-      nsema2=nsema;
+      int ovars[NUMOUTVARS], k;
+      for(k=0;k<NUMOUTVARS;k++) ovars[k]=0;
 
-      clmd.semaphores = clCreateBuffer(clmd.ctx->ctx,
-				       CL_MEM_READ_WRITE|CL_MEM_ALLOC_HOST_PTR,
-				       sizeof(int)*nsema,
-				       NULL,
-				       &clerr);
+      clmd.outvars = clCreateBuffer(clmd.ctx->ctx,
+				    CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR,
+		                    sizeof(int)*NUMOUTVARS,
+		          	    ovars,
+				    &clerr);
       CHKERR(clerr);
-      clSetKernelArg(clmd.ctx->memset0,0,sizeof(cl_mem),&(clmd.semaphores));
-      clerr = clEnqueueNDRangeKernel(clmd.ctx->que,clmd.ctx->memset0,1,NULL,
-				     &nsema,NULL,0,NULL,NULL);
 
 
       clerr = clSetKernelArg(clmd.krn,2,sizeof(cl_mem),&(clmat->buffer));
@@ -517,11 +513,8 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
       clerr = clSetKernelArg(clmd.krn,3,sizeof(int),&(clmat->bytesperrow));
       CHKERR(clerr);
 
-      clerr = clSetKernelArg(clmd.krn,7,sizeof(cl_mem),&(clmd.semaphores));
+      clerr = clSetKernelArg(clmd.krn,7,sizeof(cl_mem),&(clmd.outvars));
       CHKERR(clerr);
-      clerr = clSetKernelArg(clmd.krn,8,sizeof(int),&nsema2);
-      CHKERR(clerr);
-
     }
 #endif
   } else {
@@ -688,6 +681,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
  
 #ifdef USECL
   if(useOpenCL) {
+    int ovars[NUMOUTVARS];
 
     clm2_release(&(clmd.dgchain));
     clm2_release(&(clmd.srcchain));
@@ -695,13 +689,26 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     clFinish(clmd.ctx->que);
     if(clmd.evt) clWaitForEvents(1,&(clmd.evt));
 
+    clerr = clEnqueueReadBuffer(clmd.ctx->que,clmd.outvars,CL_TRUE /* blocking */,
+                                0 /* offset */, sizeof(int)*NUMOUTVARS, ovars, 0, NULL, NULL);
+
     if(clmd.srcplygpu) clReleaseMemObject(clmd.srcplygpu);
     if(clmd.srcplyhst) ckfree((char *) clmd.srcplyhst);
 
     if(clmd.curmat) clReleaseMemObject(clmd.curmat);
     if(clmd.seqinf) clReleaseMemObject(clmd.seqinf);
-    if(clmd.semaphores) clReleaseMemObject(clmd.semaphores);
+    if(clmd.outvars) clReleaseMemObject(clmd.outvars);
     //if(clmd.krn) clReleaseKernel(clmd.krn);
+
+    if(ovars[0] != 0) {
+       int k;
+       clearExmo(mc->srcx);
+       for(k=0;k<NALG;k++) mc->srcx->r.dat[k] = ovars[3+k];
+       mc->srcx->ext = ovars[2];
+       mc->srcx->gen = ovars[1];
+       ma->cd4 = VPTRFROMUSGN(FAIL);
+       Tcl_SetResult(ip,"map target not found",TCL_VOLATILE); 
+    }
   }
 #endif
    

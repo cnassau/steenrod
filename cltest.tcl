@@ -28,8 +28,23 @@ steenrod::cl::impl::combi program {
     
     int seqnop(__constant int *seqinfo, short16 stop, int g) {
 	
+        if (0&&stop.s3) { return -1; }
 	return 9;
 	return stop.s0;
+    }
+
+    void setError(__global int *outvars, short16 stop, int gen, int errorcode) {
+        outvars[0] = errorcode;
+        outvars[1] = gen;
+        outvars[2] = stop.sd;
+        outvars[3] = stop.s0;
+        outvars[4] = stop.s1;
+        outvars[5] = stop.s2;
+        outvars[6] = stop.s3;
+        outvars[7] = stop.s4;
+        outvars[8] = stop.s5;
+        outvars[9] = stop.s6;
+        outvars[10] = stop.s7;
     }
 
     __kernel void multffp(__constant int *seqinfo,
@@ -39,8 +54,7 @@ steenrod::cl::impl::combi program {
 			  int rowoffset,
 			  __global short16 *ffarray,
 			  __global short16 *sfarray,
-			  __global int *semaphores,
-			  int nsemaphores)
+			  __global int *outvars)
     {
 	short16 ff = ffarray[get_global_id(0)];
 	short16 sf = sfarray[get_global_id(1)];
@@ -48,9 +62,7 @@ steenrod::cl::impl::combi program {
 	const int gen = sf.sf | ((int) sf.se) << 16;
 
 	const int p = 3;
-
-	/* compute ff * sf and store result 
-	** in outmatrix[bytesperrow*row+*] */
+	/* compute ff * sf and store result in outmatrix[bytesperrow*row+*] */
 
 	short16 smd = sf;
 	int coeff = 1;
@@ -63,7 +75,9 @@ steenrod::cl::impl::combi program {
 	    int oldval = atomic_add(&(aux[idx2]),coeff<<(8*off));
 	    atomic_add(&(aux[(bytesperrow*row)/sizeof(int)]),oldval);
 	    // todo: inspect oldval and fix overflows + reduce mod p
-	}
+	} else {
+            setError(outvars,smd,gen,1);
+        }
     }
 
 }
