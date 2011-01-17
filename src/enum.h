@@ -68,6 +68,9 @@ enumerator *enmCreate(void);
 enumerator *enmCopy(enumerator *src);
 void        enmDestroy(enumerator *en);
 
+/* dst = NULL => return number of ints needed, dst != NULL => store data */
+int storeEnum(enumerator *enm, int *dst); 
+
 /* We use the lazy approach for the configuration of an enumerator, so 
  * setting an option to a new value just invalidates all dependent fields;
  * those are then recomputed later on demand. 

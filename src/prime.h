@@ -54,6 +54,9 @@ typedef struct {
     int binom2max;     /* biggest n such that binom(n,*) is available */
  } primeInfo;
 
+/* dst = NULL => return number of ints needed, dst != NULL => store data */
+int storePrimeInfo(primeInfo *pi, int *dst); 
+
 /* possible return values of makePrimeInfo: */
 
 #define PI_OK         0

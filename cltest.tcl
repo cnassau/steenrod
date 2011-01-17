@@ -33,7 +33,64 @@ steenrod::cl::impl::combi program {
 	return stop.s0;
     }
 
+    void addChars4p(__global uint *mem, uchar c0, uchar c1, uchar c2, uchar c3, int p) {
+        union smd {
+           uint i;
+           uchar4 c;
+        } smd, oval, have, want, aux;
+        int ok;
+atomic_inc(mem-1);
+int dummy=0;
+ 
+        smd.c.s0 = c0;
+        smd.c.s1 = c1;
+        smd.c.s2 = c2;
+        smd.c.s3 = c3;
+
+	do {
+	    uchar u;
+	    oval.i = atomic_add(mem,smd.i);
+	    want.c = ((oval.c % p) + (smd.c % p)) % p;
+	    have.i = oval.i + smd.i;
+	    
+	    smd.i = 0;
+	    if(want.c.s0 != (have.c.s0 % p)) {
+		smd.c.s0 = (u = (want.c.s0 - have.c.s0));
+		aux.i=0; aux.c.s0 = u;
+		have.i += aux.i;
+	    }
+	    if(want.c.s1 != (have.c.s1 % p)) {
+		smd.c.s1 = (u = (want.c.s1 - have.c.s1));
+		aux.i=0; aux.c.s1 = u;
+		have.i += aux.i;
+	    }
+	    if(want.c.s2 != (have.c.s2 % p)) {
+		smd.c.s2 = (u = (want.c.s2 - have.c.s2));
+		aux.i=0; aux.c.s2 = u;
+		have.i += aux.i;
+	    }
+	    if(want.c.s3 != (have.c.s3 % p)) {
+		smd.c.s3 = (u = (want.c.s3 - have.c.s3));
+		aux.i=0; aux.c.s3 = u;
+		have.i += aux.i;
+	    }
+	    ok = (smd.i == 0); // (want.i == havep.i);
+	    if (!ok) {
+		atomic_inc(mem+2);//return;
+	    } else {
+		atomic_inc(mem+1);//return;
+	    }
+        } while ( (++dummy<1000) && !ok );
+        // if(dummy>500) { *(mem-1)=dummy; *++mem = -1%p; *++mem = have.i;};  
+    }
+
     void setError(__global int *outvars, short16 stop, int gen, int errorcode) {
+        int oldval = atom_inc(outvars+19);
+        if(oldval != 0) {
+           // hack, because atom_xchg is not available on my machine
+           atom_dec(outvars+19);
+           return;
+        }
         outvars[0] = errorcode;
         outvars[1] = gen;
         outvars[2] = stop.sd;
@@ -61,7 +118,11 @@ steenrod::cl::impl::combi program {
 	const int row = rowoffset + get_global_id(0);
 	const int gen = sf.sf | ((int) sf.se) << 16;
 
-	const int p = 3;
+	__constant int *enumerator = seqinfo + *seqinfo; 
+	__constant int *pinfo = seqinfo;
+	const int p = pinfo[1];
+	const int NALG = pinfo[2];
+
 	/* compute ff * sf and store result in outmatrix[bytesperrow*row+*] */
 
 	short16 smd = sf;
@@ -72,9 +133,12 @@ steenrod::cl::impl::combi program {
 	    __global int *aux = (__global int *)outmatrix;
 	    const int idx2 = idx / sizeof(int);
 	    const int off = idx % sizeof(int);
-	    int oldval = atomic_add(&(aux[idx2]),coeff<<(8*off));
-	    atomic_add(&(aux[(bytesperrow*row)/sizeof(int)]),oldval);
-	    // todo: inspect oldval and fix overflows + reduce mod p
+            addChars4p(aux + idx2,
+                      (0==off) ? coeff : 0,
+                      (1==off) ? coeff : 0,
+                      (2==off) ? coeff : 0,
+                      (3==off) ? coeff : 0,
+                      p);
 	} else {
             setError(outvars,smd,gen,1);
         }

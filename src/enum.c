@@ -690,3 +690,10 @@ polyType enumPolyType = {
     .getExmoPtr = &epoGetExmoPtr
 #endif
 };
+
+/* this routine is used in the opencl implementation
+** to make the enumerator accessible in the gpu */
+int storeEnum(enumerator *enm, int *dst) {
+  
+  return 0;
+}

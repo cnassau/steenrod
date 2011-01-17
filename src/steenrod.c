@@ -223,6 +223,7 @@ typedef struct {
 
   cl_mem curmat;
   cl_mem seqinf;
+  int *seqinfhst;
   cl_mem outvars;
 
   cl_event evt;
@@ -305,7 +306,7 @@ int clscheduleBlock(Tcl_Interp *ip,
   errc = clSetKernelArg(clmd->krn,5,sizeof(cl_mem),&smem);
   BCERR(errc);
 
-  //fprintf(stderr,"enqueing kernel %d x %d times\n",srcsz,dgnsums);
+  fprintf(stderr,"enqueing kernel %d x %d times\n",srcsz,dgnsums);
   errc = clEnqueueNDRangeKernel(clmd->ctx->que,clmd->krn,2,
                                  NULL,worksize,/*&locws/*/NULL,0,NULL,&evt);
   BCERR(errc);
@@ -435,6 +436,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     clmd.krn = NULL;
     clmd.evt = NULL;
     clmd.seqinf = NULL;
+    clmd.seqinfhst = NULL;
     clmd.curmat = NULL;
     clmd.outvars = NULL;
     clmd.dgchain.start = NULL;
@@ -462,10 +464,17 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     } 
     clmd.krn = ctx->multffp;
 
+    size_t szp = storePrimeInfo(dst->pi,NULL),
+      seqsz = szp + storeEnum(dst,NULL);
+    if(0==seqsz) seqsz=1;
+    clmd.seqinfhst = (int *) ckalloc(sizeof(int) * seqsz);
+    if(NULL == clmd.seqinfhst) DOFAIL("out of memory");
+    storePrimeInfo(dst->pi,clmd.seqinfhst);
+    storeEnum(dst,clmd.seqinfhst+szp);
     clmd.seqinf = clCreateBuffer(ctx->ctx,
-                                 CL_MEM_READ_ONLY,
-                                 999,
-                                 NULL,
+                                 CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+                                 seqsz,
+                                 clmd.seqinfhst,
                                  &clerr);
     CHKERR(clerr);
 
@@ -697,6 +706,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 
     if(clmd.curmat) clReleaseMemObject(clmd.curmat);
     if(clmd.seqinf) clReleaseMemObject(clmd.seqinf);
+    if(clmd.seqinfhst) ckfree((char *)clmd.seqinfhst);
     if(clmd.outvars) clReleaseMemObject(clmd.outvars);
     //if(clmd.krn) clReleaseKernel(clmd.krn);
 

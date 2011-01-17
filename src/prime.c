@@ -13,6 +13,30 @@
 
 #include "prime.h"
 
+/* dst = NULL => return number of ints needed, dst != NULL => store data */
+int storePrimeInfo(primeInfo *pi, int *dst) {
+  int k,l, p=pi->prime;
+
+  if(NULL == dst) return 4+3*NALG+p+p*p;
+  
+  dst[0] = storePrimeInfo(pi,NULL);
+  dst[1] = pi->prime;
+  dst[2] = NALG;
+  
+  for(k=0;k<NALG;k++) {
+    dst[3+0*NALG+k] = pi->primpows[k];
+    dst[3+1*NALG+k] = pi->extdegs[k];
+    dst[3+2*NALG+k] = pi->reddegs[k];
+  }
+  for(k=1;k<p;k++)
+    dst[3+3*NALG+k] = pi->inverse[k];
+
+  for(k=0;k<p;k++)
+    for(l=0;l<p;l++)
+      dst[3+3*NALG+p+k*p+l] = pi->binom[k*p+l];
+  return 0;
+}
+
 /*::: Basic stuff ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
 /* primpows, extdegs, reddegs */
