@@ -103,15 +103,16 @@ return soff;
 	do {
 	    uchar u;
 	    oval.i = atomic_add(mem,smd.i);
-	    want.c = ((oval.c % p) + (smd.c % p)) % p;
+	    want.c = ((oval.c % p) + smd.c) % p;
 	    have.i = oval.i + smd.i;
 	    havep.c = have.c % p;
 	    ok = (want.i == havep.i);
 	    if (!ok) {
-                smd.c.s0 = ((p+want.c.s0) - (havep.c.s0)) % p;
-                smd.c.s1 = ((p+want.c.s1) - (havep.c.s1)) % p;
-                smd.c.s2 = ((p+want.c.s2) - (havep.c.s2)) % p;
-                smd.c.s3 = ((p+want.c.s3) - (havep.c.s3)) % p;
+                smd.c.s0 = (want.c.s0 + (p- havep.c.s0));
+                smd.c.s1 = (want.c.s1 + (p- havep.c.s1));
+                smd.c.s2 = (want.c.s2 + (p- havep.c.s2));
+                smd.c.s3 = (want.c.s3 + (p- havep.c.s3));
+                smd.c %= p;
 	    }
         } while ( !ok && (++dummy<1000000) );
     }
@@ -188,8 +189,9 @@ if ((get_global_id(1) > 0) || (get_global_id(0) > 0) ) return;
 }
 
 set testsz 1368
+#set testsz 768
 #set testsz 368
-set testsz 268
+#set testsz 268
 #set testsz 168
 #set testsz 35
 
@@ -207,15 +209,18 @@ proc runtest {enmconfig} {
     set cnt 0
     set gl {}
     set gcnt -1
+unset -nocomplain glcnt
     foreach m [A basis] {
 	if {($cnt&0x1ff)==0} {
 	    incr gcnt
 	    lappend gl [list $gcnt 0 0]
 	}
+incr glcnt($gcnt)
 	lset m end $gcnt
 	d add [list 1 0 {} 0] [list $m]
 	incr cnt
     }
+parray glcnt
 puts gcnt=$gcnt
     #puts [join [d list] \n]
 

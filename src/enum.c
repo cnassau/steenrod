@@ -723,12 +723,9 @@ int storeEnum(enumerator *enm, int *dst) {
 
    sz = 16 + (sz & 0xfffff0);
    if(dst) dst[60] = sz;
-fprintf(stderr,"efflist at idx %d\n",sz);
    if(dst) dst[61] = enm->efflen;
    for(k=0;k<enm->efflen;k++,sz+=4) {
      if(dst) {
-
-fprintf(stderr,"effgen %d: (%d,%d,%d,%d)\n",k,enm->efflist[k].id,enm->efflist[k].ext,enm->efflist[k].rrideg,enm->seqoff[k]);
        dst[sz+0] = enm->efflist[k].id;
        dst[sz+1] = enm->efflist[k].ext;
        dst[sz+2] = enm->efflist[k].rrideg;
