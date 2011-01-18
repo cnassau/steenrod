@@ -27,6 +27,13 @@ steenrod::cl::impl::combi program {
     }
     
     int seqnop(__constant int *seqinfo, short16 stop, int g) {
+        __constant int *algebra = seqinfo+1;	
+        __constant int *profile = seqinfo+15;
+        __constant int *dimtab  = seqinfo+30;
+        __constant int *seqtab  = seqinfo+45;
+        __constant int *efflist = seqinfo+60;
+        const int efflen        = seqinfo[61];
+
 	
         if (0&&stop.s3) { return -1; }
 	return 9;

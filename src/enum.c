@@ -694,6 +694,44 @@ polyType enumPolyType = {
 /* this routine is used in the opencl implementation
 ** to make the enumerator accessible in the gpu */
 int storeEnum(enumerator *enm, int *dst) {
+   int sz=100,k,l;
+ 
+   if(dst) {
+      dst[0] = storeEnum(enm,NULL);
+
+      dst[1] = enm->algebra.ext;
+      for(k=0;k<12;k++) 
+         dst[2+k] = (k<NALG) ? enm->algebra.r.dat[k] : 0; 
+ 
+      dst[15] = enm->profile.ext;
+      for(k=0;k<12;k++) 
+         dst[16+k] = (k<NALG) ? enm->algebra.r.dat[k] : 0;     
+   }
   
-  return 0;
+   sz = 100; /* start of dynamically sized data */
+
+   for(k=0;k<NALG;k++) {
+      if (dst) dst[30+k] = sz;
+      for(l=0;l<enm->tablen;l++,sz++)
+         if (dst) dst[sz] = enm->dimtab[k][l];
+   }
+   for(k=0;k<NALG;k++) {
+      if (dst) dst[45+k] = sz;
+      for(l=0;l<enm->tablen;l++,sz++)
+         if (dst) dst[sz] = enm->seqtab[k][l];
+   }
+
+   if(dst) dst[60] = sz;
+   if(dst) dst[61] = enm->efflen;
+   for(k=0;k<enm->efflen;k++,sz+=4) {
+     if(dst) {
+       dst[sz+0] = enm->efflist[k].id;
+       dst[sz+1] = enm->efflist[k].ext;
+       dst[sz+2] = enm->efflist[k].rrideg;
+       dst[sz+3] = enm->seqoff[k];
+     }
+   }
+
+   return sz;
 }
+
