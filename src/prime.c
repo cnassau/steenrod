@@ -17,7 +17,7 @@
 int storePrimeInfo(primeInfo *pi, int *dst) {
   int k,l, p=pi->prime, sz;
 
-  sz = 4+3*NALG+p+p*p;
+  sz = 70+p+k*p+l;
   sz = 8 + (0xffffff8&sz); // fix alignment
 
   if(NULL == dst) return sz;
@@ -26,17 +26,17 @@ int storePrimeInfo(primeInfo *pi, int *dst) {
   dst[1] = pi->prime;
   dst[2] = NALG;
   
-  for(k=0;k<NALG;k++) {
-    dst[3+0*NALG+k] = pi->primpows[k];
-    dst[3+1*NALG+k] = pi->extdegs[k];
-    dst[3+2*NALG+k] = pi->reddegs[k];
+  for(k=0;k<16;k++) {
+    dst[16+k] = (k<NALG) ? pi->primpows[k] : 0;
+    dst[32+k] = (k<NALG) ? pi->extdegs[k] : 0;
+    dst[48+k] = (k<NALG) ? pi->reddegs[k] : 0;
   }
   for(k=1;k<p;k++)
-    dst[3+3*NALG+k] = pi->inverse[k];
+    dst[70+k] = pi->inverse[k];
 
   for(k=0;k<p;k++)
     for(l=0;l<p;l++)
-      dst[3+3*NALG+p+k*p+l] = pi->binom[k*p+l];
+      dst[70+p+k*p+l] = pi->binom[k*p+l];
   return 0;
 }
 

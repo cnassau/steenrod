@@ -473,7 +473,6 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     if(NULL == clmd.seqinfhst) DOFAIL("out of memory");
     storePrimeInfo(dst->pi,clmd.seqinfhst);
     storeEnum(dst,clmd.seqinfhst+szp);
-fprintf(stderr,"seqinf at %p, efflen=%d=%d, size=%d\n",clmd.seqinfhst+szp,dst->efflen,clmd.seqinfhst[szp+61],seqsz);
     clmd.seqinf = clCreateBuffer(ctx->ctx,
                                  CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
                                  seqsz*sizeof(int),

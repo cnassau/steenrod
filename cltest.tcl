@@ -281,7 +281,7 @@ steenrod::cl::impl::combi program {
 
 	short16 smd = sf;
 	int coeff = 1;
-	int sqno = seqnop(seqinfo,smd,gen);
+	int sqno = 1;//seqnop(seqinfo,smd,gen);
 	
 	if(sqno>=0) {
 	    const int idx = bytesperrow*row+sqno;

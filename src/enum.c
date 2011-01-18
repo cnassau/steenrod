@@ -705,7 +705,9 @@ int storeEnum(enumerator *enm, int *dst) {
  
       dst[15] = enm->profile.ext;
       for(k=0;k<12;k++) 
-         dst[16+k] = (k<NALG) ? enm->algebra.r.dat[k] : 0;     
+         dst[16+k] = (k<NALG) ? enm->profile.r.dat[k] : 0;   
+
+      dst[65] = enm->ispos;
    }
   
    sz = 0x100; /* start of dynamically sized data */
