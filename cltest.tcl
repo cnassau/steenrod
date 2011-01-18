@@ -75,7 +75,7 @@ steenrod::cl::impl::combi program {
 	exo /= prof8; exo *= prof8;
 	int8 actdeg = exo * rdegs;
 
-#if 1
+#if 0
 	if(stop.s0==5 && stop.s1==1 && stop.s2 == 3)
 	printf("p=%d,N=%d,deg=%d,stop=%v8i\n"
 	       "alg8=%v8i, prof8=%v8i, rdegs=%v8i, "
@@ -281,7 +281,7 @@ steenrod::cl::impl::combi program {
 
 	short16 smd = sf;
 	int coeff = 1;
-	int sqno = 1;//seqnop(seqinfo,smd,gen);
+	int sqno = seqnop(seqinfo,smd,gen);
 	
 	if(sqno>=0) {
 	    const int idx = bytesperrow*row+sqno;
