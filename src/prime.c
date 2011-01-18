@@ -15,9 +15,12 @@
 
 /* dst = NULL => return number of ints needed, dst != NULL => store data */
 int storePrimeInfo(primeInfo *pi, int *dst) {
-  int k,l, p=pi->prime;
+  int k,l, p=pi->prime, sz;
 
-  if(NULL == dst) return 4+3*NALG+p+p*p;
+  sz = 4+3*NALG+p+p*p;
+  sz = 8 + (0xffffff8&sz); // fix alignment
+
+  if(NULL == dst) return sz;
   
   dst[0] = storePrimeInfo(pi,NULL);
   dst[1] = pi->prime;

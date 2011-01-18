@@ -464,6 +464,8 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     } 
     clmd.krn = ctx->multffp;
 
+    exmo e; SeqnoFromEnum(dst,&e); // to initialize dst->seqtab
+
     size_t szp = storePrimeInfo(dst->pi,NULL),
       seqsz = szp + storeEnum(dst,NULL);
     if(0==seqsz) seqsz=1;
@@ -471,9 +473,10 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     if(NULL == clmd.seqinfhst) DOFAIL("out of memory");
     storePrimeInfo(dst->pi,clmd.seqinfhst);
     storeEnum(dst,clmd.seqinfhst+szp);
+fprintf(stderr,"seqinf at %p, efflen=%d=%d, size=%d\n",clmd.seqinfhst+szp,dst->efflen,clmd.seqinfhst[szp+61],seqsz);
     clmd.seqinf = clCreateBuffer(ctx->ctx,
                                  CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
-                                 seqsz,
+                                 seqsz*sizeof(int),
                                  clmd.seqinfhst,
                                  &clerr);
     CHKERR(clerr);

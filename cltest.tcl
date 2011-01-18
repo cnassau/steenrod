@@ -25,17 +25,60 @@ steenrod::cl::impl::combi program {
     {
 	int prevVal = atomic_xchg(semaphor, 0);
     }
-    
-    int seqnop(__constant int *seqinfo, short16 stop, int g) {
-        __constant int *algebra = seqinfo+1;	
-        __constant int *profile = seqinfo+15;
-        __constant int *dimtab  = seqinfo+30;
-        __constant int *seqtab  = seqinfo+45;
-        __constant int *efflist = seqinfo+60;
-        const int efflen        = seqinfo[61];
 
+
+  
+#ifndef __ENDIAN_LITTLE__
+   unchecked!
+#endif
+
+    typedef struct {
+       int id;
+       int ext;
+       int rrideg;
+       int seqoff;
+    } effgen;
+
+
+    int seqoffp(__constant effgen *efflist, int efflen, int id, int ext, int *rrideg) {
+        __constant effgen *bot = efflist, *top = efflist + efflen, *wrk2 = bot + efflen/2, *wrk = 0;
+        int cr, dummy=0;
+#if 1
+for(cr=0;cr<efflen;cr++)
+if(efflist[cr].id==id && efflist[cr].ext==ext) { *rrideg = efflist[cr].rrideg; return efflist[cr].seqoff; };
+return -1;
+#else
+do {
+           wrk = wrk2;
+           if(wrk->ext != ext) { cr = ext - wrk->ext; } else { cr = id - wrk->id; };
+           if(0==cr) {
+              *rrideg = wrk->rrideg;
+              return wrk->seqoff;
+           } 
+           if(0<cr) {
+              wrk2 = wrk + (top-wrk)/2;
+           } else {
+              wrk2 = bot + (wrk-bot)/2;
+           }
+        } while (wrk != wrk2 && (++dummy<10000));
+        return -1;
+#endif
+    } 
+ 
+    int seqnop(__constant int *constinfo, short16 stop, int g) {
+	__constant int    *seqinfo = constinfo + *constinfo; 
+        __constant int    *algebra = seqinfo+1;	
+        __constant int    *profile = seqinfo+15;
+        __constant int    *dimtab  = seqinfo+30;
+        __constant int    *seqtab  = seqinfo+45;
+        __constant effgen *efflist = (__constant effgen *) (seqinfo+seqinfo[60]);
+        const int efflen           = seqinfo[61];
+
+        int effrrideg;
+        int soff = seqoffp(efflist,efflen,g,stop.sd,&effrrideg);
+        if(soff<0) return -1;
+return soff;
 	
-        if (0&&stop.s3) { return -1; }
 	return 9;
 	return stop.s0;
     }
@@ -112,17 +155,24 @@ steenrod::cl::impl::combi program {
 	const int p = pinfo[1];
 	const int NALG = pinfo[2];
 
+
+#if 0
+if ((get_global_id(1) > 0) || (get_global_id(0) > 0) ) return;
+#endif
+
+
 	/* compute ff * sf and store result in outmatrix[bytesperrow*row+*] */
 
 	short16 smd = sf;
 	int coeff = 1;
 	int sqno = seqnop(seqinfo,smd,gen);
-	if(sqno>=0) {
+	
+        if(sqno>=0) {
 	    const int idx = bytesperrow*row+sqno;
-	    __global int *aux = (__global int *)outmatrix;
 	    const int idx2 = idx / sizeof(int);
 	    const int off = idx % sizeof(int);
-            addChars4p(aux + idx2,
+
+            addChars4p( ((__global uint *) outmatrix) + idx2,
                       (0==off) ? coeff : 0,
                       (1==off) ? coeff : 0,
                       (2==off) ? coeff : 0,
@@ -131,13 +181,15 @@ steenrod::cl::impl::combi program {
 	} else {
             setError(outvars,smd,gen,1);
         }
-    }
+
+
+ }
 
 }
 
 set testsz 1368
 #set testsz 368
-#set testsz 268
+set testsz 268
 #set testsz 168
 #set testsz 35
 
