@@ -33,55 +33,37 @@ steenrod::cl::impl::combi program {
 	return stop.s0;
     }
 
-    void addChars4p(__global uint *mem, uchar c0, uchar c1, uchar c2, uchar c3, int p) {
+    void addChars4p(__global uint *mem, 
+		    uchar c0, uchar c1, uchar c2, uchar c3, int p) {
         union smd {
            uint i;
            uchar4 c;
-        } smd, oval, have, want, aux;
+        } smd, effsmd, oval, have, havep, want, aux;
         int ok;
-atomic_inc(mem-1);
-int dummy=0;
+
+        int dummy=0;
  
         smd.c.s0 = c0;
         smd.c.s1 = c1;
         smd.c.s2 = c2;
         smd.c.s3 = c3;
 
+        smd.c %= p;
+
 	do {
 	    uchar u;
 	    oval.i = atomic_add(mem,smd.i);
 	    want.c = ((oval.c % p) + (smd.c % p)) % p;
 	    have.i = oval.i + smd.i;
-	    
-	    smd.i = 0;
-	    if(want.c.s0 != (have.c.s0 % p)) {
-		smd.c.s0 = (u = (want.c.s0 - have.c.s0));
-		aux.i=0; aux.c.s0 = u;
-		have.i += aux.i;
-	    }
-	    if(want.c.s1 != (have.c.s1 % p)) {
-		smd.c.s1 = (u = (want.c.s1 - have.c.s1));
-		aux.i=0; aux.c.s1 = u;
-		have.i += aux.i;
-	    }
-	    if(want.c.s2 != (have.c.s2 % p)) {
-		smd.c.s2 = (u = (want.c.s2 - have.c.s2));
-		aux.i=0; aux.c.s2 = u;
-		have.i += aux.i;
-	    }
-	    if(want.c.s3 != (have.c.s3 % p)) {
-		smd.c.s3 = (u = (want.c.s3 - have.c.s3));
-		aux.i=0; aux.c.s3 = u;
-		have.i += aux.i;
-	    }
-	    ok = (smd.i == 0); // (want.i == havep.i);
+	    havep.c = have.c % p;
+	    ok = (want.i == havep.i);
 	    if (!ok) {
-		atomic_inc(mem+2);//return;
-	    } else {
-		atomic_inc(mem+1);//return;
+                smd.c.s0 = ((p+want.c.s0) - (havep.c.s0)) % p;
+                smd.c.s1 = ((p+want.c.s1) - (havep.c.s1)) % p;
+                smd.c.s2 = ((p+want.c.s2) - (havep.c.s2)) % p;
+                smd.c.s3 = ((p+want.c.s3) - (havep.c.s3)) % p;
 	    }
-        } while ( (++dummy<1000) && !ok );
-        // if(dummy>500) { *(mem-1)=dummy; *++mem = -1%p; *++mem = have.i;};  
+        } while ( !ok && (++dummy<1000000) );
     }
 
     void setError(__global int *outvars, short16 stop, int gen, int errorcode) {
