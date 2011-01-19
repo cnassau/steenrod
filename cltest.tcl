@@ -76,7 +76,11 @@ steenrod::cl::impl::combi program {
 	int8 actdeg = exo * rdegs;
 
 #if 0
-	if(stop.s0==5 && stop.s1==1 && stop.s2 == 3)
+	if(
+	   (get_global_id(1)==0)
+	   ||
+	   (stop.s0==5 && stop.s1==1 && stop.s2 == 3)
+	   )
 	printf("p=%d,N=%d,deg=%d,stop=%v8i\n"
 	       "alg8=%v8i, prof8=%v8i, rdegs=%v8i, "
 	       "maxdeg=%v8i, exo=%v8i, actdeg=%v8i\n",
@@ -308,8 +312,8 @@ set testsz 1368
 #set testsz 368
 set testsz 268
 #set testsz 168
-#set testsz 35
-
+set testsz 35
+set testsz 12
 
 proc runtest {enmconfig} {
     steenrod::enumerator A
@@ -354,7 +358,7 @@ proc runtest {enmconfig} {
 
     set xcnt 0
     while {[incr xcnt]<5} {
-#	set dmi [set dme 0];incr xcnt 10;puts "--> src trivialised <--"
+	incr xcnt 10;#set dmi [set dme 0];puts "--> src trivialised <--"
 	A configure -ideg $dmi -edeg $dme
 	B configure -ideg [expr {$dmi+$opideg}] -edeg [expr {$dme+$opedeg}]
 	#puts A=[A basis]\nB=[B basis]
@@ -381,7 +385,7 @@ proc runtest {enmconfig} {
 
 
 steenrod::enumerator A 
-foreach p {3 11 5 7} {
+foreach p {11 3 5 7} {
     set enmlist {}
     set off [expr {2*($p-1)}]
     for {set dim 0} {$enmlist == "" && $dim<2*($p**7)} {incr dim $off} {
@@ -395,7 +399,7 @@ foreach p {3 11 5 7} {
 	}
     }
     runtest [lindex $enmlist 0]
-    #break
+    break
 }
 
 

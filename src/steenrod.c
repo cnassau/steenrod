@@ -474,11 +474,12 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     storePrimeInfo(dst->pi,clmd.seqinfhst);
     storeEnum(dst,clmd.seqinfhst+szp);
     clmd.seqinf = clCreateBuffer(ctx->ctx,
-                                 CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+                                 CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR,
                                  seqsz*sizeof(int),
                                  clmd.seqinfhst,
                                  &clerr);
     CHKERR(clerr);
+    fprintf(stderr,"seqinfhst at %p, size=%d ints\n",clmd.seqinfhst,seqsz);
 
     clmd.curmat = clCreateBuffer(ctx->ctx,
                                  CL_MEM_READ_ONLY,
@@ -551,7 +552,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 #ifdef USECL
     cl_int clerr;
     size_t size = 16*srcdim*sizeof(unsigned short);
-    unsigned short *wrk;
+    unsigned short *wrk=NULL;
     int i,blockstart=0;
     clmemchain *curdg = NULL;
     size_t dgnumsmds = 0;
