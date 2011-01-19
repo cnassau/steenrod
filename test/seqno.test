@@ -28,13 +28,13 @@ package require Steenrod
 namespace import -force steenrod::*
 
 
-proc seqtest0 {p alg pro edeg deg} {
+proc seqtest0 {p alg edeg deg {pro {}} {sig {}}} {
     test seqtest0.[incr ::seqtest0] "seqno test $p <$alg> (e,i)=($edeg,$deg)" {
         enumerator A -prime $p -alg [algebra tomono $alg]
-        if {$pro != ""} {
-           A configure -profile $pro
-        }
+        if {$pro != ""} {A configure -profile $pro}
+        if {$sig != ""} {A configure -signature $sig}
         A configure -ideg $deg -edeg $edeg -genlist {{5 0 0 0}}
+        #puts basis=\n[A basis]
         monomap d
         foreach m [A basis] {
           d add [list 1 0 0 3] [list $m]
@@ -49,9 +49,14 @@ proc seqtest0 {p alg pro edeg deg} {
     } ok
 }
 
-seqtest0 3 {-1 full} {} 0 120
-seqtest0 3 {-1 full} {} 2 114
+seqtest0 3 {-1 full} 0 120
+seqtest0 3 {-1 full} 2 114
 
+seqtest0 3 {-1 full} 0 120 {0 -1 {2 1} 0}
+seqtest0 3 {-1 full} 0 120 {0 -1 {1 2 1} 0}
+foreach x {0 1 2} {
+   seqtest0 3 {-1 full} 0 120 {0 0 {0 1} 0} [list 0 0 [list 0 $x] 0]
+}
 
 # cleanup
 ::tcltest::cleanupTests
