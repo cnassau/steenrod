@@ -47,6 +47,7 @@ steenrod::cl::impl::combi program {
 	const int p = pinfo[1];
 	const int NALG = pinfo[2];
 	const int ispos = seqinfo[65];
+	__constant int *stbk;
 
 	int res=0, k;
 	
@@ -75,68 +76,52 @@ steenrod::cl::impl::combi program {
 	exo /= prof8; exo *= prof8;
 	int8 actdeg = exo * rdegs;
 
-#if 0
-	if(
-	   (get_global_id(1)==0)
-	   ||
-	   (stop.s0==5 && stop.s1==1 && stop.s2 == 3)
-	   )
-	printf("p=%d,N=%d,deg=%d,stop=%v8i\n"
-	       "alg8=%v8i, prof8=%v8i, rdegs=%v8i, "
-	       "maxdeg=%v8i, exo=%v8i, actdeg=%v8i\n",
-	       p,NALG,deg,convert_int8(stop.s01234567),
-	       alg8,prof8,rdegs,
-	       maxdeg,exo,actdeg);
-#endif
-
-	__constant int *stbk;
-
 	stbk = seqinfo + seqtab[7];
 	if (deg<actdeg.s7) return -1;
 	res += stbk[deg - actdeg.s7];
-	if (deg <= maxdeg.s7) res -= stbk[deg - maxdeg.s7];
+	if (deg > maxdeg.s7) res -= stbk[deg - maxdeg.s7];
 	deg -= actdeg.s7;
 
 	stbk = seqinfo + seqtab[6];
 	if (deg<actdeg.s6) return -1;
 	res += stbk[deg - actdeg.s6];
-	if (deg <= maxdeg.s6) res -= stbk[deg - maxdeg.s6];
+	if (deg > maxdeg.s6) res -= stbk[deg - maxdeg.s6];
 	deg -= actdeg.s6;
 
 	stbk = seqinfo + seqtab[5];
 	if (deg<actdeg.s5) return -1;
 	res += stbk[deg - actdeg.s5];
-	if (deg <= maxdeg.s5) res -= stbk[deg - maxdeg.s5];
+	if (deg > maxdeg.s5) res -= stbk[deg - maxdeg.s5];
 	deg -= actdeg.s5;
 
 	stbk = seqinfo + seqtab[4];
 	if (deg<actdeg.s4) return -1;
 	res += stbk[deg - actdeg.s4];
-	if (deg <= maxdeg.s4) res -= stbk[deg - maxdeg.s4];
+	if (deg > maxdeg.s4) res -= stbk[deg - maxdeg.s4];
 	deg -= actdeg.s4;
 
 	stbk = seqinfo + seqtab[3];
 	if (deg<actdeg.s3) return -1;
 	res += stbk[deg - actdeg.s3];
-	if (deg <= maxdeg.s3) res -= stbk[deg - maxdeg.s3];
+	if (deg > maxdeg.s3) res -= stbk[deg - maxdeg.s3];
 	deg -= actdeg.s3;
 
 	stbk = seqinfo + seqtab[2];
 	if (deg<actdeg.s2) return -1;
 	res += stbk[deg - actdeg.s2];
-	if (deg <= maxdeg.s2) res -= stbk[deg - maxdeg.s2];
+	if (deg > maxdeg.s2) res -= stbk[deg - maxdeg.s2];
 	deg -= actdeg.s2;
 
 	stbk = seqinfo + seqtab[1];
 	if (deg<actdeg.s1) return -1;
 	res += stbk[deg - actdeg.s1];
-	if (deg <= maxdeg.s1) res -= stbk[deg - maxdeg.s1];
+	if (deg > maxdeg.s1) res -= stbk[deg - maxdeg.s1];
 	deg -= actdeg.s1;
 #if 0
 	stbk = seqinfo + seqtab[0];
 	if (deg<actdeg.s0) return -1;
 	res += stbk[deg - actdeg.s0];
-	if (deg <= maxdeg.s0) res -= stbk[deg - maxdeg.s0];
+	if (deg > maxdeg.s0) res -= stbk[deg - maxdeg.s0];
 	deg -= actdeg.s0;
 #endif	
 	return res;
@@ -310,10 +295,10 @@ steenrod::cl::impl::combi program {
 set testsz 1368
 #set testsz 768
 #set testsz 368
-set testsz 268
+#set testsz 268
 #set testsz 168
-set testsz 35
-set testsz 12
+#set testsz 35
+#set testsz 30
 
 proc runtest {enmconfig} {
     steenrod::enumerator A
@@ -358,7 +343,7 @@ proc runtest {enmconfig} {
 
     set xcnt 0
     while {[incr xcnt]<5} {
-	incr xcnt 10;#set dmi [set dme 0];puts "--> src trivialised <--"
+	incr xcnt 10;set dmi [set dme 0];puts "--> src trivialised <--"
 	A configure -ideg $dmi -edeg $dme
 	B configure -ideg [expr {$dmi+$opideg}] -edeg [expr {$dme+$opedeg}]
 	#puts A=[A basis]\nB=[B basis]
@@ -385,7 +370,7 @@ proc runtest {enmconfig} {
 
 
 steenrod::enumerator A 
-foreach p {11 3 5 7} {
+foreach p {2 11 3 5 7} {
     set enmlist {}
     set off [expr {2*($p-1)}]
     for {set dim 0} {$enmlist == "" && $dim<2*($p**7)} {incr dim $off} {
