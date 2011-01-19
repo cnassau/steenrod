@@ -1,0 +1,60 @@
+# -*- tcl -*-
+#
+# This file contains some sequence number routine tests.
+# The tests use the ComputeMatrix routine, because this
+# invokes the GPU code if the library uses OpenCL.
+#
+# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+if {[file exists pkgIndex.tcl]} {
+    set dir [pwd]
+    source pkgIndex.tcl
+    set auto_path something_useless
+}
+package require Steenrod 
+
+namespace import -force steenrod::*
+
+
+proc seqtest0 {p alg pro edeg deg} {
+    test seqtest0.[incr ::seqtest0] "seqno test $p <$alg> (e,i)=($edeg,$deg)" {
+        enumerator A -prime $p -alg [algebra tomono $alg]
+        if {$pro != ""} {
+           A configure -profile $pro
+        }
+        A configure -ideg $deg -edeg $edeg -genlist {{5 0 0 0}}
+        monomap d
+        foreach m [A basis] {
+          d add [list 1 0 0 3] [list $m]
+        }
+        enumerator B -prime $p -algebra {0 0 0 0} -ideg 0 -edeg 0 -genlist {{3 0 0 0}}
+        set res [steenrod::ComputeMatrix B d A]
+        set x ok
+        foreach i [lindex $res 0] {
+           if {$i != 1} {set x $res}
+        }
+        set x
+    } ok
+}
+
+seqtest0 3 {-1 full} {} 0 120
+seqtest0 3 {-1 full} {} 2 114
+
+
+# cleanup
+::tcltest::cleanupTests
+return
+
+
