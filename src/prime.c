@@ -17,7 +17,7 @@
 int storePrimeInfo(primeInfo *pi, int *dst) {
   int k,l, p=pi->prime, sz;
 
-  sz = 70+p+k*p+l;
+  sz = 75+p+p*p+p;
   sz = 8 + (0xffffff8&sz); // fix alignment
 
   if(NULL == dst) return sz;
@@ -31,12 +31,15 @@ int storePrimeInfo(primeInfo *pi, int *dst) {
     dst[32+k] = (k<NALG) ? pi->extdegs[k] : 0;
     dst[48+k] = (k<NALG) ? pi->reddegs[k] : 0;
   }
+  
+  dst[70] = 75;     /* start of inverse table */
+  dst[71] = 75+p;   /* start of binom table */
   for(k=1;k<p;k++)
-    dst[70+k] = pi->inverse[k];
+    dst[75+k] = pi->inverse[k];
 
   for(k=0;k<p;k++)
     for(l=0;l<p;l++)
-      dst[70+p+k*p+l] = pi->binom[k*p+l];
+      dst[75+p+k*p+l] = pi->binom[k*p+l];
   return 0;
 }
 

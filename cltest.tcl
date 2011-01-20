@@ -33,7 +33,7 @@ steenrod::cl::impl::combi program {
 
     
     #ifndef __ENDIAN_LITTLE__
-    unchecked!
+    this code needs to be checked!
     #endif
 
     int algSeqnoWithRDegree(__constant int *pinfo, short16 stop, int deg) 
@@ -116,14 +116,8 @@ steenrod::cl::impl::combi program {
 	if (deg<actdeg.s1) return -1;
 	res += stbk[deg - actdeg.s1];
 	if (deg > maxdeg.s1) res -= stbk[deg - maxdeg.s1];
-	deg -= actdeg.s1;
-#if 0
-	stbk = seqinfo + seqtab[0];
-	if (deg<actdeg.s0) return -1;
-	res += stbk[deg - actdeg.s0];
-	if (deg > maxdeg.s0) res -= stbk[deg - maxdeg.s0];
-	deg -= actdeg.s0;
-#endif	
+	// deg -= actdeg.s1;
+
 	return res;
     }
 
@@ -241,6 +235,27 @@ steenrod::cl::impl::combi program {
 	outvars[10] = stop.s7;
     }
 
+    char binomp(__constant int *binomtab, char p, int l, int m) 
+    {
+	unsigned bin = 1, aux;
+	const char prime = p;
+	
+	while (bin && m) {
+	    int lquot = l / prime, lrem = l % prime;
+	    int mquot = m / prime, mrem = m % prime;
+	    if (lrem<0) { lrem += prime; lquot--; }
+	    if (mrem<0) { mrem += prime; mquot--; }
+	    if (-1==m) {
+		if (-1!=l) bin = 0;
+		break;
+	    }
+	    bin *= (aux = binomtab[p*lrem+mrem]);
+	    l -= lrem; l = lquot; m-= mrem; m = mquot;
+	    bin %= prime;
+	}
+	return bin;
+    }
+    
     __kernel void multffp(__constant int *seqinfo,
 			  __constant short *multmatrix,
 			  __global unsigned char *outmatrix,
@@ -257,8 +272,11 @@ steenrod::cl::impl::combi program {
 
 	__constant int *enumerator = seqinfo + *seqinfo; 
 	__constant int *pinfo = seqinfo;
+
 	const int p = pinfo[1];
 	const int NALG = pinfo[2];
+
+	__constant int *binomtab = pinfo + pinfo[71]; 
 
 
 	#if 0
@@ -298,7 +316,7 @@ set testsz 1368
 #set testsz 268
 #set testsz 168
 #set testsz 35
-#set testsz 30
+set testsz 15
 
 proc runtest {enmconfig} {
     steenrod::enumerator A
@@ -343,7 +361,7 @@ proc runtest {enmconfig} {
 
     set xcnt 0
     while {[incr xcnt]<5} {
-	incr xcnt 10;set dmi [set dme 0];puts "--> src trivialised <--"
+	incr xcnt 10;#set dmi [set dme 0];puts "--> src trivialised <--"
 	A configure -ideg $dmi -edeg $dme
 	B configure -ideg [expr {$dmi+$opideg}] -edeg [expr {$dme+$opedeg}]
 	#puts A=[A basis]\nB=[B basis]
@@ -359,9 +377,12 @@ proc runtest {enmconfig} {
 	    set res [steenrod::ComputeMatrix A d B]
 	    #puts [join $res \n]
 	    puts $mode:$xcnt:[steenrod::matrix dimensions $res]:[string range $res 0 60]...
+            set rslt($mode) $res
 	    unset res
 	    #puts [steenrod::matrix dimensions $res]
 	}
+        if {$rslt(cpu) ne $rslt(gpu)} {parray cfg;puts stderr "results differ"; exit 1}
+        unset rslt
 	incr dmi $off 
     }
 
@@ -370,7 +391,7 @@ proc runtest {enmconfig} {
 
 
 steenrod::enumerator A 
-foreach p {2 11 3 5 7} {
+foreach p {11 3 2 5 7} {
     set enmlist {}
     set off [expr {2*($p-1)}]
     for {set dim 0} {$enmlist == "" && $dim<2*($p**7)} {incr dim $off} {
