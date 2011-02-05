@@ -510,6 +510,8 @@ int Tcl_PolyForeachProc(Tcl_Interp *ip, Tcl_Obj *src,
         }
 
         rc = Tcl_EvalObjEx(ip,script,0);
+	if( rc == TCL_CONTINUE ) continue;
+	if( rc == TCL_BREAK ) break;
         if( rc != TCL_OK ) return rc;
     }
     
