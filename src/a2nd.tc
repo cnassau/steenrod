@@ -34,7 +34,10 @@ namespace eval A2nd {
 	upvar 1 $symvar sym $degvar remdeg
 	set sym ""
 	set remdeg $deg
-	uplevel 1 $bdy
+	foreach silly idea {uplevel 1 $bdy}
+	set sym iota
+	set remdeg [expr {$deg+1}]
+	foreach stupid mistake {uplevel 1 $bdy}
 	# degree Y_k,l = degree X_k,l = 2^(k+1)+2^(l+1)-1 = degree M_k,l +1
 	for {set k -1} {(1<<($k+1))-2<=$deg} {incr k} {
 	    for {set l -1} {[set kldg [expr {(1<<($k+1))+(1<<($l+1))}]]-3<=$deg} {incr l} {
@@ -60,14 +63,41 @@ namespace eval A2nd {
 	}
     }
 
-    proc foreach-basis-element {bel deg bdy} {
+    set modinfo {
+        A  {off 0}
+	D0 {off 0}
+	D1 {off 1}
+	E0 {off 0}
+	E1 {off 1}
+	RD {off 0}
+	RE {off 0}
+	iA {off 1}
+    }
+
+    proc foreach-basis-element {bel module deg bdy} {
 	upvar 1 $bel el
+	variable modinfo 
+        if {$module ni [dict keys $modinfo]} {
+            error "module should be one of [join [lsort [dict keys $modinfo]] {, }]"
+	}
+	incr deg [set off [dict get $modinfo $module off]]
 	foreach-sym sym rem $deg {
 	    set s .
 	    if {[regexp -- {([XY])[-]1,([0-9]+)} $sym -> s i]} {
+		# ignore X_{-1,*} because this is synchronized with Y_{-1,*} and U_{-1,*}
 		if {$s eq "X"} continue
 	    }
+            if {$off} {
+	       set sym [string map {Y U} $sym]
+	       if {$sym eq ""} {set sym mu0}
+            } 
+	    if {!$off && $sym eq "iota"} continue
+	    set cf 1
+	    if {$sym eq "" && [string index $module 0] eq "R"} {
+               set cf 2
+	    }
 	    ForeachAbasis $rem a {
+	        lset a 0 $cf
 		set el [list $sym [list $a]]
 		if {$s ne "."} {
 		    lappend el X-1,$i [list $a]
@@ -77,6 +107,14 @@ namespace eval A2nd {
 	}
     }
     
+    proc basis {module deg} {
+       set res {}
+       foreach-basis-element bel $module $deg {
+          lappend res $bel
+       }
+       return $res
+    }
+
     namespace eval hmap {
 
 	namespace import ::steenrod::*
