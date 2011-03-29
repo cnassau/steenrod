@@ -36,7 +36,7 @@ namespace eval A2nd {
 	set remdeg $deg
 	foreach silly idea {uplevel 1 $bdy}
 	set sym iota
-	set remdeg [expr {$deg+1}]
+	set remdeg [expr {$deg-1}]
 	foreach stupid mistake {uplevel 1 $bdy}
 	# degree Y_k,l = degree X_k,l = 2^(k+1)+2^(l+1)-1 = degree M_k,l +1
 	for {set k -1} {(1<<($k+1))-2<=$deg} {incr k} {
@@ -64,14 +64,14 @@ namespace eval A2nd {
     }
 
     set modinfo {
-        A  {off 0}
-	D0 {off 0}
-	D1 {off 1}
-	E0 {off 0}
-	E1 {off 1}
-	RD {off 0}
-	RE {off 0}
-	iA {off 1}
+        A  {off 0 X 0 Y 0}
+	D0 {off 0 X 0 Y 1}
+	D1 {off 1 X 0 Y 1}
+	E0 {off 0 X 1 Y 1}
+	E1 {off 1 X 1 Y 1}
+	RD {off 0 X 0 Y 1}
+	RE {off 0 X 1 Y 1}
+	iA {off 1 X 0 Y 0}
     }
 
     proc foreach-basis-element {bel module deg bdy} {
@@ -81,6 +81,8 @@ namespace eval A2nd {
             error "module should be one of [join [lsort [dict keys $modinfo]] {, }]"
 	}
 	incr deg [set off [dict get $modinfo $module off]]
+	set X [dict get $modinfo $module X]
+	set Y [dict get $modinfo $module Y]
 	foreach-sym sym rem $deg {
 	    set s .
 	    if {[regexp -- {([XY])[-]1,([0-9]+)} $sym -> s i]} {
@@ -91,7 +93,10 @@ namespace eval A2nd {
 	       set sym [string map {Y U} $sym]
 	       if {$sym eq ""} {set sym mu0}
             } 
+	    if {!$X && [regexp -- {[XM]} $sym]} continue
+	    if {!$Y && [regexp -- {[UY]} $sym]} continue
 	    if {!$off && $sym eq "iota"} continue
+	    if {$off && $sym eq "mu0"} continue
 	    set cf 1
 	    if {$sym eq "" && [string index $module 0] eq "R"} {
                set cf 2
@@ -99,7 +104,7 @@ namespace eval A2nd {
 	    ForeachAbasis $rem a {
 	        lset a 0 $cf
 		set el [list $sym [list $a]]
-		if {$s ne "."} {
+		if {$s ne "." && $X} {
 		    lappend el X-1,$i [list $a]
 		}
 		uplevel 1 $bdy
