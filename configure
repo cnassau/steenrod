@@ -4885,7 +4885,7 @@ srcdir=src
 
 
 
-    vars="startup.tcl algebra.tc conj.tc"
+    vars="startup.tcl algebra.tc conj.tc a2nd.tc"
     for i in $vars; do
 	# check for existence, be strict because it is installed
 	if test ! -f "${srcdir}/$i" ; then

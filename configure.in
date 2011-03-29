@@ -116,7 +116,7 @@ TEA_ADD_INCLUDES([src])
 TEA_ADD_LIBS([])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
-TEA_ADD_TCL_SOURCES([startup.tcl algebra.tc conj.tc])
+TEA_ADD_TCL_SOURCES([startup.tcl algebra.tc conj.tc a2nd.tc])
 
 #--------------------------------------------------------------------
 # __CHANGE__

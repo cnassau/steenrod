@@ -1,0 +1,60 @@
+# -*- tcl -*-
+#
+# This file provides a test suite for the secondary Steenrod algebra
+#
+# Copyright (C) 2011 Christian Nassau <nassau@nullhomotopie.de>
+#
+#  $Id$
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+if {[file exists pkgIndex.tcl]} {
+    set dir [pwd]
+    source pkgIndex.tcl
+    set auto_path something_useless
+}
+
+package require Steenrod 
+
+source src/a2nd.tc
+namespace import -force steenrod::*
+
+
+# --------------------------------------------------------------------------
+
+test a2nd-1 {basis enumeration} {
+} {}
+
+test a2nd-2 {printing} { 
+   set res {}
+   foreach {itm exp} {
+      {{} {}} 0
+      {{} {{1 0 0 0}}} 1
+      {{} {{1 0 1 0}}} Sq(1)
+   } {
+      set pr [A2nd print $itm]
+      if {$pr ne $exp} {
+         lappend res "$itm: got >$pr<, expected >$exp<" 
+      }
+   }
+   join $res \n
+} {}
+
+test a2nd-3 {} {} {}
+test a2nd-4 {} {} {}
+test a2nd-5 {} {} {}
+
+# --------------------------------------------------------------------------
+
+# cleanup
+::tcltest::cleanupTests
+return
+
