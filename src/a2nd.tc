@@ -734,7 +734,7 @@ namespace eval A2nd {
 	namespace export \[a-z'_\]* 
 	namespace ensemble create
     }
-
+    
     proc zero {} {return {}}
     proc one  {} {return {{} {{1 0 0 0}}}}
     proc iota {ply} {list iota $ply}
@@ -768,6 +768,7 @@ namespace eval A2nd {
 		set err "u not defined on image of iota"
 	        break
 	     }
+          }
        }
        if {$err ne ""} {
           return -code error -errorinfo "computing u([print $val])" $err
@@ -782,6 +783,5 @@ namespace eval A2nd {
 namespace export *
 namespace ensemble create
 }
-
 }
 
