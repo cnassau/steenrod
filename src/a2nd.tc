@@ -29,7 +29,7 @@ namespace eval A2nd {
 	    uplevel 1 $bdy
 	}
     }
-
+    
     proc foreach-sym {symvar degvar deg bdy} {
 	upvar 1 $symvar sym $degvar remdeg
 	set sym ""
@@ -76,7 +76,7 @@ namespace eval A2nd {
 	    }
 	}
     }
-
+    
     namespace eval hmap {
 
 	namespace import ::steenrod::*
@@ -405,10 +405,11 @@ namespace eval A2nd {
 		}
 	    }
 	}
-	if {[llength [degrees [array get res]]]>1} {
-	    puts ": ([sec print $a]) x ([sec print $b]) = [sec print [array get res]]"
+	# safety check:
+	if {0 && [llength [degrees [array get res]]]>1} {
+	    puts stderr ": ([print $a]) x ([print $b]) = [print [array get res]]"
 	    puts stderr "inhomogeneous result: degrees = [degrees [array get res]]"
-	    exit 1
+	    error "internal error"
 	}
 	cancel [array get res]
     } 
@@ -523,7 +524,7 @@ namespace eval A2nd {
 	cancel [array get aux]
     }
 
-    proc subtract {a args} {
+    proc sub {a args} {
 	Add $a -1 {*}$args
     }
 
@@ -734,8 +735,52 @@ namespace eval A2nd {
 	namespace ensemble create
     }
 
-    namespace export \[a-z'_\]*  D0
-    namespace ensemble create
+    proc zero {} {return {}}
+    proc one  {} {return {{} {{1 0 0 0}}}}
+    proc iota {ply} {list iota $ply}
+    proc u {val} {
+       set res {}
+       set err {}
+       foreach {prefix ply} $val {
+          switch -glob $prefix {
+	     {} {
+	        set x {}
+                poly varcancel ply 4
+		poly foreach $ply m {
+                   set cf [lindex $m 0]
+		   if {1 & $cf} {
+                      set err "argument is not a relation"
+		      break
+		   }
+		   lset m 0 [expr {$cf>>1}]
+		   lappend x $m
+		}
+		lappend res mu0 $x
+	     }
+	     Y* {
+                lappend res [string map {Y U} $prefix] $ply
+	     }
+	     X* -
+	     M* {
+                lappend res $prefix $ply
+	     }
+	     iota {
+		set err "u not defined on image of iota"
+	        break
+	     }
+       }
+       if {$err ne ""} {
+          return -code error -errorinfo "computing u([print $val])" $err
+       }
+       return $res
+    }
+
+    namespace export {*}{
+       print basis add sub compare product commutator
+       component u op cancel zero one iota pi frob0 frob1
+    }
+namespace export *
+namespace ensemble create
 }
 
 }
