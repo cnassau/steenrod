@@ -63,7 +63,8 @@ PKG_LIB_FILE	= @PKG_LIB_FILE@
 PKG_STUB_LIB_FILE = @PKG_STUB_LIB_FILE@
 
 lib_BINARIES	= $(PKG_LIB_FILE)
-BINARIES	= $(lib_BINARIES)
+BINARIES	= $(lib_BINARIES)  steenrodsh
+bin_BINARIES    = steenrodsh
 
 SHELL		= @SHELL@
 
@@ -298,6 +299,10 @@ VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win
 
 .c.@OBJEXT@:
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
+
+steenrodsh: ${PKG_SOURCES} ${TCL_LIB_FILE}
+	${CC} ${CFLAGS} ${LDFLAGS} $(srcdir)/steenrodsh.c \
+		${CC_SEARCH_FLAGS} ${LD_SEARCH_FLAGS} -Wl,-rpath,${TCL_BIN_DIR} @TCL_LIB_SPEC@ -o steenrodsh
 
 #========================================================================
 # Distribution creation

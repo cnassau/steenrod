@@ -21,9 +21,7 @@ int Tcl_SteenAppInit(Tcl_Interp *interp)
     return TCL_ERROR;
     }
 
-    if (Steenrod_Init(interp) ==  TCL_ERROR) {
-        return TCL_ERROR;
-    }
+    Tcl_Eval(interp, "package require Steenrod ");
 
     Tcl_Eval(interp, "namespace import steenrod::*");
 
