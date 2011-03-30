@@ -92,11 +92,11 @@ namespace eval A2nd {
             if {$off} {
 	       set sym [string map {Y U} $sym]
 	       if {$sym eq ""} {set sym mu0}
-            } 
+            }
 	    if {!$X && [regexp -- {[XM]} $sym]} continue
 	    if {!$Y && [regexp -- {[UY]} $sym]} continue
 	    if {!$off && $sym eq "iota"} continue
-	    if {$off && $sym eq "mu0"} continue
+	    if {$module eq "iA" && $sym eq "mu0"} continue
 	    set cf 1
 	    if {$sym eq "" && [string index $module 0] eq "R"} {
                set cf 2
