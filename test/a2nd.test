@@ -83,8 +83,70 @@ test a2nd-3 {comparison} {
    join $res \n
 } {}
 
-test a2nd-4 {} {} {}
-test a2nd-5 {} {} {}
+test a2nd-4 {map to A} {
+   set res {}
+   foreach {in exp} {
+      {} {}
+      {X1,2 {}} {}
+      {X1,2 {{1 0 1 0}}} {}
+      {{} {}} {}
+      {{} {{1 0 1 0}}} {{1 0 1 0}}
+      {{} {{3 0 1 0}}} {{1 0 1 0}}
+      {{} {{2 0 1 0}}} {}
+   } {
+      set pi [A2nd pi $in]
+      if {[poly compare $pi $exp]} {
+         lappend res "got >$pi<, expected >$exp<"
+      }
+   }
+   join $res \n
+} {}
+
+
+test a2nd-5 {component extraction} {
+   set res {}
+   set avals {
+      {{3 0 1 0}} 
+      {{1 0 2 0}} 
+      {{1 0 3 0}} 
+      {{1 0 4 0}} 
+      {{1 0 5 0}} 
+      {{1 0 6 0}} 
+   }
+   set prefs {
+      {} iota mu0 X1,2 U-1,2 M1,2 
+   }
+   set val {}
+   foreach p $prefs a $avals {
+      lappend val $p $a
+   }
+   lappend avals {}
+   lappend prefs X3,4
+   foreach p $prefs a $avals {
+      set c [A2nd component $p $val]
+      if {[poly compare $c $a]} {
+          lappend res "component($p): got >$c<, expected >$a<"
+      }
+   }
+
+   join $res \n
+} {}
+
+test a2nd-6 {sigma} {
+   A2nd sigma {{1 0 {0 2} 0}}
+} {{} {{1 0 {0 2} 0}}}
+
+test a2nd-7 {} {} {}
+test a2nd-8 {} {} {}
+test a2nd-9 {} {} {}
+test a2nd-10 {} {} {}
+test a2nd-11 {} {} {}
+test a2nd-12 {} {} {}
+test a2nd-13 {} {} {}
+test a2nd-14 {} {} {}
+test a2nd-15 {} {} {}
+test a2nd-16 {} {} {}
+test a2nd-17 {} {} {}
 
 # --------------------------------------------------------------------------
 

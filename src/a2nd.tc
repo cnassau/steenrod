@@ -626,20 +626,28 @@ namespace eval A2nd {
 	sum [product $a [E $r]] [E [product $a $r]]
     }
 
-    proc component {b key} {
+    proc component {key val} {
 	set res [poly create]
-	foreach {k val} $b {
+	foreach {k val} $val {
 	    if {$key eq $k} {
 		poly varappend res $val
 	    }
 	}
-	poly varcancel res 2
+	if {$key ne ""} {
+	   poly varcancel res 2
+	} else {
+	   poly varcancel res 4
+	}
 	return $res
+    }
+
+    proc sigma {a} {
+        list {} $a
     }
 
     proc pi {b} {
 	# projection to A
-	component $b ""
+	poly cancel [component "" $b] 2
     }
     
     proc op {a r} {
@@ -827,9 +835,9 @@ namespace eval A2nd {
 
     namespace export {*}{
        print basis add sub compare product commutator
-       component u op cancel zero one iota pi frob0 frob1
+       component sigma u op cancel zero one iota pi frob0 frob1
     }
-namespace export *
+#namespace export *
 namespace ensemble create
 }
 }
