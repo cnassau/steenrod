@@ -485,7 +485,11 @@ namespace eval A2nd {
 	    set pl [PolyPrint $aux($key)]
 	    if {$key ne ""} {
 		if {[string length $pl]>1} {
-		    set pl "$key ( $pl )"
+		    if {[llength $aux($key)]>1} {
+		       set pl "$key ($pl)"
+		    } else {
+                       set pl "$key $pl"
+		    }
 		} else {
 		    if {$pl == 1} {
 			set pl $key
@@ -534,8 +538,10 @@ namespace eval A2nd {
     }
 
     proc compare {a b} {
-	foreach k [lsort [dict keys $a]] l [lsort [dict keys $b]] {
-	    if {$k ne $l} {
+        set a [cancel $a]
+	set b [cancel $b]
+        foreach k [lsort [dict keys $a]] l [lsort [dict keys $b]] {
+	    if {$k ne $l || ![dict exists $a $k] || ![dict exists $b $l]} {
 		return 1
 	    }
 	    if {[poly compare [dict get $a $k] [dict get $b $l]]} {
