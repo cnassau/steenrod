@@ -269,6 +269,17 @@ namespace eval A2nd {
 	lsort -unique $degs
     }
 
+    proc Kappa {ply} {
+        set res {}
+	poly foreach $ply m {
+           set m2 [Msub $m 1 1]
+	   if {$m2 ne ""} {
+              lappend res $m2
+	   }
+	}
+	return $res
+    }
+
     proc Product {a b} {
 	array set res {}
 	foreach {k1 pl1} $a {
@@ -277,6 +288,24 @@ namespace eval A2nd {
 		    ^iota -
 		    iota$ {
 			poly varappend res(iota) [poly steenmult $pl1 $pl2 2]
+		    }
+		    ^mu0x$ {
+		        poly varappend res(mu0) [poly steenmult $pl1 $pl2 2]
+		    }
+		    ^xmu0$ {
+		        poly varappend res(mu0) [poly steenmult $pl1 $pl2 2]
+		        poly varappend res(iota) [poly steenmult [Kappa $pl1] $pl2 2]
+		    }
+		    ^mu0x[XMY].*$ -
+		    ^[XMY].*xmu0$ {
+                        # zero because [XMY] in E0 acts through reduction E0->A
+		    }
+		    ^U.*xU.*$ -
+		    ^U.*xiota$ -
+		    ^iotaxU.*$ -
+		    ^mu0xU.*$ -
+		    ^U.*xmu0$ {
+                        error "multiplication E1 x E1 not defined"
 		    }
 		    ^x$ {
 			poly foreach $pl1 m1 {
@@ -391,7 +420,7 @@ namespace eval A2nd {
 						set cf [lindex $aux 0]
 						if {1 & $cf} {
 						    lset aux 0 1
-						    if {$sym eq "Y"} {
+						    if {$sym in "Y U"} {
 							if {$kpi<$lpj} {
 							    set key $sym$kpi,$lpj
 							} elseif {$kpi>$lpj} {
@@ -430,6 +459,9 @@ namespace eval A2nd {
 			    if {$sym ne "M"} break
 			    set sym X
 			    set mukappa 1
+			}
+			if {$sym eq "U"} {
+                           # TODO: add iota * op($pl1,Yk,l) * $pl2
 			}
 		    }
 		    [XYM].*x {

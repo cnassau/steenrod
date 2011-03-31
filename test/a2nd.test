@@ -165,13 +165,22 @@ test a2nd-7 {multiplication} {
      {{} Sq(1)} {{} Sq(1)} {{} 2Sq(2) Y-1,0 Sq(0) M0,0 Sq(0) X-1,0 Sq(0)}
      {{} Sq(0)} {{} 3Sq(1)} {{} 3Sq(1)}
      {{} Sq(4)} {{} Sq(0)} {{} Sq(4)}
+     {{} Sq(1)} {Y-1,0 Sq(0)} {Y-1,0 Sq(1) {} 2Sq(0,1)}
+     {{} Sq(1)} {Y-1,1 Sq(0)} {Y-1,1 Sq(1) Y0,1 Sq(0)}
+     {{} Sq(1)} {X0,0 Sq(0)}  {X0,0 Sq(1)}
+     {{} Sq(2)} {X0,0 Sq(0)}  {X0,0 Sq(2) X0,1 Sq(0) X1,0 Sq(0)}
+     {{} Sq(2)} {Y-1,0 Sq(0)} {Y-1,0 Sq(2) {} 2Sq(1,1) Y-1,1 Sq(0)}
+     {{} Sq(0,2)} {{} Sq(0,2)} {{} 2Sq(0,4) Y0,2 Sq(0,1)}
+     {{} Sq(8)} {mu0 Sq(0)} {mu0 Sq(8) iota Sq(7)}
+     {{} Sq(1)} {mu0 Sq(4)} {mu0 Sq(5) iota Sq(4)}
+     {{} Sq(1)} {U-1,0 Sq(0)} {U-1,0 Sq(1) mu0 Sq(0,1) iota Sq(2)}
    } {
       set a1 [Parse $a]
       set b1 [Parse $b]
       set pr [Parse $prod]
       set prod [A2nd product $a1 $b1]
       if {[A2nd compare $prod $pr]} {
-      lappend res ">$prod< >$pr<"
+         #lappend res ">$prod< >$pr<"
          lappend res "([A2nd print $a1]) * ([A2nd print $b1]) != [A2nd print $pr], got [A2nd print $prod]"
       }
    }
