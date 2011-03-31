@@ -1,3 +1,4 @@
+# -*-tcl-*-
 
 set ::steenrod::NALG [llength [steenrod::prime 2 powers]]
 
@@ -9,469 +10,503 @@ proc ::tcl::mathfunc::bitcount {x} {
 namespace eval ::steenrod {
     namespace export {*}[namespace export] A2nd
 
-namespace eval A2nd {
+    namespace eval A2nd {
 
-    proc _lincr {lvar idx e} {
-	upvar 1 $lvar l
-	set t [lindex $l $idx]
-	incr t $e
-	lset l $idx $t
-    }
-
-    namespace import ::steenrod::*
-
-    enumerator A -prime 2 -algebra {1 0 {10 10 10 10 10 10} 0} -genlist {{0 0 0 0}}
-    proc ForeachAbasis {dim var bdy} {
-	upvar 1 $var v
-	A configure -prime 2 -algebra {1 0 {10 10 10 10 10 10} 0} -genlist 0
-	A configure -ideg [expr {2*$dim}]
-	foreach v [A basis] {
-	    uplevel 1 $bdy
+	proc _lincr {lvar idx e} {
+	    upvar 1 $lvar l
+	    set t [lindex $l $idx]
+	    incr t $e
+	    lset l $idx $t
 	}
-    }
-    
-    proc foreach-sym {symvar degvar deg bdy} {
-	upvar 1 $symvar sym $degvar remdeg
-	set sym ""
-	set remdeg $deg
-	foreach silly idea {uplevel 1 $bdy}
-	set sym iota
-	set remdeg [expr {$deg-1}]
-	foreach stupid mistake {uplevel 1 $bdy}
-	# degree Y_k,l = degree X_k,l = 2^(k+1)+2^(l+1)-1 = degree M_k,l +1
-	for {set k -1} {(1<<($k+1))-2<=$deg} {incr k} {
-	    for {set l -1} {[set kldg [expr {(1<<($k+1))+(1<<($l+1))}]]-3<=$deg} {incr l} {
-		if {$kldg-1 <= $deg} {
-		    set remdeg [expr {$deg-$kldg+1}]
-		    if {$l<$k} {
-			set sym Y$l,$k
-			uplevel 1 $bdy
-		    }
-		    if {$k>=0} {
-			set sym X$l,$k
-			uplevel 1 $bdy
-		    }
-		}
-		if {$kldg-2 <= $deg} {
-		    if {$k>=0 && $l>=0} {
-			set remdeg [expr {$deg-$kldg+2}]
-			set sym M$l,$k
-			uplevel 1 $bdy
-		    }
-		}
-	    }
-	}
-    }
 
-    set modinfo {
-        A  {off 0 X 0 Y 0}
-	D0 {off 0 X 0 Y 1}
-	D1 {off 1 X 0 Y 1}
-	E0 {off 0 X 1 Y 1}
-	E1 {off 1 X 1 Y 1}
-	RD {off 0 X 0 Y 1}
-	RE {off 0 X 1 Y 1}
-	iA {off 1 X 0 Y 0}
-    }
+	namespace import ::steenrod::*
 
-    proc foreach-basis-element {bel module deg bdy} {
-	upvar 1 $bel el
-	variable modinfo 
-        if {$module ni [dict keys $modinfo]} {
-            error "module should be one of [join [lsort [dict keys $modinfo]] {, }]"
-	}
-	incr deg [set off [dict get $modinfo $module off]]
-	set X [dict get $modinfo $module X]
-	set Y [dict get $modinfo $module Y]
-	foreach-sym sym rem $deg {
-	    set s .
-	    if {[regexp -- {([XY])[-]1,([0-9]+)} $sym -> s i]} {
-		# ignore X_{-1,*} because this is synchronized with Y_{-1,*} and U_{-1,*}
-		if {$s eq "X"} continue
-	    }
-            if {$off} {
-	       set sym [string map {Y U} $sym]
-	       if {$sym eq ""} {set sym mu0}
-            }
-	    if {!$X && [regexp -- {[XM]} $sym]} continue
-	    if {!$Y && [regexp -- {[UY]} $sym]} continue
-	    if {!$off && $sym eq "iota"} continue
-	    if {$module eq "iA" && $sym eq "mu0"} continue
-	    set cf 1
-	    if {$sym eq "" && [string index $module 0] eq "R"} {
-               set cf 2
-	    }
-	    ForeachAbasis $rem a {
-	        lset a 0 $cf
-		set el [list $sym [list $a]]
-		if {$s ne "." && $X} {
-		    lappend el X-1,$i [list $a]
-		}
+	enumerator A -prime 2 -algebra {1 0 {10 10 10 10 10 10} 0} -genlist {{0 0 0 0}}
+	proc ForeachAbasis {dim var bdy} {
+	    upvar 1 $var v
+	    A configure -prime 2 -algebra {1 0 {10 10 10 10 10 10} 0} -genlist 0
+	    A configure -ideg [expr {2*$dim}]
+	    foreach v [A basis] {
 		uplevel 1 $bdy
 	    }
 	}
-    }
-    
-    proc basis {module deg} {
-       set res {}
-       foreach-basis-element bel $module $deg {
-          lappend res $bel
-       }
-       return $res
-    }
-
-    namespace eval hmap {
-
-	namespace import ::steenrod::*
 	
-	proc Redmo {p idx exp} {
-	    set red [string repeat "0 " $idx]
-	    if {$idx} {
-		set pw [lindex [steenrod::prime $p powers] $exp]
-		lappend red $pw
-	    }
-	    list 1 0 [lrange $red 1 end] 0
-	}
-
-	proc MkHMap {name {NALG {}}} {
-
-	    if {$NALG eq ""} {
-		set NALG $::steenrod::NALG
-	    }
-
-	    # mono slots = D(xi_k) | xi_k*1 | 1*xi_k
-	    # integer slots = 0/1 idx1 idx2 for xi_{idx1,idx2}
-	    steenrod::hmap $name 3 3
-
-	    set prime 2
-
-	    for {set n $NALG} {$n >= 1} {incr n -1} {
-
-		set idx [expr {$n-1}] 
-		set src [Redmo $prime $n 0]
-		
-		set diag {}
-
-		for {set i 0} {$i<=$n} {incr i} {
-
-		    # Delta(xi_n) = sum xi_{n-i}^{2^{i}} * xi_i
-		    
-		    set mslots {}
-		    lappend mslots {1 0 {} 0}
-		    lappend mslots [Redmo $prime $i [expr {$n-$i}]]
-		    lappend mslots [Redmo $prime [expr {$n-$i}] 0]
-		    
-		    set islots "0 0 0"
-		    
-		    set spec R
-		    lappend spec $idx $src 1 $mslots $islots
-		    #puts spec=$spec
-		    $name add $spec
-		}
-	    }
-
-	    # Delta(xi_{m,n}) contains xi_{n-k}^{2^k} xi_{m-k}^{2^k} * xi_{k+1}
-	    variable XNMa 
-	    array unset XNMa *
-	    for {set k 0} {$k<=$NALG} {incr k} {
-		for {set m $k} {$m<=$NALG} {incr m} {
-		    for {set n [expr {1+$m}]} {$n<=$NALG} {incr n} {
-			lappend XNMa([expr {1+$k}]) \
-			    [expr {$n-$k}] [expr {$m-$k}] [expr {1<<$k}]  
+	proc foreach-sym {symvar degvar deg bdy} {
+	    upvar 1 $symvar sym $degvar remdeg
+	    set sym ""
+	    set remdeg $deg
+	    foreach silly idea {uplevel 1 $bdy}
+	    set sym iota
+	    set remdeg [expr {$deg-1}]
+	    foreach stupid mistake {uplevel 1 $bdy}
+	    # degree Y_k,l = degree X_k,l = 2^(k+1)+2^(l+1)-1 = degree M_k,l +1
+	    for {set k -1} {(1<<($k+1))-2<=$deg} {incr k} {
+		for {set l -1} {[set kldg [expr {(1<<($k+1))+(1<<($l+1))}]]-3<=$deg} {incr l} {
+		    if {$kldg-1 <= $deg} {
+			set remdeg [expr {$deg-$kldg+1}]
+			if {$l<$k} {
+			    set sym Y$l,$k
+			    uplevel 1 $bdy
+			}
+			if {$k>=0} {
+			    set sym X$l,$k
+			    uplevel 1 $bdy
+			}
+		    }
+		    if {$kldg-2 <= $deg} {
+			if {$k>=0 && $l>=0} {
+			    set remdeg [expr {$deg-$kldg+2}]
+			    set sym M$l,$k
+			    uplevel 1 $bdy
+			}
 		    }
 		}
 	    }
-	    #parray XNMa
 	}
 
-	proc MultSmd {src coeff args} {
-	    variable product
-	    variable cf
-	    set coeff [expr {3 & ($cf * $coeff)}]
-	    lset src 0 $coeff
-	    if {0 != $coeff} {
-		lappend product $src ;# $args
+	set modinfo {
+	    A  {off 0 X 0 Y 0}
+	    D0 {off 0 X 0 Y 1}
+	    D1 {off 1 X 0 Y 1}
+	    E0 {off 0 X 1 Y 1}
+	    E1 {off 1 X 1 Y 1}
+	    RD {off 0 X 0 Y 1}
+	    RE {off 0 X 1 Y 1}
+	    iA {off 1 X 0 Y 0}
+	}
+
+	proc foreach-basis-element {bel module deg bdy} {
+	    upvar 1 $bel el
+	    variable modinfo 
+	    if {$module ni [dict keys $modinfo]} {
+		error "module should be one of [join [lsort [dict keys $modinfo]] {, }]"
+	    }
+	    incr deg [set off [dict get $modinfo $module off]]
+	    set X [dict get $modinfo $module X]
+	    set Y [dict get $modinfo $module Y]
+	    foreach-sym sym rem $deg {
+		set s .
+		if {[regexp -- {([XY])[-]1,([0-9]+)} $sym -> s i]} {
+		    # ignore X_{-1,*} because this is synchronized with Y_{-1,*} and U_{-1,*}
+		    if {$s eq "X"} continue
+		}
+		if {$off} {
+		    set sym [string map {Y U} $sym]
+		    if {$sym eq ""} {set sym mu0}
+		}
+		if {!$X && [regexp -- {[XM]} $sym]} continue
+		if {!$Y && [regexp -- {[UY]} $sym]} continue
+		if {!$off && $sym eq "iota"} continue
+		if {$module eq "iA" && $sym eq "mu0"} continue
+		set cf 1
+		if {$sym eq "" && [string index $module 0] eq "R"} {
+		    set cf 2
+		}
+		ForeachAbasis $rem a {
+		    lset a 0 $cf
+		    set el [list $sym [list $a]]
+		    if {$s ne "." && $X} {
+			lappend el X-1,$i [list $a]
+		    }
+		    uplevel 1 $bdy
+		}
+	    }
+	}
+	
+	proc basis {module deg} {
+	    set res {}
+	    foreach-basis-element bel $module $deg {
+		lappend res $bel
+	    }
+	    return $res
+	}
+
+	namespace eval hmap {
+
+	    namespace import ::steenrod::*
+	    
+	    proc Redmo {p idx exp} {
+		set red [string repeat "0 " $idx]
+		if {$idx} {
+		    set pw [lindex [steenrod::prime $p powers] $exp]
+		    lappend red $pw
+		}
+		list 1 0 [lrange $red 1 end] 0
+	    }
+
+	    proc MkHMap {name {NALG {}}} {
+
+		if {$NALG eq ""} {
+		    set NALG $::steenrod::NALG
+		}
+
+		# mono slots = D(xi_k) | xi_k*1 | 1*xi_k
+		# integer slots = 0/1 idx1 idx2 for xi_{idx1,idx2}
+		steenrod::hmap $name 3 3
+
+		set prime 2
+
+		for {set n $NALG} {$n >= 1} {incr n -1} {
+
+		    set idx [expr {$n-1}] 
+		    set src [Redmo $prime $n 0]
+		    
+		    set diag {}
+
+		    for {set i 0} {$i<=$n} {incr i} {
+
+			# Delta(xi_n) = sum xi_{n-i}^{2^{i}} * xi_i
+			
+			set mslots {}
+			lappend mslots {1 0 {} 0}
+			lappend mslots [Redmo $prime $i [expr {$n-$i}]]
+			lappend mslots [Redmo $prime [expr {$n-$i}] 0]
+			
+			set islots "0 0 0"
+			
+			set spec R
+			lappend spec $idx $src 1 $mslots $islots
+			#puts spec=$spec
+			$name add $spec
+		    }
+		}
+
+		# Delta(xi_{m,n}) contains xi_{n-k}^{2^k} xi_{m-k}^{2^k} * xi_{k+1}
+		variable XNMa 
+		array unset XNMa *
+		for {set k 0} {$k<=$NALG} {incr k} {
+		    for {set m $k} {$m<=$NALG} {incr m} {
+			for {set n [expr {1+$m}]} {$n<=$NALG} {incr n} {
+			    lappend XNMa([expr {1+$k}]) \
+				[expr {$n-$k}] [expr {$m-$k}] [expr {1<<$k}]  
+			}
+		    }
+		}
+		#parray XNMa
+	    }
+
+	    proc MultSmd {src coeff args} {
+		variable product
+		variable cf
+		set coeff [expr {3 & ($cf * $coeff)}]
+		lset src 0 $coeff
+		if {0 != $coeff} {
+		    lappend product $src ;# $args
+		}
+		return
+		set efilt [lindex $args end 0]
+		if {$efilt} {
+		    set coeff [expr {($coeff * $copp) % $coppp}]
+		}
+		if {$coeff} {  
+		    lappend cop [list $coeff {*}$args]
+		}
+	    }
+
+	    proc multiply {a b resvar script} {
+		upvar 1 $resvar res
+		variable product {}
+		variable cf [expr {3 & ([lindex $a 0] * [lindex $b 0])}]
+		set hmap hmp
+		if {[info command $hmap] eq ""} {
+		    MkHMap $hmap
+		}
+		#$hmap select 4 [list [list = $mono] * * * {<= 1} * *] CopSmd
+		$hmap select 4 [list * * [list = $a] [list = $b] {<= 1} * *] MultSmd
+		foreach res $product {
+		    uplevel 1 $script
+		}
+	    }
+
+	}
+
+	proc Msub {mono idx exp} {
+	    set imono $mono
+	    #puts Msub:$mono,$idx,$exp
+	    if {$mono eq ""} return
+	    set res [lindex $mono 2]
+	    incr idx -1
+	    if {$idx<0} {
+		return $mono
+	    }
+	    set val [lindex $mono 2 $idx]
+	    if {$val eq ""} {set val 0}
+	    if {[set nexp [expr {$val-$exp}]] >= 0} {
+		lset mono 2 $idx $nexp
+		#puts msub($imono,$idx,$exp)=$mono
+		return $mono
 	    }
 	    return
-	    set efilt [lindex $args end 0]
-	    if {$efilt} {
-		set coeff [expr {($coeff * $copp) % $coppp}]
-	    }
-	    if {$coeff} {  
-		lappend cop [list $coeff {*}$args]
-	    }
 	}
 
-	proc multiply {a b resvar script} {
-	    upvar 1 $resvar res
-	    variable product {}
-	    variable cf [expr {3 & ([lindex $a 0] * [lindex $b 0])}]
-	    set hmap hmp
-	    if {[info command $hmap] eq ""} {
-		MkHMap $hmap
-	    }
-	    #$hmap select 4 [list [list = $mono] * * * {<= 1} * *] CopSmd
-	    $hmap select 4 [list * * [list = $a] [list = $b] {<= 1} * *] MultSmd
-	    foreach res $product {
-		uplevel 1 $script
-	    }
-	}
-
-    }
-
-    proc Msub {mono idx exp} {
-	set imono $mono
-	#puts Msub:$mono,$idx,$exp
-	if {$mono eq ""} return
-	set res [lindex $mono 2]
-	incr idx -1
-	if {$idx<0} {
-	    return $mono
-	}
-	set val [lindex $mono 2 $idx]
-	if {$val eq ""} {set val 0}
-	if {[set nexp [expr {$val-$exp}]] >= 0} {
-	    lset mono 2 $idx $nexp
-	    #puts msub($imono,$idx,$exp)=$mono
-	    return $mono
-	}
-	return
-    }
-
-    namespace eval tcl {
-	namespace eval mathfunc {
-	    proc assign {varname value} {
-		upvar 1 $varname var
-		set var $value
-		return $value
-	    }
-	}
-    }
-
-    proc degrees {a} {
-	set degs {}
-	foreach {k v} $a {
-	    set bdeg 0
-	    if {[regexp {([XMY])([-0-9]+),([-0-9]+)} $k -> sym i j]} {
-		# degree Y_k,l = degree X_k,l = 2^(k+1)+2^(l+1)-1
-		set bdeg [expr {(1<<(1+$i))+(1<<(1+$j))-1}]
-		if {$sym eq "M"} {
-		    incr bdeg -1
+	namespace eval tcl {
+	    namespace eval mathfunc {
+		proc assign {varname value} {
+		    upvar 1 $varname var
+		    set var $value
+		    return $value
 		}
-	    } elseif {$k eq "iota"} {
-		set bdeg 1
-	    }
-	    poly foreach $v m {
-		set u [mono degree 2 $m]
-		lappend degs [expr {$bdeg + ($u>>1)}]
 	    }
 	}
-	lsort -unique $degs
-    }
 
-    proc Kappa {ply} {
-        set res {}
-	poly foreach $ply m {
-           set m2 [Msub $m 1 1]
-	   if {$m2 ne ""} {
-              lappend res $m2
-	   }
+	proc degrees {a} {
+	    set degs {}
+	    foreach {k v} $a {
+		set bdeg 0
+		if {[regexp {([XMY])([-0-9]+),([-0-9]+)} $k -> sym i j]} {
+		    # degree Y_k,l = degree X_k,l = 2^(k+1)+2^(l+1)-1
+		    set bdeg [expr {(1<<(1+$i))+(1<<(1+$j))-1}]
+		    if {$sym eq "M"} {
+			incr bdeg -1
+		    }
+		} elseif {$k eq "iota"} {
+		    set bdeg 1
+		}
+		poly foreach $v m {
+		    set u [mono degree 2 $m]
+		    lappend degs [expr {$bdeg + ($u>>1)}]
+		}
+	    }
+	    lsort -unique $degs
 	}
-	return $res
-    }
 
-    proc Product {a b} {
-	array set res {}
-	foreach {k1 pl1} $a {
-	    foreach {k2 pl2} $b {
-		switch -regexp -- ${k1}x${k2} {
-		    ^iota -
-		    iota$ {
-			poly varappend res(iota) [poly steenmult $pl1 $pl2 2]
-		    }
-		    ^mu0x$ {
-		        poly varappend res(mu0) [poly steenmult $pl1 $pl2 2]
-		    }
-		    ^xmu0$ {
-		        poly varappend res(mu0) [poly steenmult $pl1 $pl2 2]
-		        poly varappend res(iota) [poly steenmult [Kappa $pl1] $pl2 2]
-		    }
-		    ^mu0x[XMY].*$ -
-		    ^[XMY].*xmu0$ {
-                        # zero because [XMY] in E0 acts through reduction E0->A
-		    }
-		    ^U.*xU.*$ -
-		    ^U.*xiota$ -
-		    ^iotaxU.*$ -
-		    ^mu0xU.*$ -
-		    ^U.*xmu0$ {
-                        error "multiplication E1 x E1 not defined"
-		    }
-		    ^x$ {
-			poly foreach $pl1 m1 {
-			    poly foreach $pl2 m2 {
-				hmap::multiply $m1 $m2 aux {
-				    lappend res() $aux
-				}
-				
-				variable hmap::XNMa 
-				# Delta(xi_{m,n}) contains xi_{n-k}^{2^k} xi_{m-k}^{2^k} * xi_{k+1}
-				for {set kpo 1} {$kpo<$::steenrod::NALG} {incr kpo} {
-				    set koff [expr {$kpo-1}]
-				    if {[set mb [Msub $m2 $kpo 1]] ne ""} {
-					foreach {idx1 idx2 exp} $hmap::XNMa($kpo) {
-					    set ma [Msub [Msub $m1 $idx1 $exp] $idx2 $exp]
-					    if {$ma ne ""} {
-						hmap::multiply $ma $mb aux {
-						    set cf [lindex $aux 0]
-						    if {1 & $cf} {
-							lset aux 0 1
-							lappend res(Y[expr {$idx2-1+$koff}],[expr {$idx1-1+$koff}]) $aux
+	proc Kappa {ply} {
+	    set res {}
+	    poly foreach $ply m {
+		set m2 [Msub $m 1 1]
+		if {$m2 ne ""} {
+		    lappend res $m2
+		}
+	    }
+	    return $res
+	}
+
+	proc Product {a b} {
+	    array set res {}
+	    foreach {k1 pl1} $a {
+		foreach {k2 pl2} $b {
+		    switch -regexp -- ${k1}x${k2} {
+			^iota -
+			iota$ {
+			    poly varappend res(iota) [poly steenmult $pl1 $pl2 2]
+			}
+			^mu0x$ {
+			    poly varappend res(mu0) [poly steenmult $pl1 $pl2 2]
+			}
+			^xmu0$ {
+			    poly varappend res(mu0) [poly steenmult $pl1 $pl2 2]
+			    poly varappend res(iota) [poly steenmult [Kappa $pl1] $pl2 2]
+			}
+			^mu0x[XMY].*$ -
+			^[XMY].*xmu0$ {
+			    # zero because [XMY] in E0 acts through reduction E0->A
+			}
+			^U.*xU.*$ -
+			^U.*xiota$ -
+			^iotaxU.*$ -
+			^mu0xU.*$ -
+			^U.*xmu0$ {
+			    error "multiplication E1 x E1 not defined"
+			}
+			^x$ {
+			    poly foreach $pl1 m1 {
+				poly foreach $pl2 m2 {
+				    hmap::multiply $m1 $m2 aux {
+					lappend res() $aux
+				    }
+				    
+				    variable hmap::XNMa 
+				    # Delta(xi_{m,n}) contains xi_{n-k}^{2^k} xi_{m-k}^{2^k} * xi_{k+1}
+				    for {set kpo 1} {$kpo<$::steenrod::NALG} {incr kpo} {
+					set koff [expr {$kpo-1}]
+					if {[set mb [Msub $m2 $kpo 1]] ne ""} {
+					    foreach {idx1 idx2 exp} $hmap::XNMa($kpo) {
+						set ma [Msub [Msub $m1 $idx1 $exp] $idx2 $exp]
+						if {$ma ne ""} {
+						    hmap::multiply $ma $mb aux {
+							set cf [lindex $aux 0]
+							if {1 & $cf} {
+							    lset aux 0 1
+							    lappend res(Y[expr {$idx2-1+$koff}],[expr {$idx1-1+$koff}]) $aux
+							}
 						    }
-						}
-					    } 
+						} 
+					    }
 					}
 				    }
 				}
 			    }
-			}
-			
-			
-			# for a,b in A: a * b = ab + psi(a) psi(b) mu_0 + X-1 psi(a) kappa(b)
+			    
+			    
+			    # for a,b in A: a * b = ab + psi(a) psi(b) mu_0 + X-1 psi(a) kappa(b)
 
-			poly foreach $pl1 m1 {
-			    if {0 == [lindex $m1 0] & 1} continue 
-			    for {set k 0} {$k<$::steenrod::NALG} {incr k} {
-				set kappa_kpo_a [Msub $m1 [expr {1+$k}] 1]
-				if {$kappa_kpo_a eq ""} continue
-				poly foreach $pl2 m2 {
-				    if {0 == [lindex $m2 0] & 1} continue 
-				    # X-1 psi(a) kappa(b) contains X-1,k kappa_{k+1}(a),kappa(b)
-				    set kappa_b [Msub $m2 1 1]
-				    if {$kappa_b ne ""} {
-					set aux [poly steenmult [list $kappa_kpo_a] [list $kappa_b] 2]
-					poly varappend res(X-1,$k) $aux
-					#if {$aux ne ""} {puts "m1=$m1,m2=$m2,aux=$aux"}
-				    }
-				    
-				    for {set m 0} {$m<$::steenrod::NALG} {incr m} {
-					if 0 "
+			    poly foreach $pl1 m1 {
+				if {0 == [lindex $m1 0] & 1} continue 
+				for {set k 0} {$k<$::steenrod::NALG} {incr k} {
+				    set kappa_kpo_a [Msub $m1 [expr {1+$k}] 1]
+				    if {$kappa_kpo_a eq ""} continue
+				    poly foreach $pl2 m2 {
+					if {0 == [lindex $m2 0] & 1} continue 
+					# X-1 psi(a) kappa(b) contains X-1,k kappa_{k+1}(a),kappa(b)
+					set kappa_b [Msub $m2 1 1]
+					if {$kappa_b ne ""} {
+					    set aux [poly steenmult [list $kappa_kpo_a] [list $kappa_b] 2]
+					    poly varappend res(X-1,$k) $aux
+					    #if {$aux ne ""} {puts "m1=$m1,m2=$m2,aux=$aux"}
+					}
+					
+					for {set m 0} {$m<$::steenrod::NALG} {incr m} {
+					    if 0 "
       psi(a)psi(b) = sum X_{k.l+n} cont(xi_{k+1}xi_n^{2^{l+1}},a)cont(xi_{l+1},b)
 	           = sum X_{k.m} (
 			     cont(xi_{m+1},cont(xi_{k+1},a)b) 
                            + cont(xi_{m+1}xi_{k+1},a)b
 		     )"
-					set mpo [expr {$m+1}]
-					set prod [poly steenmult \
-						      [list $kappa_kpo_a] \
-						      [list $m2] 2]
-					poly foreach $prod x {
-					    set y [Msub $x $mpo 1]
-					    if {$y ne ""} {
-						poly varappend res(T$k,$m) [list $y]
-					    }
-					}
-					set k2_a [Msub $kappa_kpo_a $mpo 1]
-					if {$k2_a ne ""} {
+					    set mpo [expr {$m+1}]
 					    set prod [poly steenmult \
-							  [list $k2_a] \
+							  [list $kappa_kpo_a] \
 							  [list $m2] 2]
-					    poly varappend res(T$k,$m) $prod
-					} 
+					    poly foreach $prod x {
+						set y [Msub $x $mpo 1]
+						if {$y ne ""} {
+						    poly varappend res(T$k,$m) [list $y]
+						}
+					    }
+					    set k2_a [Msub $kappa_kpo_a $mpo 1]
+					    if {$k2_a ne ""} {
+						set prod [poly steenmult \
+							      [list $k2_a] \
+							      [list $m2] 2]
+						poly varappend res(T$k,$m) $prod
+					    } 
+					}
 				    }
 				}
-			    }
 
-			    foreach {key val} [array get res T*] {
-				# Tk,l a stands for "Xk,l a mu_0"
-				# we need to transform this into "X_k,l b + M_k,l c"
-				regexp {T([-0-9]+),([-0-9]+)} $key -> k l
-				poly varappend res(M$k,$l) $val
-				poly foreach $val m {
-				    set kappa_m [Msub $m 1 1]
-				    if {$kappa_m ne ""} {
-					poly varappend res(X$k,$l) [list $kappa_m]
+				foreach {key val} [array get res T*] {
+				    # Tk,l a stands for "Xk,l a mu_0"
+				    # we need to transform this into "X_k,l b + M_k,l c"
+				    regexp {T([-0-9]+),([-0-9]+)} $key -> k l
+				    poly varappend res(M$k,$l) $val
+				    poly foreach $val m {
+					set kappa_m [Msub $m 1 1]
+					if {$kappa_m ne ""} {
+					    poly varappend res(X$k,$l) [list $kappa_m]
+					}
 				    }
+				    unset res($key)
 				}
-				unset res($key)
 			    }
 			}
-		    }
-		    [XYM].*x[XYM] {
-			# zero
-		    }
-		    .*x[XYM] {
-			regexp {([XYM])([-0-9]+),([-0-9-]+)} $k2 -> sym k l
-		
-			set mukappa 0
-			while on {
-			    poly foreach $pl1 m1 {
-				for {set i 0} {assign("kpi",$k+$i)<$::steenrod::NALG} {incr i} {
-				    set m1i [Msub $m1 $i [expr {1<<($k+1)}]]
-				    if {$mukappa} {
-					set m1i [Msub $m1i 1 1]
-				    }
-				    if {$m1i eq ""} continue
-				    for {set j 0} {assign("lpj",$l+$j)<$::steenrod::NALG} {incr j} {
-					set m1ij [Msub $m1i $j [expr {1<<($l+1)}]]
-					if {$m1ij eq ""} continue
-					poly foreach $pl2 m2 {
-					    hmap::multiply $m1ij $m2 aux {
-						set cf [lindex $aux 0]
-						if {1 & $cf} {
-						    lset aux 0 1
-						    if {$sym in "Y U"} {
-							if {$kpi<$lpj} {
-							    set key $sym$kpi,$lpj
-							} elseif {$kpi>$lpj} {
-							    set key $sym$lpj,$kpi
-							} else {
-							    set key {}
-							    lset aux 0 2
-							    set red [lindex $aux 2]
-							    lappend red 0 0 0 0 0 0 0 0 0 0 0
-							    set z [lindex $red [expr {1+$kpi}]]
-							    incr z
-							    lset red [expr {1+$kpi}] $z
-							    while {[lindex $red end]==0} {
-								set red [lrange $red 0 end-1]
-							    }
-							    lset aux 2 $red
-							    if {0 == (1 & $z)} {
+			[XYM].*x[XYM] {
+			    # zero
+			}
+			.*x[XYMU] {
+			    regexp {([XYMU])([-0-9]+),([-0-9-]+)} $k2 -> sym k l
+			    
+			    set mukappa 0
+			    while on {
+				poly foreach $pl1 m1 {
+				    for {set i 0} {assign("kpi",$k+$i)<$::steenrod::NALG} {incr i} {
+					set m1i [Msub $m1 $i [expr {1<<($k+1)}]]
+					if {$mukappa} {
+					    set m1i [Msub $m1i 1 1]
+					}
+					if {$m1i eq ""} continue
+					for {set j 0} {assign("lpj",$l+$j)<$::steenrod::NALG} {incr j} {
+					    set m1ij [Msub $m1i $j [expr {1<<($l+1)}]]
+					    if {$m1ij eq ""} continue
+					    poly foreach $pl2 m2 {
+						hmap::multiply $m1ij $m2 aux {
+						    if 0 {
+							set cf [lindex $aux 0]
+							if {1 & $cf} {
+							    lset aux 0 1
+							    if {$kpi<$lpj} {
 								set key ignore
+							    } elseif {$kpi>$lpj} {
+								# bsp. op(Sq(0,1),Y-1,0) = Y1,0 -> Sq(1,1)
+								set key iota
+								set red [list  0 0 0 0 0 0 0 0]
+								_lincr red $kpi 1
+								_lincr red $lpj 1
+								set base [list 1 0 $red 0]
+							    } else {
+								# bsp. Sq(0,2) Y0,2 -> Y2,2 -> Sq(0,0,2) iota
+								set key iota
+								set red [list  0 0 0 0 0 0 0 0]
+								_lincr red $kpi 2
+								set base [list 1 0 $red 0]
+							    }
+							    #puts "$m1 * ${sym}_$k,$l * $m2 -> $key $aux"
+							    if {$key ne "ignore"} {
+								#lappend res($key) $aux
+								set x [poly steenmult [list $base] [list $aux] 2]
+								poly varappend res($key) $x
 							    }
 							}
-						    } else {
-							set key $sym$kpi,$lpj
 						    }
-						    #puts "$m1 * ${sym}_$k,$l * $m2 -> $key $aux"
-						    if {$key ne "ignore"} {
-							lappend res($key) $aux
+						    set cf [lindex $aux 0]
+						    if {1 & $cf} {
+							lset aux 0 1
+							if {$sym in "Y U"} {
+							    if {$kpi<$lpj} {
+								set key $sym$kpi,$lpj
+							    } elseif {$kpi>$lpj} {
+								set key $sym$lpj,$kpi
+							    } else {
+								if {$sym eq "Y"} {
+								    set key {}
+								    lset aux 0 2
+								} else {
+								    set key mu0
+								}
+								set red [lindex $aux 2]
+								lappend red 0 0 0 0 0 0 0 0 0 0 0
+								set z [lindex $red [expr {1+$kpi}]]
+								incr z
+								lset red [expr {1+$kpi}] $z
+								while {[lindex $red end]==0} {
+								    set red [lrange $red 0 end-1]
+								}
+								lset aux 2 $red
+								if {0 == (1 & $z)} {
+								    set key ignore
+								}
+							    }
+							} else {
+							    set key $sym$kpi,$lpj
+							}
+							#puts "$m1 * ${sym}_$k,$l * $m2 -> $key $aux"
+							if {$key ne "ignore"} {
+							    lappend res($key) $aux
+							}
+							
 						    }
-						    
 						}
 					    }
 					}
 				    }
+				    
 				}
-			
+				if {$sym ne "M"} break
+				set sym X
+				set mukappa 1
 			    }
-			    if {$sym ne "M"} break
-			    set sym X
-			    set mukappa 1
+			    if {$sym eq "U"} {
+				# TODO: add iota * op($pl1,Yk,l) * $pl2
+
+			    }
 			}
-			if {$sym eq "U"} {
-                           # TODO: add iota * op($pl1,Yk,l) * $pl2
-			}
-		    }
-		    [XYM].*x {
-			poly foreach $pl1 m1 {
-			    poly foreach $pl2 m2 {
-				hmap::multiply $m1 $m2 aux {
-				    set cf [lindex $aux 0]
-				    if {$cf & 1} {
-					lset aux 0 1
-					lappend res($k1) $aux
+			[XYMU].*x {
+			    poly foreach $pl1 m1 {
+				poly foreach $pl2 m2 {
+				    hmap::multiply $m1 $m2 aux {
+					set cf [lindex $aux 0]
+					if {$cf & 1} {
+					    lset aux 0 1
+					    lappend res($k1) $aux
+					}
 				    }
 				}
 			    }
@@ -479,403 +514,374 @@ namespace eval A2nd {
 		    }
 		}
 	    }
-	}
-	# safety check:
-	if {0 && [llength [degrees [array get res]]]>1} {
-	    puts stderr ": ([print $a]) x ([print $b]) = [print [array get res]]"
-	    puts stderr "inhomogeneous result: degrees = [degrees [array get res]]"
-	    error "internal error"
-	}
-	cancel [array get res]
-    } 
-
-    proc PolyPrint {ply} {
-	set res {}
-	steenrod::poly foreach $ply m {
-	    set cf [lindex $m 0]
-	    switch -- $cf {
-		0 continue
-		1 {set cf ""}
-		default {append cf " "}
+	    # safety check:
+	    if {0 && [llength [degrees [array get res]]]>1} {
+		puts stderr ": ([print $a]) x ([print $b]) = [print [array get res]]"
+		puts stderr "inhomogeneous result: degrees = [degrees [array get res]]"
+		error "internal error"
 	    }
-	    set sqp Sq([join [lindex $m 2] ,])
-	    if {$sqp eq "Sq()"} {
-		set sqp 1
-		if {$cf ne ""} {
-		    set sqp ""
-		}
-	    }
-	    lappend res $cf$sqp
-	}
-	join $res " + "
-    }
-
-    proc print {dictval} {
-	array set aux $dictval
-	set res {}
-	foreach key [lsort [array names aux]] {
-	    set pl [PolyPrint $aux($key)]
-	    if {$key ne ""} {
-		if {[string length $pl]>1} {
-		    if {[llength $aux($key)]>1} {
-		       set pl "$key ($pl)"
-		    } else {
-                       set pl "$key $pl"
-		    }
-		} else {
-		    if {$pl == 1} {
-			set pl $key
-		    } elseif {$pl eq "" || $pl == 0} {
-		    	set pl ""
-		    } else {
-			set pl "$pl $key"
-		    } 
-		}
-	    }
-	    if {$pl ne ""} {
-	       lappend res $pl
-	    }
-	}
-	set res [join $res " + "]
-	#set res [string map [list "+ -" "-"] $res]
-	#set res [string map [list "-1 Sq" "-Sq"] $res]
-	if {$res eq ""} {set res 0}
-	return $res
-    }
-
-    proc Parse {dictval} {
-	set res {}
-	foreach {key value} $dictval {
-	    lappend res $key [ParseSq $value]
-	}
-	return $res
-    }
-
-    proc Sq {n args} {
-	variable Sq
-	lappend n {*}$args
-	set key [join $n ,]
-	if {![info exists Sq($key)]} {
-	    set Sq($key) [parse [list {} Sq($key)]]
-	}
-	return $Sq($key)
-    }
- 
-    proc ParseSq val {
-	set res {}
-	foreach itm [split $val +] {
-	    if {![regexp -- {([0-9]*)Sq\(([0-9,]+)\)} $itm -> cf expo]} {
-		error "value >$val< not understood"
-	    }
-	    if {$cf eq ""} {set cf 1}
-	    lappend res [list $cf 0 [split $expo ,] 0] 
-	}
-	return $res
-    }
-
-    proc compare {a b} {
-        set a [cancel $a]
-	set b [cancel $b]
-        foreach k [lsort [dict keys $a]] l [lsort [dict keys $b]] {
-	    if {$k ne $l || ![dict exists $a $k] || ![dict exists $b $l]} {
-		return 1
-	    }
-	    if {[poly compare [dict get $a $k] [dict get $b $l]]} {
-		return 1
-	    }
-	}
-	return 0
-    }
-
-    proc cancel {a} {
-	array set aux {}
-	foreach {k v} $a {
-	    poly varappend aux($k) $v
-	    poly varcancel aux($k) [expr {$k eq "" ? 4 : 2}]
-	    if {![poly compare $aux($k) {}]} {
-		unset aux($k)
-	    }
-	}
-	array get aux
-    }
-
-    proc Add {a scale args} {
-	array set aux $a
-	foreach v $args {
-	    foreach {key val} $v {
-		poly varappend aux($key) $val $scale
-	    }
-	}
-	cancel [array get aux]
-    }
-
-    proc sub {a args} {
-	Add $a -1 {*}$args
-    }
-
-    proc sum {a args} {
-	Add $a 1 {*}$args
-    }
-
-    proc product {a args} {
-	if {[llength $args]} {
-	    return [Product $a [product {*}$args]]
-	}
-	return $a
-    }
-
-    proc epsilon {a} {
-	set res {}
-	foreach {key val} $a {
-	    steenrod::poly foreach $val m {
-		if {0==[steenrod::mono compare $m {1 0 0 0}]} {
-		    lappend res $key
-		} 
-	    }
+	    cancel [array get res]
 	} 
-	if {0==[llength $res]} {
-	    lappend res 0
-	}
-	join $res " + "
-    }
 
-    proc E {a} {
-	# E: R_D -> (A*A)[mu0] is the right linear map
-	# with Xk,l, Yk,l |-> Ql*Qk, mu0.Xk,l -> mu0.(Ql*Qk) (for k,l>=0)
-	# X_*,*, Y_*,* and mu_0*,* map to zero if one index is -1.
-	# 2D \subset R also maps to zero
-	#
-	# to "simulate" E we let X_k,l stand for Qk*Ql
-	set res {}
-	foreach {key val} $a {
-	    set newkey "" 
-	    if {[regexp -- {([XYM])([0-9-]+),([0-9-]+)} $key -> sym i j]} {
-		if {$i>=0 && $j>=0 && $sym in "X Y"} {
-		    lappend res X$j,$i  $val
+	proc PolyPrint {ply} {
+	    set res {}
+	    steenrod::poly foreach $ply m {
+		set cf [lindex $m 0]
+		switch -- $cf {
+		    0 continue
+		    1 {set cf ""}
+		    default {append cf " "}
 		}
-	    }
-	}
-	cancel $res
-    }
-
-    proc Phi {a r} {
-	sum [product $a [E $r]] [E [product $a $r]]
-    }
-
-    proc component {key val} {
-	set res [poly create]
-	foreach {k val} $val {
-	    if {$key eq $k} {
-		poly varappend res $val
-	    }
-	}
-	if {$key ne ""} {
-	   poly varcancel res 2
-	} else {
-	   poly varcancel res 4
-	}
-	return $res
-    }
-
-    proc sigma {a} {
-        list {} $a
-    }
-
-    proc pi {b} {
-	# projection to A
-	poly cancel [component "" $b] 2
-    }
-    
-    proc op {a r} {
-	# the infamous "left action map"
-	set a [pi $a]
-	array set res {}
-	foreach {key val} $r {
-	    if {$key eq ""} {
-		# op(a,2r) = kappa(a) r
-		set aux {}
-		poly foreach $val m {
-		    if {1 & [lindex $m 0]} {
-			error "left action: 2nd argument is not a relation "
-		    }
-		    lset m 0 1
-		    lappend aux $m
-		}
-		poly foreach $a m1 {
-		    set km1 [Msub $m1 1 1]
-		    if {$km1 ne ""} {
-			poly varappend res(iota) [poly steenmult [list $km1] $aux 2]
+		set sqp Sq([join [lindex $m 2] ,])
+		if {$sqp eq "Sq()"} {
+		    set sqp 1
+		    if {$cf ne ""} {
+			set sqp ""
 		    }
 		}
-	    } elseif {[regexp -- {Y([0-9-]+),([0-9-]+)} $key -> k l]} {
-		# op(a,Yk,l) = sum (some QiQj or P_t^1) * cont(xi(..),a)
-		poly foreach $a m1 {
-		    for {set i 0} {assign("kpi",$k+$i)<$::steenrod::NALG} {incr i} {
-			set m1i [Msub $m1 $i [expr {1<<($k+1)}]]
-			if {$m1i eq ""} continue
-			for {set j 0} {assign("lpj",$l+$j)<$::steenrod::NALG} {incr j} {
-			    set m1ij [Msub $m1i $j [expr {1<<($l+1)}]]
-			    if {$m1ij eq ""} continue
-			    poly foreach $val m2 {
-				hmap::multiply $m1ij $m2 aux {
-				    set cf [lindex $aux 0]
-				    if {1 & $cf} {
-					lset aux 0 1
-					if {$kpi<$lpj} {
-					    set key ignore
-					} elseif {$kpi>$lpj} {
-					    # bsp. op(Sq(0,1),Y-1,0) = Y1,0 -> Sq(1,1)
-					    set key iota
-					    set red [list  0 0 0 0 0 0 0 0]
-					    _lincr red $kpi 1
-					    _lincr red $lpj 1
-					    set base [list 1 0 $red 0]
-					    if 0 {
-						lset aux 0 1
-						set red [lindex $aux 2]
-						lappend red 0 0 0 0 0 0 0 0 0 0 0
-						_lincr red $kpi 1
-						_lincr red $lpj 1
-						while {[lindex $red end]==0} {
-						    set red [lrange $red 0 end-1]
-						}
-						lset aux 2 $red
-						if {0 == ([lindex $red $kpi] & 1)
-						    || 0 == ([lindex $red $lpj] & 1)} {
-						    set key ignore
-						}
-					    }
-					} else {
-					    # bsp. Sq(0,2) Y0,2 -> Y2,2 -> Sq(0,0,2) iota
-					    set key iota
-					    set red [list  0 0 0 0 0 0 0 0]
-					    _lincr red $kpi 2
-					    set base [list 1 0 $red 0]
-					    if 0 {
-						lset aux 0 1
-						set red [lindex $aux 2]
-						lappend red 0 0 0 0 0 0 0 0 0 0 0
-						_lincr red $kpi 2
-						while {[lindex $red end]==0} {
-						    set red [lrange $red 0 end-1]
-						}
-						lset aux 2 $red
-						if {0 == ([lindex $red $kpi] & 2)} {
-						    set key ignore
-						}
-					    }
-					}
-					#puts "$m1 * ${sym}_$k,$l * $m2 -> $key $aux"
-					if {$key ne "ignore"} {
-					    #lappend res($key) $aux
-					    set x [poly steenmult [list $base] [list $aux] 2]
-					    poly varappend res($key) $x
-					}
-				    }
-				}
-			    }
+		lappend res $cf$sqp
+	    }
+	    join $res " + "
+	}
+
+	proc print {dictval} {
+	    array set aux $dictval
+	    set res {}
+	    foreach key [lsort [array names aux]] {
+		set pl [PolyPrint $aux($key)]
+		if {$key ne ""} {
+		    if {[string length $pl]>1} {
+			if {[llength $aux($key)]>1} {
+			    set pl "$key ($pl)"
+			} else {
+			    set pl "$key $pl"
 			}
+		    } else {
+			if {$pl == 1} {
+			    set pl $key
+			} elseif {$pl eq "" || $pl == 0} {
+			    set pl ""
+			} else {
+			    set pl "$pl $key"
+			} 
 		    }
-		    
 		}
-	    }	    
+		if {$pl ne ""} {
+		    lappend res $pl
+		}
+	    }
+	    set res [join $res " + "]
+	    #set res [string map [list "+ -" "-"] $res]
+	    #set res [string map [list "-1 Sq" "-Sq"] $res]
+	    if {$res eq ""} {set res 0}
+	    return $res
 	}
 
-	cancel [array get res]
-    }
-
-    proc b1act {a r} {
-	# implement the action on B_1 := A.iota + R 
-	set a [pi $a]
-
-	# take the ordinary product first...
-	set res [product [list {} $a] $r]
-
-	# additions from op(a,Y_*)
-	sum $res [op [list {} $a] $r]
-    }
-
-    proc negate {a} {
-	array set res $a
-	if {[info exists res()]} {
-	    set res() [poly append {} $res() -1]
-	}
-	array get res
-    }
-
-    proc commutator {a b} {
-	sum [product $a $b] [negate [product $b $a]]
-    }
-
-    namespace eval D0 {
-	
-	proc filter {value} {
-	    foreach {key val} $value {
-		if {$key eq "" || [regexp -- ^Y $key]} {
-		    lappend res $key $val
-		} 
+	proc Parse {dictval} {
+	    set res {}
+	    foreach {key value} $dictval {
+		lappend res $key [ParseSq $value]
 	    }
 	    return $res
 	}
 
-	foreach command {
-	    product commutator 
-	} {
-	    proc $command args "filter \[[namespace parent [namespace current]]::$command {*}\$args\]"
+	proc Sq {n args} {
+	    variable Sq
+	    lappend n {*}$args
+	    set key [join $n ,]
+	    if {![info exists Sq($key)]} {
+		set Sq($key) [parse [list {} Sq($key)]]
+	    }
+	    return $Sq($key)
 	}
 	
-	namespace export \[a-z'_\]* 
+	proc ParseSq val {
+	    set res {}
+	    foreach itm [split $val +] {
+		if {![regexp -- {([0-9]*)Sq\(([0-9,]+)\)} $itm -> cf expo]} {
+		    error "value >$val< not understood"
+		}
+		if {$cf eq ""} {set cf 1}
+		lappend res [list $cf 0 [split $expo ,] 0] 
+	    }
+	    return $res
+	}
+
+	proc compare {a b} {
+	    set a [cancel $a]
+	    set b [cancel $b]
+	    foreach k [lsort [dict keys $a]] l [lsort [dict keys $b]] {
+		if {$k ne $l || ![dict exists $a $k] || ![dict exists $b $l]} {
+		    return 1
+		}
+		if {[poly compare [dict get $a $k] [dict get $b $l]]} {
+		    return 1
+		}
+	    }
+	    return 0
+	}
+
+	proc cancel {a} {
+	    array set aux {}
+	    foreach {k v} $a {
+		poly varappend aux($k) $v
+		poly varcancel aux($k) [expr {$k eq "" ? 4 : 2}]
+		if {![poly compare $aux($k) {}]} {
+		    unset aux($k)
+		}
+	    }
+	    array get aux
+	}
+
+	proc Add {a scale args} {
+	    array set aux $a
+	    foreach v $args {
+		foreach {key val} $v {
+		    poly varappend aux($key) $val $scale
+		}
+	    }
+	    cancel [array get aux]
+	}
+
+	proc sub {a args} {
+	    Add $a -1 {*}$args
+	}
+
+	proc sum {a args} {
+	    Add $a 1 {*}$args
+	}
+
+	proc product {a args} {
+	    if {[llength $args]} {
+		return [Product $a [product {*}$args]]
+	    }
+	    return $a
+	}
+
+	proc epsilon {a} {
+	    set res {}
+	    foreach {key val} $a {
+		steenrod::poly foreach $val m {
+		    if {0==[steenrod::mono compare $m {1 0 0 0}]} {
+			lappend res $key
+		    } 
+		}
+	    } 
+	    if {0==[llength $res]} {
+		lappend res 0
+	    }
+	    join $res " + "
+	}
+
+	proc E {a} {
+	    # E: R_D -> (A*A)[mu0] is the right linear map
+	    # with Xk,l, Yk,l |-> Ql*Qk, mu0.Xk,l -> mu0.(Ql*Qk) (for k,l>=0)
+	    # X_*,*, Y_*,* and mu_0*,* map to zero if one index is -1.
+	    # 2D \subset R also maps to zero
+	    #
+	    # to "simulate" E we let X_k,l stand for Qk*Ql
+	    set res {}
+	    foreach {key val} $a {
+		set newkey "" 
+		if {[regexp -- {([XYM])([0-9-]+),([0-9-]+)} $key -> sym i j]} {
+		    if {$i>=0 && $j>=0 && $sym in "X Y"} {
+			lappend res X$j,$i  $val
+		    }
+		}
+	    }
+	    cancel $res
+	}
+
+	proc Phi {a r} {
+	    sum [product $a [E $r]] [E [product $a $r]]
+	}
+
+	proc component {key val} {
+	    set res [poly create]
+	    foreach {k val} $val {
+		if {$key eq $k} {
+		    poly varappend res $val
+		}
+	    }
+	    if {$key ne ""} {
+		poly varcancel res 2
+	    } else {
+		poly varcancel res 4
+	    }
+	    return $res
+	}
+
+	proc sigma {a} {
+	    list {} $a
+	}
+
+	proc pi {b} {
+	    # projection to A
+	    poly cancel [component "" $b] 2
+	}
+	
+	proc op {a r} {
+	    # the infamous "left action map"
+	    set a [pi $a]
+	    array set res {}
+	    foreach {key val} $r {
+		if {$key eq ""} {
+		    # op(a,2r) = kappa(a) r
+		    set aux {}
+		    poly foreach $val m {
+			if {1 & [lindex $m 0]} {
+			    error "left action: 2nd argument is not a relation "
+			}
+			lset m 0 1
+			lappend aux $m
+		    }
+		    poly foreach $a m1 {
+			set km1 [Msub $m1 1 1]
+			if {$km1 ne ""} {
+			    poly varappend res(iota) [poly steenmult [list $km1] $aux 2]
+			}
+		    }
+		} elseif {[regexp -- {Y([0-9-]+),([0-9-]+)} $key -> k l]} {
+		    # op(a,Yk,l) = sum (some QiQj or P_t^1) * cont(xi(..),a)
+		    poly foreach $a m1 {
+			for {set i 0} {assign("kpi",$k+$i)<$::steenrod::NALG} {incr i} {
+			    set m1i [Msub $m1 $i [expr {1<<($k+1)}]]
+			    if {$m1i eq ""} continue
+			    for {set j 0} {assign("lpj",$l+$j)<$::steenrod::NALG} {incr j} {
+				set m1ij [Msub $m1i $j [expr {1<<($l+1)}]]
+				if {$m1ij eq ""} continue
+				poly foreach $val m2 {
+				    hmap::multiply $m1ij $m2 aux {
+					set cf [lindex $aux 0]
+					if {1 & $cf} {
+					    lset aux 0 1
+					    if {$kpi<$lpj} {
+						set key ignore
+					    } elseif {$kpi>$lpj} {
+						# bsp. op(Sq(0,1),Y-1,0) = Y1,0 -> Sq(1,1)
+						set key iota
+						set red [list  0 0 0 0 0 0 0 0]
+						_lincr red $kpi 1
+						_lincr red $lpj 1
+						set base [list 1 0 $red 0]
+					    } else {
+						# bsp. Sq(0,2) Y0,2 -> Y2,2 -> Sq(0,0,2) iota
+						set key iota
+						set red [list  0 0 0 0 0 0 0 0]
+						_lincr red $kpi 2
+						set base [list 1 0 $red 0]
+					    }
+					    #puts "$m1 * ${sym}_$k,$l * $m2 -> $key $aux"
+					    if {$key ne "ignore"} {
+						#lappend res($key) $aux
+						set x [poly steenmult [list $base] [list $aux] 2]
+						poly varappend res($key) $x
+					    }
+					}
+				    }
+				}
+			    }
+			}
+			
+		    }
+		}	    
+	    }
+
+	    cancel [array get res]
+	}
+
+	proc b1act {a r} {
+	    # implement the action on B_1 := A.iota + R 
+	    set a [pi $a]
+
+	    # take the ordinary product first...
+	    set res [product [list {} $a] $r]
+
+	    # additions from op(a,Y_*)
+	    sum $res [op [list {} $a] $r]
+	}
+
+	proc negate {a} {
+	    array set res $a
+	    if {[info exists res()]} {
+		set res() [poly append {} $res() -1]
+	    }
+	    array get res
+	}
+
+	proc commutator {a b} {
+	    sum [product $a $b] [negate [product $b $a]]
+	}
+
+	namespace eval D0 {
+	    
+	    proc filter {value} {
+		foreach {key val} $value {
+		    if {$key eq "" || [regexp -- ^Y $key]} {
+			lappend res $key $val
+		    } 
+		}
+		return $res
+	    }
+
+	    foreach command {
+		product commutator 
+	    } {
+		proc $command args "filter \[[namespace parent [namespace current]]::$command {*}\$args\]"
+	    }
+	    
+	    namespace export \[a-z'_\]* 
+	    namespace ensemble create
+	}
+	
+	proc zero {} {return {}}
+	proc one  {} {return {{} {{1 0 0 0}}}}
+	proc iota {ply} {list iota $ply}
+	proc u {val} {
+	    set res {}
+	    set err {}
+	    foreach {prefix ply} $val {
+		switch -glob $prefix {
+		    {} {
+			set x {}
+			poly varcancel ply 4
+			poly foreach $ply m {
+			    set cf [lindex $m 0]
+			    if {1 & $cf} {
+				set err "argument is not a relation"
+				break
+			    }
+			    lset m 0 [expr {$cf>>1}]
+			    lappend x $m
+			}
+			lappend res mu0 $x
+		    }
+		    Y* {
+			lappend res [string map {Y U} $prefix] $ply
+		    }
+		    X* -
+		    M* {
+			lappend res $prefix $ply
+		    }
+		    iota {
+			set err "u not defined on image of iota"
+			break
+		    }
+		}
+	    }
+	    if {$err ne ""} {
+		return -code error -errorinfo "$err\nwhile computing u([print $val])" $err
+	    }
+	    return $res
+	}
+
+	namespace export {*}{
+	    print basis add sub compare product commutator
+	    component sigma u op partial cancel zero one iota pi 
+	    frob0 frob1
+	}
+
 	namespace ensemble create
     }
-    
-    proc zero {} {return {}}
-    proc one  {} {return {{} {{1 0 0 0}}}}
-    proc iota {ply} {list iota $ply}
-    proc u {val} {
-       set res {}
-       set err {}
-       foreach {prefix ply} $val {
-          switch -glob $prefix {
-	     {} {
-	        set x {}
-                poly varcancel ply 4
-		poly foreach $ply m {
-                   set cf [lindex $m 0]
-		   if {1 & $cf} {
-                      set err "argument is not a relation"
-		      break
-		   }
-		   lset m 0 [expr {$cf>>1}]
-		   lappend x $m
-		}
-		lappend res mu0 $x
-	     }
-	     Y* {
-                lappend res [string map {Y U} $prefix] $ply
-	     }
-	     X* -
-	     M* {
-                lappend res $prefix $ply
-	     }
-	     iota {
-		set err "u not defined on image of iota"
-	        break
-	     }
-          }
-       }
-       if {$err ne ""} {
-          return -code error -errorinfo "$err\nwhile computing u([print $val])" $err
-       }
-       return $res
-    }
-
-    namespace export {*}{
-       print basis add sub compare product commutator
-       component sigma u op partial cancel zero one iota pi 
-       frob0 frob1
-    }
-
-namespace ensemble create
-}
 }
 
