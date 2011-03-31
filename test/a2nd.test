@@ -30,6 +30,8 @@ namespace import -force steenrod::*
 
 # --------------------------------------------------------------------------
 
+interp alias {} Parse {} ::steenrod::A2nd::Parse
+
 test a2nd-1 {basis enumeration} {
    set res {}
    foreach deg {-2 -1 0 1 2 3 10 15 20} {
@@ -61,6 +63,8 @@ test a2nd-2 {printing} {
       {{} {{2 0 1 0}}} {2 Sq(1)}
       {{} {{3 0 {0 2} 0} {1 0 1 0}}} {3 Sq(0,2) + Sq(1)}
       {X-1,3 {{1 0 {0 1} 0}}} {X-1,3 Sq(0,1)} 
+      {X-1,3 {}} 0 
+      {X-1,3 {} M1,2 {{1 0 3 0}}} {M1,2 Sq(3)} 
       {U1,2 {{1 0 {3} 0} {1 0 {2 1} 0}}} {U1,2 (Sq(3) + Sq(2,1))} 
    } {
       set pr [A2nd print $itm]
@@ -155,7 +159,26 @@ test a2nd-6 {sigma} {
    A2nd sigma {{1 0 {0 2} 0}}
 } {{} {{1 0 {0 2} 0}}}
 
-test a2nd-7 {} {} {}
+test a2nd-7 {multiplication} {
+   set res {}
+   foreach {a b prod} {
+     {{} Sq(1)} {{} Sq(1)} {{} 2Sq(2) Y-1,0 Sq(0) M0,0 Sq(0) X-1,0 Sq(0)}
+     {{} Sq(0)} {{} 3Sq(1)} {{} 3Sq(1)}
+     {{} Sq(4)} {{} Sq(0)} {{} Sq(4)}
+   } {
+      set a1 [Parse $a]
+      set b1 [Parse $b]
+      set pr [Parse $prod]
+      set prod [A2nd product $a1 $b1]
+      if {[A2nd compare $prod $pr]} {
+      lappend res ">$prod< >$pr<"
+         lappend res "([A2nd print $a1]) * ([A2nd print $b1]) != [A2nd print $pr], got [A2nd print $prod]"
+      }
+   }
+   join $res \n
+} {}
+
+
 test a2nd-8 {} {} {}
 test a2nd-9 {} {} {}
 test a2nd-10 {} {} {}

@@ -493,12 +493,16 @@ namespace eval A2nd {
 		} else {
 		    if {$pl == 1} {
 			set pl $key
+		    } elseif {$pl eq "" || $pl == 0} {
+		    	set pl ""
 		    } else {
 			set pl "$pl $key"
 		    } 
 		}
 	    }
-	    lappend res $pl
+	    if {$pl ne ""} {
+	       lappend res $pl
+	    }
 	}
 	set res [join $res " + "]
 	#set res [string map [list "+ -" "-"] $res]
@@ -507,7 +511,7 @@ namespace eval A2nd {
 	return $res
     }
 
-    proc parse {dictval} {
+    proc Parse {dictval} {
 	set res {}
 	foreach {key value} $dictval {
 	    lappend res $key [ParseSq $value]
@@ -828,16 +832,17 @@ namespace eval A2nd {
           }
        }
        if {$err ne ""} {
-          return -code error -errorinfo "computing u([print $val])" $err
+          return -code error -errorinfo "$err\nwhile computing u([print $val])" $err
        }
        return $res
     }
 
     namespace export {*}{
        print basis add sub compare product commutator
-       component sigma u op cancel zero one iota pi frob0 frob1
+       component sigma u op partial cancel zero one iota pi 
+       frob0 frob1
     }
-#namespace export *
+
 namespace ensemble create
 }
 }
