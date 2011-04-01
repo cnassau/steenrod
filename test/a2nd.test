@@ -187,8 +187,41 @@ test a2nd-7 {multiplication} {
    join $res \n
 } {}
 
+proc ::SqD {idx1 idx2} {
+    # return Sq(Delta_idx1 + Delta_idx2)
+    set red {0 0 0 0 0 0 0 0 0 0}
+    if {$idx1>=0} {lset red $idx1 [expr {1+[lindex $red $idx1]}]}
+    if {$idx2>=0} {lset red $idx2 [expr {1+[lindex $red $idx2]}]}
+    while {[lindex $red end]==0} {
+        set red [lrange $red 0 end-1]
+    }
+    if {$red eq ""} {set red 0}
+    return "Sq([join $red ,])"
+}
 
-test a2nd-8 {} {} {}
+test a2nd-8 {U-relations} {
+    set res {}
+    foreach i {0 1 2 3 4} {
+       for {set j $i} {$j<=7} {incr j} {
+          set uij [Parse "U$i,$j Sq(0)"]
+          set uji [Parse "U$j,$i Sq(0)"]
+	  set uji [A2nd product [A2nd one] $uji]
+	  if {$i==$j} {
+              set want "mu0 [SqD [expr {$i+1}] -1] iota [SqD [expr {$i+0}] [expr {$i+0}]]"
+	  } else {
+              set want "U$i,$j Sq(0) iota [SqD $i $j]"
+	  }
+	  set wp [Parse $want]
+	  #puts "U$j,$i = [A2nd print $wp]"
+	  if {[A2nd compare $wp $uji]} {
+              lappend res "U$j,$i != $want: got [A2nd print $uji]"
+	  }
+       }
+    }
+    join $res \n
+} {}
+
+
 test a2nd-9 {} {} {}
 test a2nd-10 {} {} {}
 test a2nd-11 {} {} {}

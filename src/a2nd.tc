@@ -419,6 +419,7 @@ namespace eval ::steenrod {
 					    poly foreach $pl2 m2 {
 						hmap::multiply $m1ij $m2 aux {
 						    if 0 {
+						        # code from "op" TODO: delete me
 							set cf [lindex $aux 0]
 							if {1 & $cf} {
 							    lset aux 0 1
@@ -447,13 +448,19 @@ namespace eval ::steenrod {
 							}
 						    }
 						    set cf [lindex $aux 0]
+						    set iotabase {} ;# for the contribution to iota
 						    if {1 & $cf} {
+						        set aux2 $aux
 							lset aux 0 1
 							if {$sym in "Y U"} {
 							    if {$kpi<$lpj} {
 								set key $sym$kpi,$lpj
 							    } elseif {$kpi>$lpj} {
 								set key $sym$lpj,$kpi
+								set red [list  0 0 0 0 0 0 0 0]
+								_lincr red $kpi 1
+								_lincr red $lpj 1
+								set iotabase [list 1 0 $red 0]
 							    } else {
 								if {$sym eq "Y"} {
 								    set key {}
@@ -473,6 +480,9 @@ namespace eval ::steenrod {
 								if {0 == (1 & $z)} {
 								    set key ignore
 								}
+								set red [list  0 0 0 0 0 0 0 0]
+								_lincr red $kpi 2
+								set iotabase [list 1 0 $red 0]
 							    }
 							} else {
 							    set key $sym$kpi,$lpj
@@ -481,7 +491,11 @@ namespace eval ::steenrod {
 							if {$key ne "ignore"} {
 							    lappend res($key) $aux
 							}
-							
+						        if {$sym eq "U" && [llength $iotabase]} {
+								set x [poly steenmult [list $iotabase] \
+								                      [list $aux2] 2]
+								poly varappend res(iota) $x
+							}
 						    }
 						}
 					    }
