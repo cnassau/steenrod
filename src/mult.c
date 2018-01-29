@@ -117,7 +117,7 @@ void stdFetchFuncSFNoSSE(struct multArgs *ma, int coeff) {
 /* here comes the sse2 variant */
 
 short inv2(short x) {
-    int fac = 1-x, prod = 1+fac;
+    unsigned int fac = 1-x, prod = 1+fac;
     while (fac) {
         prod *= 1 + (fac*=fac);
     }
