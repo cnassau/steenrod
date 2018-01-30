@@ -349,7 +349,7 @@ void *stdCreateCopy(void *src) {
     if (NULL == (n->dat = (exmo *) mallox(sizeof(exmo) * n->nalloc))) {
         freex(n); return NULL; 
     }
-    memcpy(n->dat,s->dat,sizeof(exmo) * s->num);
+    if(s->dat) memcpy(n->dat,s->dat,sizeof(exmo) * s->num);
     return n;
 }
 
@@ -393,7 +393,7 @@ int stdRealloc(void *self, int nalloc) {
 void stdSort(void *self) {
     stp *s = (stp *) self;
     LOGSTD("Sort");
-    qsort(s->dat,s->num,sizeof(exmo),compareExmo);
+    if(s->dat) qsort(s->dat,s->num,sizeof(exmo),compareExmo);
 }
 
 void stdCancel(void *self, int mod) {

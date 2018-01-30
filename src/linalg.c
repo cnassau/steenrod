@@ -176,7 +176,7 @@ void matrix_destroy(matrix *mat) {
 matrix *matrix_copy(matrix *mat) {
     matrix *res = matrix_create(mat->rows, mat->cols);
     if (NULL == res) return NULL;
-    memcpy(res->data, mat->data, sizeof(BLOCKTYPE) * mat->nomcols * mat->rows);
+    if(mat->data) memcpy(res->data, mat->data, sizeof(BLOCKTYPE) * mat->nomcols * mat->rows);
     return res;
 }
 

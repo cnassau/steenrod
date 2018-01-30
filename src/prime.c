@@ -276,11 +276,11 @@ int extdeg(const primeInfo *pi, int msk) {
 
 /* SIGNFUNC computes the difference between "a*b" and "a^b" in the 
  * exterior part */
-int SIGNFUNC(int a, int b) {
+int SIGNFUNC(unsigned int a, unsigned int b) {
     int res = 0, cnt = 0;
     /* go through bits in a */
     while (a) {
-        int z = a ^ (a & (a-1)); /* lowest bit in a */
+        unsigned int z = a ^ (a & (a-1)); /* lowest bit in a */
         cnt++;                   /* count number of bits in a */
         res += BITCOUNT((z-1) & b); /* number of bits in b we have to skip */
         a &= (a-1); b |= z;

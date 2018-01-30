@@ -39,10 +39,10 @@ typedef struct {
     cint prime;
     int maxdeg;        /* maximum dimension for which this data is complete */
     /* basic */
-    int *primpows;     /* prime powers */
-    int *extdegs;      /* exterior degrees */
-    int *reddegs;      /* degrees of the reduced part, divided by 2(p-1) */
-    int tpmo;          /* 2(p-1) */
+    unsigned int *primpows;     /* prime powers */
+    unsigned int *extdegs;      /* exterior degrees */
+    unsigned int *reddegs;      /* degrees of the reduced part, divided by 2(p-1) */
+    unsigned int tpmo;          /* 2(p-1) */
     int maxpowerXint;  /* largest prime power that fits in a xint */
     int maxpowerXintI; /* the I such that primpows[I] == maxpowerXint */
     /* inverse */
@@ -89,6 +89,6 @@ int extdeg(const primeInfo *pi, int msk);
 
 /* SIGNFUNC computes the sign difference between a*b and a^b 
  * in an exterior algebra */
-int SIGNFUNC(int a, int b);
+int SIGNFUNC(unsigned int a, unsigned int b);
 
 #endif

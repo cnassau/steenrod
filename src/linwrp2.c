@@ -108,7 +108,7 @@ typedef struct {
 
 int stdGetEntry2(void *m, int row, int col, int *val) {
     mat2 *mat = (mat2 *) m;
-    int off = col/BITSPERINT, msk = 1 << (col % BITSPERINT);
+    unsigned int off = col/BITSPERINT, msk = (unsigned) 1 << (((unsigned) col) % BITSPERINT);
     if ((row >= mat->rows) || (col >= mat->cols))
         return FAILIMPOSSIBLE;
     *val = (mat->data[row*(mat->ipr)+off] & msk) ? 1 : 0;
@@ -117,7 +117,7 @@ int stdGetEntry2(void *m, int row, int col, int *val) {
 
 int stdSetEntry2(void *m, int row, int col, int val) {
     mat2 *mat = (mat2 *) m;
-    int off = col/BITSPERINT, msk = 1 << (col % BITSPERINT);
+    unsigned int off = col/BITSPERINT, msk = (unsigned) 1 << (((unsigned) col) % BITSPERINT);
     if ((row >= mat->rows) || (col >= mat->cols))
         return FAILIMPOSSIBLE;
     off += row*(mat->ipr);
@@ -365,7 +365,7 @@ mat2 *matrix_ortho2(mat2 *inp, mat2 **urb, Tcl_Interp *ip,
             /* row is zero */
             matrix_collect2(&m2, i); /* collect kernel vector */
         } else {
-            int pivmsk = *aux; pivmsk ^= pivmsk & (pivmsk-1);
+            unsigned int pivmsk = *aux; pivmsk ^= pivmsk & (pivmsk-1);
             matrix_collect2(&m1, i); /* collect image vector */
             if (NULL != oth) {
                 matrix_collect_ext2(&m3, &m2, i);

@@ -316,7 +316,7 @@ void initxfPA(multArgs *MA) {
                 xf->quant = 1;
                 xf->estat = 1;
             } else {
-                xf->quant = MA->profile->r.dat[i+j-1];
+                xf->quant = (i+j-1<NALG) ? MA->profile->r.dat[i+j-1] : 1;
                 xf->estat = 
                     (0 == (MA->profile->ext & (1 << (i+j-1)))) ? 1 : 0;  
             }
@@ -339,7 +339,7 @@ void initxfAP(multArgs *MA) {
                 xf->quant = 1;
                 xf->estat = 1;
             } else {
-                xf->quant = MA->profile->r.dat[i+j-1];
+                xf->quant = (i+j-1<NALG) ? MA->profile->r.dat[i+j-1] : 1;
                 xf->estat = 
                     (0 == (MA->profile->ext & (1 << (i+j-1)))) ? 1 : 0;  
             }

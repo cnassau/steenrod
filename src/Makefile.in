@@ -302,7 +302,7 @@ VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win
 
 steenrodsh: ${PKG_SOURCES} ${TCL_LIB_FILE}
 	${CC} ${CFLAGS} ${LDFLAGS} $(srcdir)/steenrodsh.c \
-		${CC_SEARCH_FLAGS} ${LD_SEARCH_FLAGS} -Wl,-rpath,${TCL_BIN_DIR} @TCL_LIB_SPEC@ -o steenrodsh
+		${CC_SEARCH_FLAGS} -I${INCLUDES} ${LD_SEARCH_FLAGS} -Wl,-rpath,${TCL_BIN_DIR} @TCL_LIB_SPEC@ -o steenrodsh
 
 #========================================================================
 # Distribution creation
