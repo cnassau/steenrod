@@ -3,8 +3,6 @@
  *
  * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
  *
- *  $Id$
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -24,17 +22,15 @@ typedef struct {
     int        *interruptVar;
 } progressInfo;
 
-/* I'm too tired right now, to put comments into this code! */
-
 typedef struct {
     const char *name;
 
-    int  (*getEntry)(void *vec, int idx, int *val); 
+    int  (*getEntry)(void *vec, int idx, int *val);
     int  (*setEntry)(void *vec, int idx, int val);
     int  (*getLength)(void *vec);
     void *(*createVector)(int cols);
     void *(*createCopy)(void *vec);
-    void (*destroyVector)(void *vec);    
+    void (*destroyVector)(void *vec);
     int  (*add)(void *v1, void *v2, int scale, int mod);
     int  (*reduce)(void *mat, int prime);
     int  (*iszero)(void *mat);
@@ -43,7 +39,7 @@ typedef struct {
 typedef struct {
     const char *name;
 
-    int  (*getEntry)(void *mat, int row, int col, int *val); 
+    int  (*getEntry)(void *mat, int row, int col, int *val);
     int  (*setEntry)(void *mat, int row, int col, int val);
     int  (*addToEntry)(void *mat, int row, int col, int val, int mod);
     void (*getDimensions)(void *mat, int *row, int *col);
@@ -76,17 +72,20 @@ extern vectorType stdVectorType2;
 #define stdmatrix2 (&(stdMatrixType2))
 #define stdvector2 (&(stdVectorType2))
 
+extern vectorType matrixRowcolVector;
+
+void *CreateMatrixRowcolVector(Tcl_Obj *matrix, int rcnum, int roworcol);
+
 void *createStdMatrixCopy(matrixType *mt, void *mat);
 void *createStdVectorCopy(vectorType *vt, void *vec);
 
-int LAVadd(vectorType **vt1, void **vec1, 
+int LAVadd(vectorType **vt1, void **vec1,
            vectorType *vt2, void *vec2, int scale, int mod);
 
-int LAMadd(matrixType **vt1, void **vec1, 
+int LAMadd(matrixType **vt1, void **vec1,
            matrixType *vt2, void *vec2, int scale, int mod);
 
 int vectorIsZero(vectorType *vt, void *vdat);
 int matrixIsZero(matrixType *mt, void *mdat);
 
 #endif
-

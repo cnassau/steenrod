@@ -109,7 +109,30 @@ test linalg-3.4 {matrix refcounts, } {
 } {} 
 
 
+test linalg-4.1 {column/row extraction} {
+   set mat {
+       {1 2 3 4}
+       {5 6 7 8}
+       {4 3 2 1}
+   }
+   set res {}
+   lappend res [steenrod::matrix extract cols $mat {1 2}]
+   lappend res [steenrod::matrix extract single-col $mat 0]
+   lappend res [steenrod::matrix extract rows $mat {0 2}]
+   lappend res [steenrod::matrix extract single-row $mat 1]
+   set res
+} {{{2 3} {6 7} {3 2}} {1 5 4} {{1 2 3 4} {4 3 2 1}} {5 6 7 8}}
 
+test linalg-4.2 {single-row/col refernce counting} {
+   set mat [steenrod::matrix create 2 4]
+   set res {}
+   lappend res [steenrod::_refcount [steenrod::matrix create 6 4]]
+   lappend res [steenrod::_refcount $mat]
+   set x [steenrod::matrix extract single-col $mat 0]
+   lappend res [steenrod::_refcount $mat]
+   set x dummy
+   lappend res [steenrod::_refcount $mat]
+} {1 2 3 2}
 
 # cleanup
 ::tcltest::cleanupTests

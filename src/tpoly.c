@@ -816,7 +816,6 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             obj = objv[2];
             if (Tcl_IsShared(obj)) 
                 obj = Tcl_DuplicateObj(obj);
-
             if (NULL == (obj1 = Tcl_PolyObjAppend(obj, objv[3], scale, modval)))
                 RETERR("PLappendPoly failed");
 

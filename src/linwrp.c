@@ -16,6 +16,8 @@
 #include "linwrp.h"
 #include "linalg.h"
 #include "adlin.h"
+#include "tlin.h"
+#include <string.h>
 
 /* The standard matrix type. This is just a wrapper around the 
  * stuff from linalg.c */
@@ -224,6 +226,71 @@ vectorType stdVectorType = {
     .destroyVector = &stdVDestroyVector,
     .reduce        = &stdVReduce,
     .add           = &stdVAdd
+};
+
+typedef struct rcvect {
+    Tcl_Obj *matobj;
+    matrixType *mtype;
+    void *mdata;
+    int rowcolnum;
+    int isrow;
+} rcvect;
+
+void *CreateMatrixRowcolVector(Tcl_Obj *matobj, int rcnum, int isrow) {
+    rcvect *ans = (rcvect*) malloc(sizeof(rcvect));
+    ans->matobj = matobj;
+    Tcl_IncrRefCount(matobj);
+    ans->mtype = matrixTypeFromTclObj(matobj);
+    ans->mdata = matrixFromTclObj(matobj);
+    ans->rowcolnum = rcnum;
+    ans->isrow = isrow;
+    return ans;
+}
+
+int rcGetEntry(void *vec, int idx, int *val) {
+    rcvect *r = (rcvect*)vec;
+    int nr, nc;
+    if(r->isrow) {
+      nr = r->rowcolnum;
+      nc = idx;
+    } else {
+      nc = r->rowcolnum;
+      nr = idx;
+    } 
+    return (r->mtype)->getEntry(r->mdata,nr,nc,val);
+}
+
+int rcGetLength(void*vec) {
+    rcvect *r = (rcvect*)vec;
+    int nr,nc;
+    (r->mtype)->getDimensions(r->mdata,&nr,&nc);
+    return r->isrow ? nc : nr; 
+}
+
+void *rcCreateCopy(void*vec) {
+    rcvect *r = (rcvect*)vec;
+    rcvect *c = malloc(sizeof(rcvect));
+    memcpy(c,r,sizeof(rcvect));
+    Tcl_IncrRefCount(c->matobj);
+    return c; 
+}
+
+void rcDestroyVector(void*vec) {
+    rcvect *r = (rcvect*)vec;
+    Tcl_DecrRefCount(r->matobj);
+    free(r);
+}
+
+vectorType matrixRowcolVector = {
+    .name          = "row/col vector",
+    .getEntry      = &rcGetEntry,
+    .setEntry      = NULL, /* SetEntry*/
+    .getLength     = &rcGetLength,
+    .createVector  = NULL, /* CreateVector */
+    .createCopy    = &rcCreateCopy,
+    .destroyVector = &rcDestroyVector,
+    .reduce        = NULL, /* Reduce */
+    .add           = NULL /* Add */
 };
 
 void *createStdMatrixCopy(matrixType *mt, void *mat) {
