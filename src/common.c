@@ -1,7 +1,7 @@
 /*
  * Common macros, typedefs, constants, etc.
  *
- * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *

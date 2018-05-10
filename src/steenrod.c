@@ -1,9 +1,7 @@
 /*
  * Main entry point to the Steenrod library
  *
- * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
- *
- *  $Id$
+ * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -34,7 +32,7 @@ void SignalHandler(int c) {
 #endif
 
 int InterruptibleCmd(ClientData cd, Tcl_Interp *ip,
-		     int objc, Tcl_Obj * CONST objv[]) {    
+		     int objc, Tcl_Obj * CONST objv[]) {
     int rc;
     void (*sigint)(int);
 
@@ -42,7 +40,7 @@ int InterruptibleCmd(ClientData cd, Tcl_Interp *ip,
         Tcl_WrongNumArgs(ip, 1, objv, "varname script");
         return TCL_ERROR;
     }
-    
+
     Tcl_LinkVar(ip, Tcl_GetString(objv[1]), (char *) &SIGNAL_FLAG, TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
     SIGNAL_FLAG = 0;
@@ -67,9 +65,9 @@ int   theprogmsk; /* progress reporting granularity */
  * data fields as follows:
  *
  *   ma->cd1 = matrixType
- *   ma->cd2 = matrix 
+ *   ma->cd2 = matrix
  *   ma->cd3 = destination enumerator
- *   ma->cd4 = error code  
+ *   ma->cd4 = error code
  *   ma->cd5 = number of row that we're currently working on
  */
 
@@ -81,10 +79,13 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
     int idx;
     int rcode;
     Tcl_Interp *ip = (Tcl_Interp *) ma->TclInterp;
-    
+
+    /*exmoLog("addToMatrixCB",(exmo*)smd);*/
+
     idx = SeqnoFromEnum(dst, (exmo *) smd);
-    
-    if (idx < 0) { 
+
+    if (idx < 0) {
+      //return; // FIXME: optionally (?) ignore seqno errors
         ma->cd4 = (void *) FAIL;
         goto error;
     }
@@ -95,17 +96,17 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
 
     if (SUCCESS == rcode)
         return;
-   
+
     ma->cd4 = VPTRFROMUSGN(rcode);
-   
+
  error:
- 
+
     if (NULL != ip) {
         char err[200];
         Tcl_Obj *aux = Tcl_NewExmoCopyObj((exmo *) smd);
-        sprintf(err, 
+        sprintf(err,
                 "cannot account for monomial {%s}\n"
-                "    (found sequence number %d)", 
+                "    (found sequence number %d)",
                 Tcl_GetString(aux), idx);
         Tcl_SetResult(ip, err, TCL_VOLATILE);
         DECREFCNT(aux);
@@ -113,11 +114,11 @@ void addToMatrixCB(struct multArgs *ma, const exmo *smd) {
 }
 
 /* A MatCompTaskInfo structure is used to compute the differential of
- * a collection of polynomials and to store the result in a matrix. 
- * This abstraction is useful because we have at least two routines that 
+ * a collection of polynomials and to store the result in a matrix.
+ * This abstraction is useful because we have at least two routines that
  * carry out such a computation. */
 
-typedef struct { 
+typedef struct {
     /* description of the result matrix */
     int srcdim;   /* number of rows to allocate */
     int currow;   /* number of row that is currently used */
@@ -131,10 +132,10 @@ typedef struct {
 
     /* Client data, used by iterator callbacks */
     void *cd1;
-    
+
     /* data needed to interpret the result(s) */
     momap *map;                    /* the map */
-    enumerator *dst;               /* where the targets live */ 
+    enumerator *dst;               /* where the targets live */
 
 } MatCompTaskInfo;
 
@@ -152,18 +153,18 @@ typedef struct {
 
 #define PROGVARDONE { if (NULL != THEPROGVAR) Tcl_UnlinkVar(ip, THEPROGVAR); }
 
-/* MakeMatrix carries out the computation that's described in the 
+/* MakeMatrix carries out the computation that's described in the
  * MatCompTaskInfo argument. */
 
 int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
-               progressInfo *pinf, matrixType **mtp, void **mat) {
-    
+               progressInfo *pinf, matrixType **mtp, void **mat, int ismotivic) {
+
     int srcdim, dstdim;
     Tcl_Obj *dg = NULL, *theGObj;
-    exmo theG; 
+    exmo theG;
     polyType *dgpolyType;
     void *dgpoly;
-    int dgispos, dgnumsum = 0; 
+    int dgispos, dgnumsum = 0;
     multArgs ourMA, *ma = &ourMA;
     enumerator *dst = mc->dst;
     momap *map = mc->map;
@@ -178,7 +179,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     } else {
         if (dst->ispos) {
             RETERR("map from negative to positive not possible");
-        } 
+        }
         dgispos = 1;
     }
 
@@ -214,8 +215,8 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     ma->ffIsPos = mc->srcIspos;
     ma->sfIsPos = dgispos;
 
-    ma->getExmoFF = &stdGetSingleExmoFunc;
-    ma->getExmoSF = &stdGetExmoFunc;
+    ma->getExmoFF = ismotivic ? &stdGetSingleExmoFuncMotivic : &stdGetSingleExmoFunc;
+    ma->getExmoSF = ismotivic ? &stdGetExmoFuncMotivic : &stdGetExmoFunc;
 
     ma->fetchFuncFF = &stdFetchFuncFF;
     ma->fetchFuncSF = &stdFetchFuncSF;
@@ -228,33 +229,33 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
     ma->TclInterp = ip;
     ma->stdSummandFunc = &addToMatrixCB;
 
-    PROGVARINIT; 
+    PROGVARINIT;
 
-    if (mc->firstSource(mc)) 
+    if (mc->firstSource(mc))
         do {
             ma->cd5 = VPTRFROMUSGN(mc->currow); /* row indicator */
 
             if ((0 == (mc->currow & theprogmsk)) && (NULL != THEPROGVAR)) {
-                perc = mc->currow; perc /= srcdim; 
+                perc = mc->currow; perc /= srcdim;
                 Tcl_UpdateLinkedVar(ip, THEPROGVAR);
             }
 
             /* find differential of mc->srcx'es generator */
             ma->ffdat = mc->srcx;
-            ma->ffMaxLength = exmoGetRedLen(mc->srcx);
+            ma->ffMaxLength = ismotivic ? exmoGetLen(mc->srcx) : exmoGetRedLen(mc->srcx);
             ma->ffMaxLength = MIN(ma->ffMaxLength, NALG-2);
 
             if (theG.gen != mc->srcx->gen) {
                 /* new generator: need to get its differential dg */
 
-                theG.gen = mc->srcx->gen; 
+                theG.gen = mc->srcx->gen;
                 dg = momapGetValPtr(map, theGObj);
-                
+
                 if (NULL == dg) continue;
 
                 if (TCL_OK != Tcl_ConvertToPoly(ip, dg)) {
                     char err[200];
-                    sprintf(err,"target of generator #%d not of polynomial type", 
+                    sprintf(err,"target of generator #%d not of polynomial type",
                             theG.gen);
                     PROGVARDONE;
                     RELEASEGOBJ;
@@ -266,20 +267,20 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                 dgnumsum   = PLgetNumsum(dgpolyType, dgpoly);
 
                 if (dgispos) {
-                    if (SUCCESS != PLtest(dgpolyType, dgpoly, ISPOSITIVE)) { 
+                    if (SUCCESS != PLtest(dgpolyType, dgpoly, ISPOSITIVE)) {
                         char err[200];
-                        /* TODO: should we make sure and check each summand ? */ 
-                        sprintf(err,"target of generator #%d not positive (?)", 
+                        /* TODO: should we make sure and check each summand ? */
+                        sprintf(err,"target of generator #%d not positive (?)",
                                 theG.gen);
                         PROGVARDONE;
                         RELEASEGOBJ;
                         RETERR(err);
                     }
                 } else {
-                    if (SUCCESS != PLtest(dgpolyType, dgpoly, ISNEGATIVE)) { 
+                    if (SUCCESS != PLtest(dgpolyType, dgpoly, ISNEGATIVE)) {
                         char err[200];
-                        /* TODO: should we make sure and check each summand ? */ 
-                        sprintf(err,"target of generator #%d not negative (?)", 
+                        /* TODO: should we make sure and check each summand ? */
+                        sprintf(err,"target of generator #%d not negative (?)",
                                 theG.gen);
                         PROGVARDONE;
                         RELEASEGOBJ;
@@ -287,17 +288,17 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                     }
                 }
 
-                ma->sfdat  = dgpolyType; 
+                ma->sfdat  = dgpolyType;
                 ma->sfdat2 = dgpoly;
-                ma->sfMaxLength = PLgetMaxRedLength(dgpolyType, dgpoly);
+                ma->sfMaxLength = ismotivic ? PLgetMaxRedLengthMotivic(dgpolyType, dgpoly) : PLgetMaxRedLength(dgpolyType, dgpoly);
                 ma->sfMaxLength = MIN(ma->sfMaxLength, NALG-2);
 
             }
 
             if (NULL == dg) continue;
-     
+
             /* compute mc->srcx * dg */
-            
+
             if (mc->srcIspos)
                 workPAchain(ma);
             else
@@ -309,7 +310,7 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
                 if (NULL != ip) {
                     char err[500];
                     Tcl_Obj *aux = Tcl_NewExmoCopyObj(mc->srcx);
-                    sprintf(err, "\nwhile computing image of {%s}", 
+                    sprintf(err, "\nwhile computing image of {%s}",
                             Tcl_GetString(aux));
                     DECREFCNT(aux);
                     Tcl_AddObjErrorInfo(ip, err, strlen(err));
@@ -320,10 +321,10 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
             }
 
         } while (mc->nextSource(mc));
-    
+
     PROGVARDONE;
     RELEASEGOBJ;
-    
+
     return SUCCESS;
 }
 
@@ -332,20 +333,20 @@ int MakeMatrix(Tcl_Interp *ip, MatCompTaskInfo *mc, exmo *profile,
 int MCTfsourceEnum(void *s) {
     MatCompTaskInfo *mc = (MatCompTaskInfo *) s;
     enumerator *enu = (enumerator *) mc->cd1;
-    mc->currow = 0; mc->srcx = &(enu->theex); 
+    mc->currow = 0; mc->srcx = &(enu->theex);
     return firstRedmon(enu);
 }
 
 int MCTnsourceEnum(void *s) {
     MatCompTaskInfo *mc = (MatCompTaskInfo *) s;
     enumerator *enu = (enumerator *) mc->cd1;
-    ++(mc->currow); 
+    ++(mc->currow);
     return nextRedmon(enu);
 }
 
-int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *dst, 
+int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *dst,
                       progressInfo *pinf, matrixType **mtp, void **mat) {
-    MatCompTaskInfo mct; 
+    MatCompTaskInfo mct;
 
     /* check whether src and target are compatible */
     if ((NULL == src->pi) || (src->pi != dst->pi))
@@ -354,43 +355,43 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
     mct.srcIspos = src->ispos;
     mct.srcdim = DimensionFromEnum(src);
 
-    mct.cd1 = (void *) src; 
+    mct.cd1 = (void *) src;
     mct.srcx = &(src->theex);
     mct.firstSource = MCTfsourceEnum;
     mct.nextSource  = MCTnsourceEnum;
 
-    mct.dst = dst; 
+    mct.dst = dst;
     mct.map = map;
 
-    return MakeMatrix(ip, &mct, &(src->profile), pinf, mtp, mat);
+    return MakeMatrix(ip, &mct, &(src->profile), pinf, mtp, mat, 0 /* ismotivic */);
 }
 
 int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
                        int objc, Tcl_Obj * CONST objv[]) {
 
     enumerator *src, *dst;
-    momap *map; 
+    momap *map;
     progressInfo info, *infoptr;
     matrixType *mtp;
     void *mat;
 
     if ((objc<4) || (objc>6)) {
-        Tcl_WrongNumArgs(ip, 1, objv, 
+        Tcl_WrongNumArgs(ip, 1, objv,
                          "<enumerator> <monomap> <enumerator> ?<varname>? ?<int>?");
         return TCL_ERROR;
     }
-    
-    info.ip = ip; 
+
+    info.ip = ip;
     info.progvar = NULL;
     info.pmsk = 0;
     infoptr = NULL;
 
-    if (objc > 4) { 
+    if (objc > 4) {
         info.progvar = Tcl_GetString(objv[4]);
         infoptr = &info;
     }
 
-    if (objc > 5) 
+    if (objc > 5)
         if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &info.pmsk))
             return TCL_ERROR;
 
@@ -413,7 +414,7 @@ int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
         if (NULL != mat) mtp->destroyMatrix(mat);
         return TCL_ERROR;
     }
-  
+
     Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mtp, mat));
     return TCL_OK;
 }
@@ -431,7 +432,8 @@ typedef struct {
     int idx, aux, pcnt;
     exmo xm;
     int ispos;
-} PlistCtrlStruct; 
+  int ismot;
+} PlistCtrlStruct;
 
 int MCTnpcs(void *s) {
     MatCompTaskInfo *mct = (MatCompTaskInfo *) s;
@@ -445,9 +447,9 @@ int MCTnpcs(void *s) {
                 return 0;
             return 1;
         }
-        pcs->idx = 0; 
+        pcs->idx = 0;
         if (++(pcs->pcnt) >= pcs->npoly) break;
-        pcs->aux = PLgetNumsum(pcs->pt[pcs->pcnt], pcs->pdat[pcs->pcnt]);  
+        pcs->aux = PLgetNumsum(pcs->pt[pcs->pcnt], pcs->pdat[pcs->pcnt]);
         ++(mct->currow);
     } while (1);
     return 0;
@@ -457,7 +459,7 @@ int MCTfpcs(void *s) {
     MatCompTaskInfo *mct = (MatCompTaskInfo *) s;
     PlistCtrlStruct *pcs = (PlistCtrlStruct *) mct->cd1;
     if (0 == pcs->npoly) return 0;
-    pcs->idx = pcs->pcnt = 0; 
+    pcs->idx = pcs->pcnt = 0;
     pcs->aux = PLgetNumsum(pcs->pt[0], pcs->pdat[0]);
     mct->currow = 0;
     if (0 == pcs->aux) return MCTnpcs(s);
@@ -475,7 +477,7 @@ void destroyPCS(PlistCtrlStruct *pcs) {
 
 int makePCS(PlistCtrlStruct *pcs, Tcl_Obj *plist) {
     int i, ispos, isneg, obc; Tcl_Obj **obv;
-    
+
     pcs->pt = NULL; pcs->pdat = NULL;
 
     if (TCL_OK != Tcl_ListObjGetElements(NULL, plist, &obc, &obv))
@@ -483,24 +485,25 @@ int makePCS(PlistCtrlStruct *pcs, Tcl_Obj *plist) {
 
     pcs->npoly = obc;
     pcs->ispos = 1;
+    pcs->ismot = 0;
     pcs->pt    = mallox(obc * sizeof(polyType *));
     pcs->pdat  = mallox(obc * sizeof(void *));
-    
-    if ((NULL == pcs->pt) || (NULL == pcs->pdat)) 
+
+    if ((NULL == pcs->pt) || (NULL == pcs->pdat))
         THROWUP;
 
     ispos = isneg = 1;
-    for (i=0; i<obc; i++) 
+    for (i=0; i<obc; i++)
         if (TCL_OK == Tcl_ConvertToPoly(NULL, obv[i])) {
             pcs->pt[i]   = polyTypeFromTclObj(obv[i]);
             pcs->pdat[i] = polyFromTclObj(obv[i]);
-            ispos = ispos && 
-                (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISPOSITIVE)); 
-            isneg = isneg && 
+            ispos = ispos &&
+                (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISPOSITIVE));
+            isneg = isneg &&
                 (SUCCESS == PLtest(pcs->pt[i], pcs->pdat[i], ISNEGATIVE));
         } else THROWUP;
-        
-    if (!ispos && !isneg) 
+
+    if (!ispos && !isneg)
         THROWUP;
 
     pcs->ispos = ispos;
@@ -509,26 +512,28 @@ int makePCS(PlistCtrlStruct *pcs, Tcl_Obj *plist) {
 }
 
 int MakeImages(Tcl_Interp *ip, Tcl_Obj *plist, momap *map, enumerator *dst,
-               progressInfo *pinf, matrixType **mtp, void **mat) {
-    MatCompTaskInfo mct; 
+               progressInfo *pinf, matrixType **mtp, void **mat, int usemotivic) {
+    MatCompTaskInfo mct;
     int rcode;
     PlistCtrlStruct pcs;
-    
+
     if (SUCCESS != makePCS(&pcs, plist))
         return FAIL;
+
+    pcs.ismot = usemotivic;
 
     mct.srcIspos = pcs.ispos;
     mct.srcdim = pcs.npoly;
 
-    mct.cd1 = &pcs; 
+    mct.cd1 = &pcs;
     mct.srcx = &(pcs.xm);
     mct.firstSource = MCTfpcs;
     mct.nextSource  = MCTnpcs;
 
-    mct.dst = dst; 
+    mct.dst = dst;
     mct.map = map;
 
-    rcode = MakeMatrix(ip, &mct, &(dst->profile), pinf, mtp, mat);
+    rcode = MakeMatrix(ip, &mct, &(dst->profile), pinf, mtp, mat, usemotivic);
 
     destroyPCS(&pcs);
 
@@ -539,30 +544,31 @@ int TMakeImages(ClientData cd, Tcl_Interp *ip,
                 int objc, Tcl_Obj * CONST objv[]) {
 
     enumerator *dst;
-    momap *map; 
+    momap *map;
     progressInfo info, *infoptr;
     matrixType *mtp = NULL;
     void *mat = NULL;
     int i, obc; Tcl_Obj **obv;
-    
+    int ismotivic = (int) cd;
+
     if ((objc<4) || (objc>6)) {
-        Tcl_WrongNumArgs(ip, 1, objv, 
+        Tcl_WrongNumArgs(ip, 1, objv,
                          "<monomap> <enumerator> <list of polynomials>"
                          " ?<varname>? ?<int>?");
         return TCL_ERROR;
     }
-    
-    info.ip = ip; 
+
+    info.ip = ip;
     info.progvar = NULL;
     info.pmsk = 0;
     infoptr = NULL;
 
-    if (objc > 4) { 
+    if (objc > 4) {
         info.progvar = Tcl_GetString(objv[4]);
         infoptr = &info;
     }
 
-    if (objc > 5) 
+    if (objc > 5)
         if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &info.pmsk))
             return TCL_ERROR;
 
@@ -577,21 +583,21 @@ int TMakeImages(ClientData cd, Tcl_Interp *ip,
     }
 
     /* check that objv[3] is a list of polynomials */
-    
+
     if (TCL_OK != Tcl_ListObjGetElements(ip, objv[3], &obc, &obv)) {
         Tcl_AppendResult(ip, " (expected list of polynomials)", NULL);
         return TCL_ERROR;
     }
 
-    for (i=0;i<obc;i++) 
-        if (TCL_OK != Tcl_ConvertToPoly(ip, obv[i])) 
+    for (i=0;i<obc;i++)
+        if (TCL_OK != Tcl_ConvertToPoly(ip, obv[i]))
             RETERR("argument 3 should be a list of polynomials");
-       
-    if (SUCCESS != MakeImages(ip, objv[3], map, dst, infoptr, &mtp, &mat)) {
+
+    if (SUCCESS != MakeImages(ip, objv[3], map, dst, infoptr, &mtp, &mat, ismotivic)) {
         if (NULL != mat) mtp->destroyMatrix(mat);
         return TCL_ERROR;
     }
-  
+
     Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mtp, mat));
 
     return TCL_OK;
@@ -611,7 +617,7 @@ int MakeBinaryCmd(ClientData cd, Tcl_Interp *ip,
     }
 
     if (res->typePtr != bin) {
-        int len; 
+        int len;
         unsigned char *bytes = Tcl_GetByteArrayFromObj(res,&len);
         res = Tcl_NewByteArrayObj(bytes,len);
     }
@@ -627,12 +633,12 @@ int StealStringRep(ClientData cd, Tcl_Interp *ip,
                    int objc, Tcl_Obj * CONST objv[]) {
     Tcl_Obj *obj;
 
-    if (objc != 2) 
+    if (objc != 2)
         RETERR("usage: " STEALCOMMAND " <argument>");
-    
+
     obj = objv[1];
 
-    if (NULL != obj->typePtr) 
+    if (NULL != obj->typePtr)
         if (NULL != obj->typePtr->updateStringProc)
             Tcl_InvalidateStringRep(obj);
 
@@ -646,7 +652,7 @@ int GetRefCount(ClientData cd, Tcl_Interp *ip,
         Tcl_AppendResult(ip, Tcl_GetString(objv[0]), " <argument>", NULL);
         return TCL_ERROR;
     }
-    
+
     Tcl_SetObjResult(ip, Tcl_NewIntObj(objv[1]->refCount));
 
     return TCL_OK;
@@ -654,7 +660,7 @@ int GetRefCount(ClientData cd, Tcl_Interp *ip,
 
 int VersionCmd(ClientData cd, Tcl_Interp *ip,
                int objc, Tcl_Obj * CONST objv[]) {
-    Tcl_SetResult(ip, PACKAGE_NAME "-" PACKAGE_VERSION 
+    Tcl_SetResult(ip, PACKAGE_NAME "-" PACKAGE_VERSION
 #ifdef USESSE2
                   "-sse2"
 #endif
@@ -683,7 +689,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
         if(!sse2ok) {
             Tcl_SetResult(ip, "library requires sse2"
                           " capable processor"
-                          " (recompile without -DUSESSE2)", 
+                          " (recompile without -DUSESSE2)",
                           TCL_STATIC);
             return TCL_ERROR;
         }
@@ -706,6 +712,9 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
     Tcl_CreateObjCommand(ip, POLYNSP "ComputeImage",
                          TMakeImages, (ClientData) 0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "ComputeImageMotivic",
+                         TMakeImages, (ClientData) 1, NULL);
 
     Tcl_CreateObjCommand(ip, STEALCOMMAND,
                          StealStringRep, (ClientData) 0, NULL);
@@ -738,7 +747,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_UnlinkVar(ip, POLYNSP "_objCount");
     Tcl_LinkVar(ip, POLYNSP "_objCount", (char *) &objCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
-    Tcl_Eval(ip, "namespace eval " POLYNSP 
+    Tcl_Eval(ip, "namespace eval " POLYNSP
              " { namespace export -clear \\[a-z\\]* }");
 
     Tcl_PkgProvide(ip, PACKAGE_NAME, PACKAGE_VERSION);

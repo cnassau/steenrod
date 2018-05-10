@@ -1,9 +1,7 @@
 /*
  * All about enumeration and sequence numbers
  *
- * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
- *
- *  $Id$
+ * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -37,16 +35,16 @@ enumerator *enmCopy(enumerator *src) {
     int i;
 
     if (NULL == (en = enmCreate())) return NULL;
- 
+
     /* copy all values... */
     memcpy(en, src, sizeof(enumerator));
 
     /* ... but clear pointers */
     en->genList = NULL;
-    for (i=NALG+1;i--;) 
+    for (i=NALG+1;i--;)
         en->dimtab[i] = en->seqtab[i] = NULL;
 
-    en->efflist = NULL; 
+    en->efflist = NULL;
     en->seqoff = NULL;
 
     /* now make private copies of these arrays */
@@ -58,7 +56,7 @@ enumerator *enmCopy(enumerator *src) {
     }
 
     en->efflist = (effgen *) copymem(src->efflist, src->efflen * sizeof(effgen));
-    en->seqoff = (int *) copymem(src->seqoff, src->efflen * sizeof(int)); 
+    en->seqoff = (int *) copymem(src->seqoff, src->efflen * sizeof(int));
 
     return en;
 }
@@ -70,8 +68,8 @@ void enmDestroySeqOff(enumerator *en) {
 }
 
 void enmDestroySeqtab(enumerator *en) {
-    int i;      
-#if 0  
+    int i;
+#if 0
     printf("enmDestroySeqtab en=%p\n",en);
     for (i=0;i<NALG+1;i++) {
         printf("  en(%p)->dimtab[%d]=%p\n",en,i,en->dimtab[i]);
@@ -131,8 +129,8 @@ int compareEffgen(const void *a, const void *b) {
     int res;
 
     /* Note: in order to optimize the computation of differentials we
-     * might later want to combine the computation of d(Q(E)P(R)g) for 
-     * common Q(E)P(R) and varying g; therefore "ext" has to be more 
+     * might later want to combine the computation of d(Q(E)P(R)g) for
+     * common Q(E)P(R) and varying g; therefore "ext" has to be more
      * significant than "id". */
 
     COMPRET(aa->ext, bb->ext);
@@ -165,7 +163,7 @@ void enmUpdateSigInfo(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
 
 int enmAppendEffgen(enumerator *en, int id, int ext, int rrideg, int redeg) {
     effgen *gen;
-    if (en->effalloc <= en->efflen) 
+    if (en->effalloc <= en->efflen)
         if (SUCCESS != enmReallocEfflist(en, en->efflen+500)) {
             enmDestroyEffList(en);
             return FAILMEM;
@@ -174,7 +172,7 @@ int enmAppendEffgen(enumerator *en, int id, int ext, int rrideg, int redeg) {
     gen->id     = id;
     gen->ext    = ext;
     gen->rrideg = rrideg;
-    if (gen->rrideg > en->maxrrideg) 
+    if (gen->rrideg > en->maxrrideg)
         en->maxrrideg = gen->rrideg;
     if (redeg > en->maxredeg)
         en->maxredeg = redeg;
@@ -185,18 +183,18 @@ int enmAppendEffgen(enumerator *en, int id, int ext, int rrideg, int redeg) {
 
 int findExtsForGenerator(enumerator *en, int id, int rideg, int redeg) {
     int ext = getMaxExterior(en->pi, &(en->algebra), &(en->profile), rideg);
-    int tpmo = en->pi->tpmo, proext = en->profile.ext; 
+    int tpmo = en->pi->tpmo, proext = en->profile.ext;
     if (1 && ENLOG) printf("maxExterior=%d (rideg=%d)\n", ext, rideg);
-    for (;ext>=0;ext--) 
+    for (;ext>=0;ext--)
         if ((0 == (ext & proext)) && (BITCOUNT(ext) == redeg)) {
             int extideg = extdeg(en->pi, ext);
             if (extideg <= rideg) {
                 int diffideg = rideg - extideg;
                 if (0 == (diffideg % tpmo)) {
-                    if (SUCCESS != enmAppendEffgen(en, id, ext, 
-                                                   diffideg/tpmo, 
+                    if (SUCCESS != enmAppendEffgen(en, id, ext,
+                                                   diffideg/tpmo,
                                                    redeg))
-                        return FAILMEM; 
+                        return FAILMEM;
                 }
             }
         }
@@ -218,7 +216,7 @@ int enmRecreateEfflist(enumerator *en) {
     tedeg = en->edeg + (en->ispos ? (-en->sigedeg) : en->sigedeg);
     tideg = en->ideg + (en->ispos ? (-en->sigideg) : en->sigideg);
     if (ENLOG) printf("after signature correction: (sig: %d,%d) "
-                      "trideg = (%d, %d, %d)\n", 
+                      "trideg = (%d, %d, %d)\n",
                       en->sigideg, en->sigedeg, tideg, tedeg, thdeg);
 
     /* go through all gens in the genlist and look for appropriate exteriors */
@@ -232,12 +230,12 @@ int enmRecreateEfflist(enumerator *en) {
             if ((redeg >= 0) && (rideg >= 0)) {
                 if (SUCCESS != findExtsForGenerator(en, id, rideg, redeg))
                     return FAIL;
-            } 
+            }
         } else {
             if ((redeg <= 0) && (rideg <= 0)) {
                 if (SUCCESS != findExtsForGenerator(en, id, -rideg, -redeg))
                     return FAIL;
-            } 
+            }
         }
     }
 
@@ -252,7 +250,7 @@ int enmRecreateEfflist(enumerator *en) {
 
 /**** PUBLIC CONFIGURATION FUNCTIONS ****************************************/
 
-int enmSetBasics(enumerator *en, primeInfo *pi, 
+int enmSetBasics(enumerator *en, primeInfo *pi,
                  exmo *algebra, exmo *profile, int ispos) {
     int i;
     enmDestroyEffList(en);
@@ -260,15 +258,15 @@ int enmSetBasics(enumerator *en, primeInfo *pi,
     en->pi = pi;
     en->ispos = ispos;
 
-    if (NULL == algebra) 
+    if (NULL == algebra)
         exmoSetMaxAlg(pi, &(en->algebra));
-    else                 
-        copyExpExmo(pi, &(en->algebra), algebra); 
+    else
+        copyExpExmo(pi, &(en->algebra), algebra);
 
-    if (NULL == profile) 
+    if (NULL == profile)
         exmoSetMinAlg(pi, &(en->profile));
-    else                  
-        copyExpExmo(pi, &(en->profile), profile); 
+    else
+        copyExpExmo(pi, &(en->profile), profile);
 
     en->profile.ext &= en->algebra.ext;
     for (i=NALG; i--;)
@@ -278,9 +276,9 @@ int enmSetBasics(enumerator *en, primeInfo *pi,
 }
 
 int enmSetSignature(enumerator *en, exmo *sig) {
-    if (NULL == sig) 
+    if (NULL == sig)
         memset(&(en->signature), 0, sizeof(exmo));
-    else                  
+    else
         copyExmo(&(en->signature), sig);
     enmDestroyEffList(en);
     enmUpdateSigInfo(en, &(en->signature), &(en->sigideg), &(en->sigedeg));
@@ -297,14 +295,14 @@ int enmSetTridegree(enumerator *en, int ideg, int edeg, int hdeg) {
 int enmSetGenlist(enumerator *en, int *gl, int num) {
     int i;
     enmDestroyGenList(en);
-    en->genList = gl; 
+    en->genList = gl;
     en->numgens = num;
     /* find max/min ideg/edeg/hdeg/generator */
     if (0 == num) {
-        en->maxideg = en->minideg = en->maxedeg = en->minedeg 
+        en->maxideg = en->minideg = en->maxedeg = en->minedeg
             = en->maxhdeg = en->minhdeg = en->mingen = en->maxgen = 0;
     } else {
-        en->maxideg = en->maxedeg = en->maxhdeg = en->maxgen = -999999; 
+        en->maxideg = en->maxedeg = en->maxhdeg = en->maxgen = -999999;
         en->minideg = en->minedeg = en->minhdeg = en->mingen =  999999;
     }
     for (i=num;i--;gl+=4) {
@@ -330,7 +328,7 @@ int enmSetGenlist(enumerator *en, int *gl, int num) {
 /**** SEQUENCE NUMBERS ******************************************************/
 
 int enmCreateSeqtab(enumerator *en) {
-    primeInfo *pi = en->pi;    
+    primeInfo *pi = en->pi;
     int reddim, maxdim, i, j, k, n;
     exmo *alg = &(en->algebra), *pro = &(en->profile);
 
@@ -338,7 +336,7 @@ int enmCreateSeqtab(enumerator *en) {
     enmDestroySeqtab(en);
 
     maxdim = 10 + (1 + en->maxrrideg) * en->pi->tpmo;
-    
+
     reddim   = 1 + maxdim / pi->tpmo;
     en->tabmaxrideg = maxdim / pi->tpmo;
     en->tablen      = reddim+1;
@@ -368,12 +366,12 @@ int enmCreateSeqtab(enumerator *en) {
         if ((i>pi->maxpowerXintI) || (aux > BIGVAL) || (-aux > BIGVAL)) {
             /* we choose a very big fantasy value */
             en->effdeg[i] = 0xeffffff;
-        } else { 
+        } else {
             en->effdeg[i] = pi->reddegs[i];
-            en->effdeg[i] *= pro->r.dat[i]; 
+            en->effdeg[i] *= pro->r.dat[i];
         }
     }
-    
+
     /* create dimension table: */
 
     /* dimtab[0] is the dimension of k[xi_1] (restricted to A//B) */
@@ -382,7 +380,7 @@ int enmCreateSeqtab(enumerator *en) {
             en->dimtab[0][j] = 1;
         else
             en->dimtab[0][j] = 0;
-    
+
     /* now dimtab[i] for k[xi_1,...,xi_{i+1}] */
     for (i=1;i<NALG;i++)
         for (j=0;j<reddim;j++) {
@@ -392,7 +390,7 @@ int enmCreateSeqtab(enumerator *en) {
                     sum += en->dimtab[i-1][j-k*d];
             en->dimtab[i][j] = sum;
         }
-    
+
     /* next is seqtab */
 
     en->seqtab[0][0] = 0; /* this is all we need from seqtab[0][...] */
@@ -409,18 +407,18 @@ int enmCreateSeqtab(enumerator *en) {
 
     if (ENLOG) {
         printf("dimtab & seqtab info (prime %d, en %p):\n", en->pi->prime, en);
-        printf("en->effdeg ="); 
+        printf("en->effdeg =");
         for (i=0;i<NALG;i++) printf(" %d",en->effdeg[i]);
         printf("\nbeginning of dimtab:\n");
         for (i=0;i<NALG;i++) {
             printf("  dimtab[%d] (at %p) = ",i,en->dimtab[i]);
-            for (n=0;n<10;n++) printf(" %d",en->dimtab[i][n]); 
+            for (n=0;n<10;n++) printf(" %d",en->dimtab[i][n]);
             printf("...\n");
         }
         printf("\nbeginning of seqtab: (seqtab[0][0] = %d)\n",en->seqtab[0][0]);
         for (i=1;i<NALG;i++) {
             printf("  seqtab[%d] (at %p) = ",i,en->seqtab[i]);
-            for (n=0;n<10;n++) printf(" %d",en->seqtab[i][n]); 
+            for (n=0;n<10;n++) printf(" %d",en->seqtab[i][n]);
             printf("...\n");
         }
     }
@@ -435,17 +433,17 @@ int algDimension(enumerator *en, int rdim) {
 int enmCreateSeqoff(enumerator *en) {
     int cnt, i;
 
-    if (NULL == en->efflist) 
+    if (NULL == en->efflist)
         if (SUCCESS != (i = enmRecreateEfflist(en)))
             return i;
 
-    if (en->maxrrideg > en->tabmaxrideg) 
+    if (en->maxrrideg > en->tabmaxrideg)
         enmDestroySeqtab(en);
 
-    if (NULL == en->seqtab[0])  
-        if (SUCCESS != enmCreateSeqtab(en)) 
+    if (NULL == en->seqtab[0])
+        if (SUCCESS != enmCreateSeqtab(en))
             return FAILMEM;
-    
+
     if (NULL == (en->seqoff = (int *) mallox(en->efflen * sizeof(int))))
         return FAILMEM;
 
@@ -464,18 +462,18 @@ int enmCreateSeqoff(enumerator *en) {
 /* a seqno version that just uses the algebra pair, not the module */
 int algSeqnoWithRDegree(enumerator *en, exmo *ex, int deg) {
     int res=0, k, startk;
-    startk = en->pi->maxpowerXintI;
+    startk = MIN(en->pi->maxpowerXintI,NALG-1);
     if (ENLOG) printf("algSeqnoWithRDegree deg = %d, startk = %d\n", deg, startk);
     for (k=startk; k--;) {
         int prd, maxdeg, actdeg, exo;
-        prd = MIN(en->profile.r.dat[k], en->algebra.r.dat[k]); 
+        prd = MIN(en->profile.r.dat[k], en->algebra.r.dat[k]);
         maxdeg = (en->algebra.r.dat[k] - prd) * en->pi->reddegs[k];
-        exo = en->ispos ? ex->r.dat[k] : (-1 - ex->r.dat[k]); 
+        exo = en->ispos ? ex->r.dat[k] : (-1 - ex->r.dat[k]);
         exo /= en->profile.r.dat[k]; exo *= en->profile.r.dat[k];
         actdeg = exo * en->pi->reddegs[k];
         if (deg < maxdeg) maxdeg = deg;
-        if ((deg < actdeg) 
-            || ((deg - actdeg) >= en->tablen) 
+        if ((deg < actdeg)
+            || ((deg - actdeg) >= en->tablen)
             || ((deg - maxdeg) >= en->tablen)) {
             if (ENLOG) printf("in algSeqno...: deg=%d, actdeg=%d\n", deg, actdeg);
             return -1;
@@ -487,17 +485,17 @@ int algSeqnoWithRDegree(enumerator *en, exmo *ex, int deg) {
 }
 
 int SeqnoFromEnum(enumerator *en, exmo *ex) {
-    effgen aux, *res; 
+    effgen aux, *res;
     int cnt, cnt2;
 
-    if (NULL == en->seqoff) 
+    if (NULL == en->seqoff)
         if (SUCCESS != enmCreateSeqoff(en))
             return -666;
 
     aux.id  = ex->gen;
-    aux.ext = en->ispos ? ex->ext : (-1 - ex->ext); 
+    aux.ext = en->ispos ? ex->ext : (-1 - ex->ext);
     aux.ext ^= (aux.ext & en->profile.ext);
-    res = (effgen *) bsearch(&aux, en->efflist, en->efflen, 
+    res = (effgen *) bsearch(&aux, en->efflist, en->efflen,
                              sizeof(effgen), compareEffgen);
     if (NULL == res) return -1;
 
@@ -508,7 +506,7 @@ int SeqnoFromEnum(enumerator *en, exmo *ex) {
 }
 
 int DimensionFromEnum(enumerator *en) {
-    if (NULL == en->seqoff) 
+    if (NULL == en->seqoff)
         if (SUCCESS != enmCreateSeqoff(en))
             return -666;
     return en->totaldim;
@@ -553,10 +551,10 @@ int firstRedmonAlg(enumerator *en, int rdeg) {
     for (i=NALG;i--;) {
         int nval = rdeg / en->pi->reddegs[i];
         /* restrict redpows to the algebra */
-        if (nval > en->algebra.r.dat[i]-1) 
+        if (nval > en->algebra.r.dat[i]-1)
             nval = en->algebra.r.dat[i]-1;
         /* remove part forbidden by profile */
-        nval /= en->profile.r.dat[i]; 
+        nval /= en->profile.r.dat[i];
         nval *= en->profile.r.dat[i];
         ex->r.dat[i] = nval;
         en->theex.r.dat[i] = nval + en->signature.r.dat[i];
@@ -577,7 +575,7 @@ int nextRedmonAlg(enumerator *en) {
         for (i=1;0==ex->r.dat[i];)
             if (++i >= NALG) return 0;
         nval = ex->r.dat[i] - 1;
-        nval /= en->profile.r.dat[i]; 
+        nval /= en->profile.r.dat[i];
         nval *= en->profile.r.dat[i];
         rem += (ex->r.dat[i] - nval) * en->pi->reddegs[i];
         ex->r.dat[i] = nval;
@@ -586,15 +584,15 @@ int nextRedmonAlg(enumerator *en) {
         for (;i--;) {
             nval = rem / en->pi->reddegs[i];
             /* restrict redpows to the algebra */
-            if (nval>en->algebra.r.dat[i]-1) 
+            if (nval>en->algebra.r.dat[i]-1)
                 nval=en->algebra.r.dat[i]-1;
             /* remove part forbidden by profile */
-            nval /= en->profile.r.dat[i]; 
+            nval /= en->profile.r.dat[i];
             nval *= en->profile.r.dat[i];
             ex->r.dat[i] = nval;
             en->theex.r.dat[i] = nval + en->signature.r.dat[i];
             if (!en->ispos) en->theex.r.dat[i] = -1 - en->theex.r.dat[i];
-             rem -= nval * en->pi->reddegs[i];
+	    rem -= nval * en->pi->reddegs[i];
         }
         en->errdeg = rem;
     } while (en->errdeg);
@@ -606,7 +604,7 @@ int nextRedmonAux(enumerator *en) {
         if (firstRedmonAlg(en, en->efflist[en->gencnt].rrideg)) {
             en->theex.gen = en->efflist[en->gencnt].id;
             en->theex.ext = en->efflist[en->gencnt].ext | en->signature.ext;
-            if (!en->ispos) 
+            if (!en->ispos)
                 en->theex.ext = -1 - en->theex.ext;
             return 1;
         }
@@ -616,7 +614,7 @@ int nextRedmonAux(enumerator *en) {
 }
 
 int firstRedmon(enumerator *en) {
-    if (NULL == en->efflist) 
+    if (NULL == en->efflist)
         enmRecreateEfflist(en);
     en->gencnt = 0;
     en->theex.coeff = 1;
@@ -646,12 +644,12 @@ int nextSignature(enumerator *en, exmo *sig, int *sideg, int *sedeg) {
         int nval = sig->r.dat[i] + 1;
         int aux;
         /* see if we can advance this entry */
-        if ((coldeg <= remi) 
-            && (nval < en->algebra.r.dat[i]) 
+        if ((coldeg <= remi)
+            && (nval < en->algebra.r.dat[i])
             && (nval < en->profile.r.dat[i])) {
-            sig->r.dat[i]++; *sideg += coldeg; 
+            sig->r.dat[i]++; *sideg += coldeg;
             return 1;
-        }   
+        }
         /* reset entry */
         aux = coldeg * (--nval);
         *sideg -= aux; remi += aux; sig->r.dat[i] = 0;

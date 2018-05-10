@@ -2,9 +2,7 @@
 #
 # This file contains some multiplication routine tests
 #
-# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
-#
-#  $Id$
+# Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -21,7 +19,7 @@ if {[file exists pkgIndex.tcl]} {
     source pkgIndex.tcl
     set auto_path something_useless
 }
-package require Steenrod 
+package require Steenrod
 
 namespace import -force steenrod::*
 
@@ -34,7 +32,7 @@ test mult-hangup-1.0 {endless loop} {
     enumerator n {*}[join  "{-prime 5} {-algebra {0 511 {8 7 6 5 4 3 2 1} 0}} {-profile {0 254 {8 8 8 8 8 8 8 8} 0}} {-signature {0 0 {} 0}} {-type positive} {-ideg 1} {-edeg 1} {-hdeg {}} {-genlist {{0 0 0}}}"]
     enumerator p {*}[join "{-prime 5} {-algebra {0 511 {8 7 6 5 4 3 2 1} 0}} {-profile {0 254 {8 7 6 5 4 3 2 1} 0}} {-signature {0 0 {} 0}} {-type positive} {-ideg 1} {-edeg 1} {-hdeg {}} {-genlist {{0 1 1} {1 8 0} {2 40 0}}}"]
     enumerator n {*}[join  "{-prime 5} {-algebra {0 511 {8 7 6 5 4 3 2 1} 0}} {-profile {0 254 {8 7 6 5 4 3 2 1} 0}} {-signature {0 0 {} 0}} {-type positive} {-ideg 1} {-edeg 1} {-hdeg {}} {-genlist {{0 0 0}}}"]
-    steenrod::ComputeMatrix p d n 
+    steenrod::ComputeMatrix p d n
     set res dummy
 } dummy
 
@@ -50,7 +48,7 @@ proc mult-test {prime f1 f2 res {isbig 0}} {
                      {set product [poly steenmult [set f1] [set f2] $prime]}]
     lappend bdy {set rc [poly compare [set product] [set expected]]}
     lappend bdy {expr {$rc ? $product : "ok"}}
-    lappend cmd test mult-test-[incr mult-test-counter] 
+    lappend cmd test mult-test-[incr mult-test-counter]
     lappend cmd "multiplication at $prime"
     if {$isbig} {lappend cmd BIGTEST}
     lappend cmd [join $bdy \n] ok
@@ -63,11 +61,108 @@ mult-test 3 {{1 0 1 1}} {{1 0 3 0}} {{1 0 4 0}}
 
 # source some external multiplication tests
 
-set flist [glob -nocomplain -d [file dirname [info script]] mult*.dat] 
+set flist [glob -nocomplain -d [file dirname [info script]] mult*.dat]
 
 foreach fname [lsort -dictionary $flist] {
     puts "  => [file tail $fname]"
     source $fname
+}
+
+# --------------------------------------------------------------------------
+
+test motivic-1 {ComputeImageMotivic 1} {
+    # we compute Sq^2*Sq^2 as the "motivic transform" of P^1*P^1
+    monomap d
+    d set {1 0 0 4} {{1 0 1 2}}
+    enumerator C -prime 2 -genlist {{2 0 0 0}} -ideg 8
+    set ans {}
+    lappend ans [C basis]
+    lappend ans [steenrod::ComputeImageMotivic d C {{{1 0 1 4}}}]
+    set ans
+} {{{1 0 {1 1} 2} {1 0 4 2}} {{1 0}}}
+
+test motivic-1 {ComputeImageMotivic 2} {
+    # we compute Sq^4*Sq^2 as the "motivic transform" of P^2*P^1
+    monomap d
+    d set {1 0 0 4} {{1 0 1 2}}
+    enumerator C -prime 2 -genlist {{2 0 0 0}} -ideg 12
+    set ans {}
+    lappend ans [C basis]
+    lappend ans [steenrod::ComputeImageMotivic d C {{{1 0 2 4}}}]
+    set ans
+} {{{1 0 {0 2} 2} {1 0 {3 1} 2} {1 0 6 2}} {{1 1 1}}}
+
+test motivic-1 {ComputeImageMotivic 3} {
+    # we compute Sq(0,2)*Sq^1 as the "motivic transform" of P(0,1)*Q(1)
+    monomap d
+    d set {1 0 0 4} {{1 1 0 2}}
+    enumerator C -prime 2 -genlist {{2 0 0 0}} -ideg 14
+    set ans {}
+    lappend ans [C basis]
+    lappend ans [steenrod::ComputeImageMotivic d C {{{1 0 {0 1} 4}}}]
+    set ans
+} {{{1 0 {0 0 1} 2} {1 0 {1 2} 2} {1 0 {4 1} 2} {1 0 7 2}} {{1 1 0 0}}}
+
+test motivic-1 {ComputeImageMotivic 4} {
+    # this test case is taken from a resolution
+    monomap d
+    d set {1 0 {} 0} {{1 1 {} 0}}
+    d set {1 0 {} 1} {{1 1 1 0} {1 0 1 1}}
+    d set {1 0 {} 2} {{1 0 2 0} {1 2 {} 1} {1 1 {} 2}}
+    d set {1 0 {} 3} {{1 1 3 0} {1 0 3 1} {1 0 2 2}}
+    d set {1 0 {} 4} {{1 0 4 0} {1 2 1 2} {1 1 {} 3}}
+    d set {1 0 {} 5} {{1 1 {1 1} 0} {1 1 4 0} {1 0 4 1} {1 3 2 1} {1 0 {0 1} 2} {1 0 1 3}}
+
+    monomap d
+    d set {1 0 {} 0} {{1 1 {} 0}}
+    d set {1 0 {} 1} {{1 1 1 0} {1 0 1 1}}
+    d set {1 0 {} 2} {{1 0 2 0} {1 2 {} 1} {1 1 {} 2}}
+    d set {1 0 {} 3} {{1 1 3 0} {1 0 3 1} {1 0 2 2}}
+    d set {1 0 {} 4} {{1 0 4 0} {1 2 1 2} {1 1 {} 3}}
+    d set {1 0 {} 5} {{1 1 {1 1} 0} {1 1 4 0} {1 0 4 1} {1 3 2 1} {1 0 {0 1} 2} {1 0 1 3}}
+
+    enumerator C -prime 2 -algebra {0 0 {8 7 6 5 4 3 2 1} 0} -profile {} -signature {} -type positive -ideg 22 -edeg 0 -hdeg {}
+    C configure -genlist {{0 2 0} {1 4 0} {2 8 0} {3 16 0}}
+    set smds {}
+    lappend smds {{1 0 3 2} {1 1 1 3} {1 2 {} 3} {1 4 {} 1}}
+    foreach x [lindex $smds end] {
+	lappend smds [list $x]
+    }
+    set vec [steenrod::ComputeImageMotivic d C $smds]
+    set ans <
+    foreach x $smds y $vec {
+	lappend ans [format "    %-10s -> %s" $x [lsort [C decode $y]]]
+    }
+    lappend ans <
+    join $ans \n
+} "<
+    {1 0 3 2} {1 1 1 3} {1 2 {} 3} {1 4 {} 1} -> {1 0 {1 3} 0} {1 0 {3 0 1} 0} {1 0 {7 1} 0}
+    {1 0 3 2}  -> {1 0 7 2} {1 0 {1 3} 0} {1 0 {2 0 1} 1} {1 0 {4 1} 2} {1 0 {6 1} 1} {1 0 {7 1} 0}
+    {1 1 1 3}  -> {1 0 7 2} {1 0 {7 1} 0}
+    {1 2 {} 3} -> {1 0 {4 1} 2} {1 0 {6 1} 1} {1 0 {7 1} 0}
+    {1 4 {} 1} -> {1 0 {2 0 1} 1} {1 0 {3 0 1} 0}
+<"
+
+if 0 {
+    test motivic-1 {ComputeImageMotivic 5} {
+	# we compute Sq(0,2)*Sq^1 as the "motivic transform" of P(0,1)*Q(1)
+	monomap d
+	d set {1 0 0 4} {{1 1 0 2}}  ;#  4 -> Sq(1)*[2]
+	d set {1 0 0 7} {{1 0 2 2}}  ;#  7 -> Sq(4)*[2]
+	enumerator C -prime 2 -algebra {1 0 {4 3 2 1} 0} -genlist {{2 0 0 0}} -ideg 14
+	set db {
+	    {{1 0 3 4}} {{1 1 1 7} {1 2 0 7}}
+	}
+	set ans -
+	foreach x $db {
+	    set vect [steenrod::ComputeImageMotivic d C [list $x]]
+	    lappend ans "$x -> [C decode [lindex $vect 0]]"
+	}
+	lappend ans -
+	join $ans \n
+    } "-
+
+"
 }
 
 # --------------------------------------------------------------------------
@@ -77,5 +172,3 @@ foreach fname [lsort -dictionary $flist] {
 # cleanup
 ::tcltest::cleanupTests
 return
-
-

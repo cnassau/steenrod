@@ -1,7 +1,7 @@
 /*
  * Wrappers for the linear algebra implementations
  *
- * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -52,8 +52,13 @@ typedef struct {
     int  (*iszero)(void *mat);
     void *(*shrinkRows)(void *mat, int *idx, int num);
     int  (*add)(void *v1, void *v2, int scale, int mod);
-    void *(*orthoFunc)(primeInfo *pi, void *inp, void *urb, progressInfo *prg);
-    void *(*liftFunc)(primeInfo *pi, void *inp, void *lft, progressInfo *prg);
+  void *(*orthoFunc)(primeInfo *pi, void *inp, void *urb, int wantkernel, progressInfo *prg);
+  /* liftFunc computes lifts for the vectors in lft through the matrix inp.
+   * it has two modes of operation:
+   *   1) NULL == bas : orthonormalizes *inp, computes lift
+   *   2) NULL != bas : assumes *inp has been orthonormalized using the basis *bas
+   */
+  void *(*liftFunc)(primeInfo *pi, void *inp, void *lft, void *bas, progressInfo *prg);
     void (*quotFunc)(primeInfo *pi, void *ker, void *im, progressInfo *prg);
 } matrixType;
 

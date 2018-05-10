@@ -1,9 +1,7 @@
 /*
- * Advanced linear algebra 
+ * Advanced linear algebra
  *
- * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
- *
- *  $Id$
+ * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -42,7 +40,7 @@
 
 /* orthonormalize the input matrix, return basis of kernel */
 matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
-                     Tcl_Interp *ip, const char *progvar, int pmsk, 
+                     Tcl_Interp *ip, int wantkernel, const char *progvar, int pmsk,
 		     int *LINALG_INTERRUPT_VARIABLE) {
     int i,j,cols, spr, uspr;
     int failure = 1;     /* pessimistic, eh? */
@@ -78,12 +76,12 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
 
     /* make m1, m2 empty copies of inp, resp. un */
 
-    m1.nomcols = inp->nomcols; 
+    m1.nomcols = inp->nomcols;
     m1.cols = inp->cols; m1.data = inp->data; m1.rows = 0;
-    m2.nomcols = un->nomcols;  
+    m2.nomcols = un->nomcols;
     m2.cols = un->cols;  m2.data = un->data;  m2.rows = 0;
     if (oth != NULL) {
-        m3.nomcols = oth->nomcols;  
+        m3.nomcols = oth->nomcols;
         m3.cols = oth->cols;  m3.data = oth->data;  m3.rows = 0;
     }
 
@@ -100,7 +98,7 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
         if (0 == j) {
             DBGPRINT1("KERNEL VECTOR");
             /* row is zero */
-            matrix_collect(&m2, i); /* collect kernel vector */
+            if(wantkernel) matrix_collect(&m2, i); /* collect kernel vector */
         } else {
             DBGPRINT1("IMAGE VECTOR");
             matrix_collect(&m1, i); /* collect image vector */
@@ -108,13 +106,13 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
                 matrix_collect_ext(&m3, &m2, i);
             }
 	    auxval %= prime; if (auxval < 0) auxval += prime;
-            coeff = pi->inverse[(unsigned) auxval]; 
+            coeff = pi->inverse[(unsigned) auxval];
             coeff = prime-coeff; coeff %= prime;
             /* go through all other rows and normalize */
             v2.data = v1.data + spr; aux += spr;
             v3.data = un->data + i * uspr;
             v4.data = v3.data + uspr;
-            for (j=i+1; j<inp->rows; 
+            for (j=i+1; j<inp->rows;
                  j++, v2.data+=spr, v4.data+=uspr, aux+=spr)
                 if (0 != *aux) {
                     DBGPRINT3("v4(data=%p) / v3(data=%p)",v4.data,v3.data);
@@ -125,26 +123,31 @@ matrix *matrix_ortho(primeInfo *pi, matrix *inp, matrix **urb,
         }
     }
 
-    failure = 0; 
+    failure = 0;
 
- done: 
+ done:
     if (failure) {
         matrix_destroy(un);
         un = NULL;
     } else {
         if (TCL_OK != matrix_resize(inp, m1.rows)) return NULL;
-        if (TCL_OK != matrix_resize(un, m2.rows)) return NULL;
+        if (wantkernel && (TCL_OK != matrix_resize(un, m2.rows))) return NULL;
         if ((NULL != oth) && (TCL_OK != matrix_resize(oth, m3.rows))) return NULL;
     }
 
-    PROGVARDONE ; 
+    PROGVARDONE ;
+
+    if(!wantkernel) {
+        matrix_destroy(un);
+        un = NULL;
+    }
 
     return un;
 }
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
-matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft, 
+matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft, matrix *bas,
                     Tcl_Interp *ip, const char *progvar, int pmsk,
 		    int *LINALG_INTERRUPT_VARIABLE) {
 
@@ -157,14 +160,18 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 
     PROGVARINIT ;
 
-    un = matrix_create(inp->rows, inp->rows);
-    if (NULL == un) return NULL;
-    matrix_unit(un);
+    if(NULL == bas) {
+      un = matrix_create(inp->rows, inp->rows);
+      if (NULL == un) return NULL;
+      matrix_unit(un);
+    } else {
+      un = bas;
+    }
 
-    res = matrix_create(lft->rows, inp->rows);
+    res = matrix_create(lft->rows, un->cols);
     if (NULL == res) {
+        if(un != bas) matrix_destroy(un);
         return NULL;
-        matrix_destroy(un);
     }
     matrix_clear(res);
 
@@ -193,18 +200,20 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 	    auxval = auxval % prime;
 	    if(auxval < 0) auxval += prime;
             pos = aux - v1.data;
-            negcoeff = coeff = pi->inverse[(unsigned) auxval]; 
+            negcoeff = coeff = pi->inverse[(unsigned) auxval];
             coeff = prime-coeff; coeff %= prime;
-            /* go through all other rows and normalize */
-            v2.data = v1.data + spr; aux += spr;
-            v3.data = un->data + i * uspr;
-            v4.data = v3.data + uspr;
-            for (j=i+1; j<inp->rows; 
-                 j++, v2.data+=spr, v4.data+=uspr, aux+=spr)
+	    v3.data = un->data + i * uspr;
+	    if(NULL == bas) {
+	      /* go through all other rows and normalize */
+	      v2.data = v1.data + spr; aux += spr;
+	      v4.data = v3.data + uspr;
+	      for (j=i+1; j<inp->rows;
+		   j++, v2.data+=spr, v4.data+=uspr, aux+=spr)
                 if (0 != *aux) {
-                    vector_add(&v4, &v3, CINTMULT(*aux,coeff,prime), prime);
-                    vector_add(&v2, &v1, CINTMULT(*aux,coeff,prime), prime);
+		  vector_add(&v4, &v3, CINTMULT(*aux,coeff,prime), prime);
+		  vector_add(&v2, &v1, CINTMULT(*aux,coeff,prime), prime);
                 }
+	    }
             /* reduce vectors in lft in the same way */
             v2.data = lft->data; v4.data = res->data; aux = v2.data + pos;
             for (j=0; j<lft->rows; j++, v2.data+=spr, v4.data+=uspr, aux+=spr)
@@ -220,11 +229,11 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 
     PROGVARDONE ;
 
-    matrix_destroy(un);
+    if(un != bas) matrix_destroy(un);
 
-    if (failure) { 
+    if (failure) {
         matrix_destroy(res);
-        res = NULL; 
+        res = NULL;
     }
 
     return res;
@@ -232,7 +241,7 @@ matrix *matrix_lift(primeInfo *pi, matrix *inp, matrix *lft,
 
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
-int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im, 
+int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
                     Tcl_Interp *ip, const char *progvar, int pmsk,
 		    int *LINALG_INTERRUPT_VARIABLE) {
     int i,j,cols, spr;
@@ -243,9 +252,9 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
     matrix m1;
 
     PROGVARINIT ;
- 
+
     /* m1 is used to collect quotient vectors from ker */
-    m1.data = ker->data; m1.nomcols = ker->nomcols; 
+    m1.data = ker->data; m1.nomcols = ker->nomcols;
     m1.cols = ker->cols; m1.rows= 0;
 
     if (0 == im->rows) im->cols = ker->cols;
@@ -271,13 +280,13 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
         /* find pivot for this row */
         for (aux=v1.data, j=cols; j; aux++, j--)
             if (0 != (auxval=*aux)) break;
-        
-        if (0 == j) {  
-            /* row is zero */ 
+
+        if (0 == j) {
+            /* row is zero */
         } else {
             pos = aux - v1.data;
 	    if( (auxval%=prime) < 0) auxval +=prime;
-            coeff = pi->inverse[(unsigned) auxval]; 
+            coeff = pi->inverse[(unsigned) auxval];
             coeff = prime-coeff; coeff %= prime;
             /* reduce vectors in ker in the usual way */
             v2.data = ker->data; aux = v2.data + pos;
@@ -304,7 +313,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
             pos = aux - v1.data;
             matrix_collect(&m1, i); /* collect this row */
 	    if( (auxval%=prime) < 0) auxval +=prime;
-            coeff = pi->inverse[(unsigned) auxval]; 
+            coeff = pi->inverse[(unsigned) auxval];
             coeff = prime-coeff; coeff %= prime;
             /* reduce other vectors in ker */
             v2.data = v1.data + spr; aux = v2.data + pos;
@@ -318,7 +327,7 @@ int matrix_quotient(primeInfo *pi, matrix *ker, matrix *im,
     PROGVARDONE ;
 
     failure = 0;
- done:; 
+ done:;
 
     if (TCL_OK != matrix_resize(ker, m1.rows)) return TCL_ERROR;
 

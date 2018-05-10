@@ -1,9 +1,7 @@
 /*
  * Tcl interface to the enumerator structure
  *
- * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
- *
- *  $Id$
+ * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -11,7 +9,7 @@
  *
  */
 
-#include <tcl.h>   
+#include <tcl.h>
 #include <string.h>
 #include "tprime.h"
 #include "tpoly.h"
@@ -21,7 +19,7 @@
 #include "tenum.h"
 #include "enum.h"
 
-#define FLOG 0 
+#define FLOG 0
 #define DOFLOG(msg) { if (FLOG) fprintf(stderr, msg "\n"); }
 
 /* "needsUpdate" is used to indicate that configuration parameters need to
@@ -29,7 +27,7 @@
 char nup[] = "parameter needs update";
 #define needsUpdate ((Tcl_Obj *) nup)
 
-/* "defaultParameter" is used to indicate that an empty value was given for 
+/* "defaultParameter" is used to indicate that an empty value was given for
  * a configuration parameter. We cannot use NULL, since that indicates that
  * no parameter was given. */
 char dfp[] = "default parameter";
@@ -47,7 +45,7 @@ typedef struct {
     /* Configuration values & flags. */
     Tcl_Obj *prime, *alg, *pro, *sig, *ideg, *edeg, *hdeg, *genlist, *ispos;
     int     cprime, calg, cpro, csig, cideg, cedeg, chdeg, cgenlist, cispos;
-    
+
     /* new genlist */
     int *gl, gllength;
 
@@ -83,10 +81,10 @@ int *getGenList(Tcl_Interp *ip, Tcl_Obj *obj, int *length) {
 #endif
 
     for (wrk=res; objc--; (objv)++, wrk+=4) {
-        int objc2, *aux; 
+        int objc2, *aux;
         Tcl_Obj **objv2;
 
-        if (TCL_OK != Tcl_ListObjGetElements(ip, *objv, &objc2, &objv2)) 
+        if (TCL_OK != Tcl_ListObjGetElements(ip, *objv, &objc2, &objv2))
             FREERESRET;
 
         if ((objc2<1) || (objc2>4)) FREERESRETERR(wfem);
@@ -106,7 +104,7 @@ int checkForType(Tcl_Interp *ip, Tcl_Obj *obj, int *ispos) {
     if (NULL == obj) return TCL_ERROR;
     if (TCL_OK != Tcl_GetIndexFromObj(ip, obj, typeNames, "type", 0, &index))
         return TCL_ERROR;
-        
+
     /* we prefer to report the type option as "positive / negative", so
      * positive will get index 0, and we need to reverse this here: */
     if (NULL != ispos) *ispos = !index;
@@ -127,7 +125,7 @@ if (NULL != (obj)) {                                \
    if (TCL_OK != Tcl_ConvertToExmo(ip, (obj)))      \
        return TCL_ERROR;                            \
    ex = exmoFromTclObj(obj);                        \
-} else ex = (exmo *) NULL; 
+} else ex = (exmo *) NULL;
 
     DOFLOG("Entered Tcl_EnumSetValues");
 
@@ -138,10 +136,10 @@ if (NULL != (obj)) {                                \
 
         TRYGETEXMO(alg,te->alg);
         TRYGETEXMO(pro,te->pro);
-       
+
         if (TCL_OK != checkForType(ip, te->ispos, &ispos))
             return TCL_ERROR;
- 
+
         enmSetBasics(te->enm, pi, alg, pro, ispos);
         te->cprime = te->calg = te->cpro = te->cispos = 0;
     }
@@ -162,7 +160,7 @@ if (NULL != (obj))                                       \
         int nideg = te->enm->ideg,
             nedeg = te->enm->edeg,
             nhdeg = te->enm->hdeg;
-        
+
         TRYGETINT(te->ideg, nideg);
         TRYGETINT(te->edeg, nedeg);
         TRYGETINT(te->hdeg, nhdeg);
@@ -170,7 +168,7 @@ if (NULL != (obj))                                       \
         enmSetTridegree(te->enm, nideg, nedeg, nhdeg);
         te->cideg = te->cedeg = te->chdeg = 0;
     }
-   
+
     if (te->cgenlist) {
         if (SUCCESS != enmSetGenlist(te->enm, te->gl, (te->gllength) / 1))
             RETERR("duplicate generator id");
@@ -186,26 +184,26 @@ if (NULL != (obj))                                       \
 static Tcl_Obj *ourPosObj; /* always holds the value "positive" */
 static Tcl_Obj *ourNegObj; /* always holds the value "negative" */
 
-typedef enum  { PRIME, ALGEBRA, PROFILE, SIGNATURE, 
+typedef enum  { PRIME, ALGEBRA, PROFILE, SIGNATURE,
                 TYPE, IDEG, EDEG, HDEG, GENLIST } enumoptcode;
 
 static CONST char *optNames[] = { "-prime", "-algebra", "-profile", "-signature",
-                                  "-type", "-ideg", "-edeg", "-hdeg", "-genlist",  
+                                  "-type", "-ideg", "-edeg", "-hdeg", "-genlist",
                                   (char *) NULL };
 
 static enumoptcode optmap[] = { PRIME, ALGEBRA, PROFILE, SIGNATURE,
                                 TYPE, IDEG, EDEG, HDEG, GENLIST };
 
-/* note that this command differs from the others: it assumes that option value 
+/* note that this command differs from the others: it assumes that option value
  * pairs start at objv[0]. */
-int Tcl_EnumConfigureCmd(ClientData cd, Tcl_Interp *ip, 
+int Tcl_EnumConfigureCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
     tclEnum *te = (tclEnum *) cd, aux;
- 
+
     int result;
     int index;
 
-    primeInfo *pi; 
+    primeInfo *pi;
 
     DOFLOG("Entered Tcl_EnumConfigureCmd");
 
@@ -217,10 +215,10 @@ int Tcl_EnumConfigureCmd(ClientData cd, Tcl_Interp *ip,
         if (needsUpdate == te->sig) {
             te->sig = Tcl_NewExmoCopyObj(&(te->enm->signature));
             INCREFCNT(te->sig);
-        } 
+        }
 
         if (needsUpdate == te->genlist) {
-            /* TODO: recreate genlist from enum if that has been changed 
+            /* TODO: recreate genlist from enum if that has been changed
              * by a future addgen cmd */
         }
 
@@ -256,8 +254,8 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
 
         value = objv[1];
 
-        /* ISDEFAULTARG changes "value" to "defaultParameter" if objv[1] is 
-         * empty. Since this implies getting the string representation 
+        /* ISDEFAULTARG changes "value" to "defaultParameter" if objv[1] is
+         * empty. Since this implies getting the string representation
          * of objv[1] we try to avoid this as much as possible. */
 
 #define ISDEFAULTARG(var) \
@@ -266,27 +264,27 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
 
         switch (optmap[index]) {
             case PRIME:
-                aux.prime = value; 
+                aux.prime = value;
                 if (TCL_OK == Tcl_GetPrimeInfo(ip, value, &pi)) break;
                 if (ISDEFAULTARG(aux.prime)) break;
                 return TCL_ERROR;
             case ALGEBRA:
-                aux.alg = value; 
+                aux.alg = value;
                 if (TCL_OK == Tcl_ConvertToExmo(ip, value)) break;
                 if (ISDEFAULTARG(aux.alg)) break;
                 return TCL_ERROR;
             case PROFILE:
-                aux.pro = value; 
+                aux.pro = value;
                 if (TCL_OK == Tcl_ConvertToExmo(ip, value)) break;
                 if (ISDEFAULTARG(aux.pro)) break;
                 return TCL_ERROR;
             case SIGNATURE:
-                aux.sig = value; 
+                aux.sig = value;
                 if (TCL_OK == Tcl_ConvertToExmo(ip, value)) break;
                 if (ISDEFAULTARG(aux.sig)) break;
                 return TCL_ERROR;
             case TYPE:
-                if (TCL_OK != checkForType(ip, value, &result)) 
+                if (TCL_OK != checkForType(ip, value, &result))
                     return TCL_ERROR;
                 aux.ispos = result ? ourPosObj : ourNegObj;
                 break;
@@ -296,19 +294,19 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
                 if (ISDEFAULTARG(aux.ideg)) break;
                 return TCL_ERROR;
             case EDEG:
-                aux.edeg = value; 
+                aux.edeg = value;
                 if (TCL_OK == Tcl_GetIntFromObj(ip, value, &result)) break;
                 if (ISDEFAULTARG(aux.edeg)) break;
                 return TCL_ERROR;
             case HDEG:
                 aux.hdeg = value;
-                if (TCL_OK == Tcl_GetIntFromObj(ip, value, &result)) break; 
+                if (TCL_OK == Tcl_GetIntFromObj(ip, value, &result)) break;
                 if (ISDEFAULTARG(aux.hdeg)) break;
                 return TCL_ERROR;
             case GENLIST:
                 if (objv[1] == te->genlist) break;
-                if (NULL != te->gl) freex(te->gl); 
-                if (NULL == (te->gl = getGenList(ip, objv[1], &(te->gllength)))) 
+                if (NULL != te->gl) freex(te->gl);
+                if (NULL == (te->gl = getGenList(ip, objv[1], &(te->gllength))))
                     return TCL_ERROR;
                 aux.genlist = objv[1];
                 break;
@@ -318,15 +316,15 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
     /* now check which options are new */
     if (NULL != aux.prime) {
         if (defaultParameter == aux.prime) {
-            TRYFREEOBJ(te->prime); 
+            TRYFREEOBJ(te->prime);
             te->prime = NULL;
             te->cprime = 1;
-        } else { 
+        } else {
             primeInfo *pi2 = NULL;
-            if (NULL != te->prime) Tcl_GetPrimeInfo(ip, te->prime, &pi2); 
+            if (NULL != te->prime) Tcl_GetPrimeInfo(ip, te->prime, &pi2);
             if ((NULL == te->prime) || (pi2 != pi)) {
-                TRYFREEOBJ(te->prime); 
-                te->prime = aux.prime; 
+                TRYFREEOBJ(te->prime);
+                te->prime = aux.prime;
                 INCREFCNT(te->prime);
                 te->cprime = 1;
             }
@@ -344,12 +342,12 @@ if (NULL != (new)) {                                                   \
     SETOPT(te->sig, aux.sig, te->csig);
     SETOPT(te->ispos, aux.ispos, te->cispos);
     SETOPT(te->ideg, aux.ideg, te->cideg);
-    SETOPT(te->edeg, aux.edeg, te->cedeg);    
-    SETOPT(te->hdeg, aux.hdeg, te->chdeg);       
-  
+    SETOPT(te->edeg, aux.edeg, te->cedeg);
+    SETOPT(te->hdeg, aux.hdeg, te->chdeg);
+
     if (NULL != aux.genlist) {
-        TRYFREEOBJ(te->genlist); 
-        te->genlist = aux.genlist; 
+        TRYFREEOBJ(te->genlist);
+        te->genlist = aux.genlist;
         aux.genlist = NULL; te->cgenlist = 1;
         INCREFCNT(te->genlist);
     }
@@ -358,9 +356,9 @@ if (NULL != (new)) {                                                   \
 
     Tcl_ResetResult(ip);
     return TCL_OK;
-} 
+}
 
-int Tcl_EnumCgetCmd(ClientData cd, Tcl_Interp *ip, 
+int Tcl_EnumCgetCmd(ClientData cd, Tcl_Interp *ip,
                     int objc, Tcl_Obj * const objv[]) {
     tclEnum *te = (tclEnum *) cd;
     int result, index;
@@ -380,44 +378,44 @@ int Tcl_EnumCgetCmd(ClientData cd, Tcl_Interp *ip,
         case PRIME:     SETRESRET(te->prime);
         case ALGEBRA:   SETRESRET(te->alg);
         case PROFILE:   SETRESRET(te->pro);
-        case SIGNATURE:       
+        case SIGNATURE:
             if (needsUpdate == te->sig) {
                 auxobj = Tcl_NewExmoCopyObj(&(te->enm->signature));
                 SETRESRET(auxobj);
-            } 
+            }
             SETRESRET(te->sig);
         case TYPE:      SETRESRET(te->ispos);
         case IDEG:      SETRESRET(te->ideg);
         case EDEG:      SETRESRET(te->edeg);
         case HDEG:      SETRESRET(te->hdeg);
-        case GENLIST: 
+        case GENLIST:
             /* TODO: recreate genlist if addgen had been invoked */
             SETRESRET(te->genlist);
     }
 
     Tcl_SetResult(ip,"internal error in Tcl_EnumCgetCmd",TCL_STATIC);
     return TCL_ERROR;
-} 
+}
 
-int Tcl_EnumBasisCmd(ClientData cd, Tcl_Interp *ip, 
+int Tcl_EnumBasisCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
     tclEnum *te = (tclEnum *) cd;
 
     if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
 
     /* naive implementation: iterate through enum and create list */
-    
-    if (firstRedmon(te->enm)) 
+
+    if (firstRedmon(te->enm))
         do {
             Tcl_Obj *aux =  Tcl_NewExmoCopyObj(&(te->enm->theex));
             Tcl_AppendElement(ip, Tcl_GetString(aux));
             DECREFCNT(aux);
         } while (nextRedmon(te->enm));
-    
-    return TCL_OK;
-} 
 
-int Tcl_EnumDimensionCmd(ClientData cd, Tcl_Interp *ip, 
+    return TCL_OK;
+}
+
+int Tcl_EnumDimensionCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
     tclEnum *te = (tclEnum *) cd;
     int res;
@@ -425,64 +423,88 @@ int Tcl_EnumDimensionCmd(ClientData cd, Tcl_Interp *ip,
     if (objc != 2) RETERR("too many arguments");
 
     if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
-    
+
     res = DimensionFromEnum(te->enm);
-    
+
     Tcl_SetObjResult(ip, Tcl_NewIntObj(res));
 
     return TCL_OK;
-} 
+}
 
-int Tcl_EnumSeqnoCmd(ClientData cd, Tcl_Interp *ip, 
-                      int objc, Tcl_Obj * const objv[]) {
-    tclEnum *te = (tclEnum *) cd;
-    enumerator *enu;
-    int res;
+int Tcl_EnumSeqnoCmd(ClientData cd, Tcl_Interp *ip, int usemotivic,
+		     int objc, Tcl_Obj * const objv[]) {
+  tclEnum *te = (tclEnum *) cd;
+  enumerator *enu;
+  int res;
 
-    if (objc != 3) {
-        Tcl_WrongNumArgs(ip, 2, objv, "(<monomial> or <enumerator>)");
-        return TCL_ERROR;
+  if (objc != 3) {
+    Tcl_WrongNumArgs(ip, 2, objv, "(<monomial> or <enumerator>)");
+    return TCL_ERROR;
+  }
+
+  if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
+
+  if (!Tcl_ObjIsExmo(objv[2]))
+    if (NULL != (enu = Tcl_EnumFromObj(ip, objv[2]))) {
+
+      int max = DimensionFromEnum(te->enm);
+      Tcl_Obj *res = Tcl_NewObj();
+
+      if (firstRedmon(enu))
+	do {
+	  int sqn;
+	  exmo aux, *eptr;
+
+	  if(usemotivic) {
+	    copyExmo(&aux,&(enu->theex));
+	    motateExmo(&aux);
+	    eptr = &aux;
+	  } else {
+	    eptr = &(enu->theex);
+	  }
+	  sqn = SeqnoFromEnum(te->enm, eptr);
+
+	  if(sqn<0) {
+	    Tcl_SetResult(ip, "cannot account for monomial ", TCL_STATIC);
+	    Tcl_Obj *e = Tcl_NewExmoCopyObj(eptr);
+	    Tcl_IncrRefCount(e);
+	    Tcl_AppendResult(ip, Tcl_GetString(e), NULL);
+	    Tcl_DecrRefCount(e);
+	    Tcl_DecrRefCount(res);
+	    return TCL_ERROR;
+	  }
+
+	  if ((sqn < 0) || (sqn >= max)) sqn = -1;
+
+	  if (TCL_ERROR == Tcl_ListObjAppendElement(ip, res, Tcl_NewIntObj(sqn))) {
+	    DECREFCNT(res);
+	    return TCL_ERROR;
+	  }
+	} while (nextRedmon(enu));
+
+      Tcl_SetObjResult(ip, res);
+      return TCL_OK;
     }
 
-    if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
- 
-    if (!Tcl_ObjIsExmo(objv[2])) 
-        if (NULL != (enu = Tcl_EnumFromObj(ip, objv[2]))) {
-            
-            int max = DimensionFromEnum(te->enm);
-            Tcl_Obj *res = Tcl_NewObj();
+  if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
+    return TCL_ERROR;
 
-            if (firstRedmon(enu))
-                do {
-                    int sqn = SeqnoFromEnum(te->enm, &(enu->theex));
-                    
-                    if ((sqn < 0) || (sqn >= max)) sqn = -1;
-
-                    if (TCL_ERROR == Tcl_ListObjAppendElement(ip, res, 
-                                                              Tcl_NewIntObj(sqn))) {
-                        DECREFCNT(res);
-                        return TCL_ERROR;
-                    }
-                } while (nextRedmon(enu));
-            
-            Tcl_SetObjResult(ip, res);
-            return TCL_OK;
-        }
-
-    if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
-        return TCL_ERROR;
-    
+  if(usemotivic) {
+    exmo aux;
+    copyExmo(&aux,exmoFromTclObj(objv[2]));
+    motateExmo(&aux);
+    res = SeqnoFromEnum(te->enm, &aux);
+  } else {
     res = SeqnoFromEnum(te->enm, exmoFromTclObj(objv[2]));
-    
-    Tcl_SetObjResult(ip, Tcl_NewIntObj(res));
+  }
+  Tcl_SetObjResult(ip, Tcl_NewIntObj(res));
+  return TCL_OK;
+}
 
-    return TCL_OK;
-} 
-
-int Tcl_EnumSiglistCmd(ClientData cd, Tcl_Interp *ip, 
+int Tcl_EnumSiglistCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
     tclEnum *te = (tclEnum *) cd;
-    exmo sig; int sideg, sedeg; 
+    exmo sig; int sideg, sedeg;
     void *poly;
 
     if (objc != 2) RETERR("wrong number of arguments");
@@ -491,7 +513,7 @@ int Tcl_EnumSiglistCmd(ClientData cd, Tcl_Interp *ip,
 
     memset(&sig, 0, sizeof(exmo));
     sideg = sedeg = 0;
-    if (NULL == (poly = PLcreate(stdpoly))) 
+    if (NULL == (poly = PLcreate(stdpoly)))
         RETERR("out of memory");
     do {
         if (SUCCESS != PLappendExmo(stdpoly, poly, &sig)) {
@@ -505,13 +527,13 @@ int Tcl_EnumSiglistCmd(ClientData cd, Tcl_Interp *ip,
 }
 
 int Tcl_EnumDecodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj, int scale) {
-    tclEnum *te = (tclEnum *) cd;   
+    tclEnum *te = (tclEnum *) cd;
     vectorType *vt; void *vdat;
     void *pdat;
     int vdim, edim, idx, val, prime;
 
     if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
-    
+
     if (!Tcl_ObjIsVector(obj))
         ASSERT(NULL == "Tcl_EnumDecodeCmd expects vector argument");
 
@@ -526,7 +548,7 @@ int Tcl_EnumDecodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj, int scale) {
 
     if (vdim != edim) {
         char err[100];
-        sprintf(err,"dimension mismatch: %d (vector) != %d (enumerator)", 
+        sprintf(err,"dimension mismatch: %d (vector) != %d (enumerator)",
                 vdim, edim);
         RETERR(err);
     }
@@ -534,7 +556,7 @@ int Tcl_EnumDecodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj, int scale) {
     if (NULL == (pdat = PLcreate(stdpoly))) RETERR("PLcreate failed");
 
     idx = 0;
-    if (firstRedmon(te->enm)) 
+    if (firstRedmon(te->enm))
         do {
             if (SUCCESS != (vt->getEntry(vdat, idx, &val))) {
                 PLfree(stdpoly, pdat);
@@ -547,16 +569,16 @@ int Tcl_EnumDecodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj, int scale) {
                 RETERR("internal error in Tcl_EnumDecodeCmd: vt->getEntry failed");
             }
 
-            val *= scale; 
-            val %= prime; 
+            val *= scale;
+            val %= prime;
             if (val < 0) val += prime;
 
-            if (val) { 
+            if (val) {
                 te->enm->theex.coeff = val;
                 if (SUCCESS != PLappendExmo(stdpoly, pdat, &(te->enm->theex))) {
                     PLfree(stdpoly, pdat);
                     RETERR("internal error in Tcl_EnumDecodeCmd: "
-                           "PLappendExmo failed"); 
+                           "PLappendExmo failed");
                 }
             }
 
@@ -569,7 +591,7 @@ int Tcl_EnumDecodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj, int scale) {
 }
 
 int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
-    tclEnum *te = (tclEnum *) cd;   
+    tclEnum *te = (tclEnum *) cd;
     vectorType *vt; void *vdat;
     polyType   *pt; void *pdat;
     int edim, pdim, idx, sqn, prime;
@@ -597,9 +619,9 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
             vt->destroyVector(vdat);
             RETERR("internal error in Tcl_EnumEncodeCmd: PLgetExmo failed");
         }
-        
+
         sqn = SeqnoFromEnum(te->enm, &ex);
-        
+
         if ((sqn<0) || (sqn>=edim)) {
             Tcl_Obj *aux;
             char err[200];
@@ -610,7 +632,7 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
             DECREFCNT(aux);
             RETERR(err);
         }
-        
+
         if (SUCCESS != vt->setEntry(vdat, sqn, ex.coeff % prime)) {
             vt->destroyVector(vdat);
             RETERR("internal error in Tcl_EnumEncodeCmd: vt->setEntry failed");
@@ -622,23 +644,23 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
     return TCL_OK;
 }
 
-typedef enum { CGET, CONFIGURE, BASIS, SEQNO, DIMENSION, TEST,
+typedef enum { CGET, CONFIGURE, BASIS, SEQNO, SEQNOMOT, DIMENSION, TEST,
                SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE, ENM_MAX, ENM_MIN } enumcmdcode;
 
 static CONST char *cmdNames[] = { "test", "cget", "configure", "min", "max",
-                                  "basis", "seqno", "dimension", 
+                                  "basis", "seqno", "motseqno", "dimension",
                                   "sigreset", "signext", "siglist",
                                   "decode", "encode",
                                   (char *) NULL };
 
-static enumcmdcode cmdmap[] = { TEST, CGET, CONFIGURE, ENM_MIN, ENM_MAX, 
-                                BASIS, SEQNO, DIMENSION,
-                                SIGRESET, SIGNEXT, SIGLIST, 
+static enumcmdcode cmdmap[] = { TEST, CGET, CONFIGURE, ENM_MIN, ENM_MAX,
+                                BASIS, SEQNO, SEQNOMOT, DIMENSION,
+                                SIGRESET, SIGNEXT, SIGLIST,
                                 DECODE, ENCODE };
 
 static CONST char *degNames[] = { "idegree", "edegree", "hdegree", "generator", (char *) NULL };
 
-int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip, 
+int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
 
     tclEnum *te = (tclEnum *) cd;
@@ -652,7 +674,7 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
 
     result = Tcl_GetIndexFromObj(ip, objv[1], cmdNames, "subcommand", 0, &index);
     if (result != TCL_OK) return result;
-    
+
     switch (cmdmap[index]) {
         case TEST:
             if (objc != 2) {
@@ -662,7 +684,7 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             Tcl_EnumSetValues(cd, ip);
             return TCL_OK;
 
-        case CGET: 
+        case CGET:
             return Tcl_EnumCgetCmd(cd, ip, objc, objv);
 
         case CONFIGURE:
@@ -672,13 +694,16 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             return Tcl_EnumBasisCmd(cd, ip, objc, objv);
 
         case SEQNO:
-            return Tcl_EnumSeqnoCmd(cd, ip, objc, objv);
+	  return Tcl_EnumSeqnoCmd(cd, ip, 0, objc, objv);
+
+        case SEQNOMOT:
+	  return Tcl_EnumSeqnoCmd(cd, ip, 1, objc, objv);
 
         case DIMENSION:
-            return Tcl_EnumDimensionCmd(cd, ip, objc, objv);            
+            return Tcl_EnumDimensionCmd(cd, ip, objc, objv);
 
         case ENM_MIN:
-        case ENM_MAX: 
+        case ENM_MAX:
             if (objc != 3) {
                 Tcl_WrongNumArgs(ip, 2, objv, "parameterName");
                 return TCL_ERROR;
@@ -686,9 +711,9 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
 
             result = Tcl_GetIndexFromObj(ip, objv[2], degNames, "parameter", 0, &index2);
             if (result != TCL_OK) return result;
-    
+
             if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
-            
+
             if (ENM_MIN == cmdmap[index])
                 switch (index2) {
                     case 0: result = te->enm->minideg; break;
@@ -696,29 +721,29 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
                     case 2: result = te->enm->minhdeg; break;
                     case 3: result = te->enm->mingen; break;
                 }
-            else 
+            else
                 switch (index2) {
                     case 0: result = te->enm->maxideg; break;
                     case 1: result = te->enm->maxedeg; break;
                     case 2: result = te->enm->maxhdeg; break;
                     case 3: result = te->enm->maxgen; break;
                 }
-    
-            Tcl_SetObjResult(ip, Tcl_NewIntObj(result)); 
+
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(result));
             return TCL_OK;
 
         case SIGRESET:
             if (objc != 2) RETERR("wrong number of arguments");
-            TRYFREEOBJ(te->sig); 
+            TRYFREEOBJ(te->sig);
             memset(&ex, 0, sizeof(exmo));
             te->sig = Tcl_NewExmoCopyObj(&ex); INCREFCNT(te->sig); te->csig = 1;
             return TCL_OK;
 
-        case SIGNEXT: 
+        case SIGNEXT:
             if (objc != 2) RETERR("wrong number of arguments");
             if (TCL_OK != Tcl_EnumSetValues(cd, ip)) return TCL_ERROR;
             result = enmIncrementSig(te->enm);
-            TRYFREEOBJ(te->sig); 
+            TRYFREEOBJ(te->sig);
             te->sig = needsUpdate;
             Tcl_SetObjResult(ip, Tcl_NewIntObj(result));
             return TCL_OK;
@@ -732,12 +757,12 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
                 return TCL_ERROR;
             }
 
-            if (TCL_OK != Tcl_ConvertToVector(ip, objv[2])) 
+            if (TCL_OK != Tcl_ConvertToVector(ip, objv[2]))
                 return TCL_ERROR;
-            
+
             scale = 1;
 
-            if (objc==4) 
+            if (objc==4)
                 if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &scale))
                     return TCL_ERROR;
 
@@ -750,7 +775,7 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
                 return TCL_ERROR;
             }
 
-            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2])) 
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
                 return TCL_ERROR;
 
             return Tcl_EnumEncodeCmd(cd, ip, objv[2]);
@@ -759,7 +784,7 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
 
     Tcl_SetResult(ip, "internal error in Tcl_EnumWidgetCmd", TCL_STATIC);
     return TCL_ERROR;
-} 
+}
 
 void Tcl_DestroyEnum(ClientData cd) {
     tclEnum *te = (tclEnum *) cd;
@@ -784,7 +809,7 @@ void Tcl_DestroyEnum(ClientData cd) {
 enumerator *Tcl_EnumFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
     Tcl_CmdInfo info;
     tclEnum *te;
-    
+
     if (!Tcl_GetCommandInfo(ip, Tcl_GetString(obj), &info)) {
         Tcl_SetResult(ip, "command not found", TCL_STATIC);
         return NULL;
@@ -796,7 +821,7 @@ enumerator *Tcl_EnumFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
     }
 
     te = (tclEnum *) info.objClientData;
-       
+
     if (TCL_OK != Tcl_EnumSetValues((ClientData) te, ip))
         return NULL;
 
@@ -811,54 +836,54 @@ int Tcl_CreateEnumCmd(ClientData cd, Tcl_Interp *ip,
         Tcl_WrongNumArgs(ip, 1, objv,  "name ?options?");
         return TCL_ERROR;
     }
-    
+
     if (NULL == (te = callox(1, sizeof(tclEnum))))
         RETERR("out of memory");
 
-    if (NULL == (te->enm = enmCreate())) 
+    if (NULL == (te->enm = enmCreate()))
         RETERR("out of memory");
 
     /* set empty (= default) options */
-    te->prime = te->alg = te->pro = te->sig = te->ideg = te->edeg = te->hdeg 
+    te->prime = te->alg = te->pro = te->sig = te->ideg = te->edeg = te->hdeg
         = te->genlist = NULL;
 
-    te->ispos = ourPosObj; 
+    te->ispos = ourPosObj;
     INCREFCNT(te->ispos);
 
     /* mark all options as changed */
-    te->cprime = te->calg = te->cpro = te->csig = te->cideg = te->cedeg = te->chdeg 
+    te->cprime = te->calg = te->cpro = te->csig = te->cideg = te->cedeg = te->chdeg
         = te->cgenlist = 1;
-    
+
     if (objc > 2)
         if (TCL_OK != Tcl_EnumConfigureCmd((ClientData) te, ip, objc-2, objv+2)) {
             Tcl_DestroyEnum((ClientData) te);
             return TCL_ERROR;
         }
-    
-    Tcl_CreateObjCommand(ip, Tcl_GetString(objv[1]), 
+
+    Tcl_CreateObjCommand(ip, Tcl_GetString(objv[1]),
                          Tcl_EnumWidgetCmd, (ClientData) te, Tcl_DestroyEnum);
 
     return TCL_OK;
 }
 
 int Tenum_Init(Tcl_Interp *ip) {
-    
+
     Tcl_InitStubs(ip, "8.0", 0);
 
     Tptr_Init(ip);
     Tprime_Init(ip);
     Tpoly_Init(ip);
 
-    if (NULL == ourPosObj) 
+    if (NULL == ourPosObj)
         ourPosObj = Tcl_NewStringObj("positive", STRLEN("positive"));
 
-    if (NULL == ourNegObj) 
+    if (NULL == ourNegObj)
         ourNegObj = Tcl_NewStringObj("negative", STRLEN("negative"));
 
-    INCREFCNT(ourPosObj); 
-    INCREFCNT(ourNegObj); 
+    INCREFCNT(ourPosObj);
+    INCREFCNT(ourNegObj);
 
-    Tcl_CreateObjCommand(ip, POLYNSP "enumerator", 
+    Tcl_CreateObjCommand(ip, POLYNSP "enumerator",
                          Tcl_CreateEnumCmd, (ClientData) 0, NULL);
 
     return TCL_OK;

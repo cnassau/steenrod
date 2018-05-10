@@ -21,7 +21,7 @@ if {[file exists pkgIndex.tcl]} {
     source pkgIndex.tcl
     set auto_path something_useless
 }
-package require Steenrod 
+package require Steenrod
 
 namespace import -force steenrod::*
 
@@ -217,7 +217,7 @@ test mono-1.11 {mono exponent} {
 	    lappend uhu [mono exponent $m $i]
 	}
 	lappend res $uhu
-    } 
+    }
     set res
 } {{0 0 1 0 0} {1 2 3 0 0} {0 0 1 0 0} {-1 -1 -1 -1 -1} {-8 -4 -2 -1 -1}}
 
@@ -322,23 +322,23 @@ test poly-1.2 {poly reflect} {
         {{1 1 1 1} {2 2 2 2} {-1 -1 -1 -1}} {{1 -2 -2 1} {2 -3 -3 2} {-1 0 {} -1}}
     } {
         lappend res [poly compare $sol [poly reflect $pol]]
-        lappend res [poly compare $pol [poly reflect [poly reflect $pol]]] 
+        lappend res [poly compare $pol [poly reflect [poly reflect $pol]]]
     }
-    set res 
+    set res
 } {0 0 0 0 0 0 0 0 0 0 0 0}
 
 
 test poly-1.3 {poly shift} {
     set res {}
     foreach itm {
-        {{{1 1 0 0}} {2 0 0 0} 0 {{1 1 {} 0}}} 
-        {{{1 1 0 0}} {2 0 0 0} 1 {{1 1 {} 0}}} 
-        {{{1 1 0 0}} {0 2 0 0} 0 {{1 3 {} 0}}} 
-        {{{1 1 0 0}} {0 2 0 0} 1 {{1 3 {} 0}}} 
-        {{{1 2 0 0}} {0 2 0 0} 0 {{1 0 {} 0}}} 
-        {{{1 2 0 0}} {0 1 0 0} 0 {{1 3 {} 0}}} 
-        {{{1 2 0 0}} {0 1 0 0} 1 {{-1 3 {} 0}}} 
-        {{{1 0 0 0} {1 3 0 1} {1 0 5 2}} {7 0 {0 2} 2} 1 
+        {{{1 1 0 0}} {2 0 0 0} 0 {{1 1 {} 0}}}
+        {{{1 1 0 0}} {2 0 0 0} 1 {{1 1 {} 0}}}
+        {{{1 1 0 0}} {0 2 0 0} 0 {{1 3 {} 0}}}
+        {{{1 1 0 0}} {0 2 0 0} 1 {{1 3 {} 0}}}
+        {{{1 2 0 0}} {0 2 0 0} 0 {{1 0 {} 0}}}
+        {{{1 2 0 0}} {0 1 0 0} 0 {{1 3 {} 0}}}
+        {{{1 2 0 0}} {0 1 0 0} 1 {{-1 3 {} 0}}}
+        {{{1 0 0 0} {1 3 0 1} {1 0 5 2}} {7 0 {0 2} 2} 1
             {{1 0 {0 2} 0} {1 3 {0 2} 1} {1 0 {5 2} 2}}}
     } {
         foreach {pol mon flag sol} $itm break
@@ -356,15 +356,15 @@ test poly-1.3 {poly shift} {
 test poly-1.4 {poly shift, negative} {
     set res {}
     foreach itm {
-        {{{1 -1 -1 0}} {2 0 0 0} 0 {{1 -1 {} 0}}} 
-        {{{1 -1 -1 0}} {2 0 0 0} 1 {{1 -1 {} 0}}} 
-        {{{1 -1 -1 0}} {0 2 0 0} 0 {{1 -3 {} 0}}} 
-        {{{1 -2 -1 0}} {0 2 0 0} 0 {{1 -4 {} 0}}} 
-        {{{1 -2 -1 0}} {0 1 0 0} 0 {{1 -1 {} 0}}} 
+        {{{1 -1 -1 0}} {2 0 0 0} 0 {{1 -1 {} 0}}}
+        {{{1 -1 -1 0}} {2 0 0 0} 1 {{1 -1 {} 0}}}
+        {{{1 -1 -1 0}} {0 2 0 0} 0 {{1 -3 {} 0}}}
+        {{{1 -2 -1 0}} {0 2 0 0} 0 {{1 -4 {} 0}}}
+        {{{1 -2 -1 0}} {0 1 0 0} 0 {{1 -1 {} 0}}}
         {{{1 -2 -1 0}} {0 1 0 0} 1 {{-1 -1 {} 0}}}
 
-        {{{1 -2 -1 0}} {0 2 0 0} 1 {{0 -4 {} 0}}} 
-        {{{1 -2 -1 0}} {0 1 0 0} 1 {{-1 -1 {} 0}}} 
+        {{{1 -2 -1 0}} {0 2 0 0} 1 {{0 -4 {} 0}}}
+        {{{1 -2 -1 0}} {0 1 0 0} 1 {{-1 -1 {} 0}}}
         {{{1 -2 -1 0}} {0 1 0 0} 0 {{1 -1 {} 0}}}
     } {
         foreach {pol mon flag sol} $itm break
@@ -401,7 +401,7 @@ test poly-1.5 {poly append} {
         lappend res [poly coeff $pol1 {6 3 0 0}]
         lappend res -
     }
-    set res  
+    set res
 } {0 0 1 0 - 0 0 2 1 - 0 0 3 1 - 0 0 4 1 - 0 1 - 0 3 - 0 6 - 0 10 -}
 
 
@@ -409,14 +409,14 @@ test poly-1.6 {poly compare} {
     set res {}
     foreach {a b} {
         {} {}
-        {} {{1 0 0 0}} 
-        {{1 0 0 0}} {} 
-        {{1 0 0 0}} {{2 0 0 0}} 
-        {{1 0 0 0}} {{1 1 0 0}} 
-        {{1 0 0 0}} {{1 0 1 0}} 
-        {{1 0 0 0}} {{1 0 0 1}} 
-        {{1 0 0 0} {1 0 0 0}} {{1 0 0 0} {2 0 0 0}} 
-        {{1 0 0 0} {1 0 0 1}} {{1 0 0 0} {1 0 0 0}} 
+        {} {{1 0 0 0}}
+        {{1 0 0 0}} {}
+        {{1 0 0 0}} {{2 0 0 0}}
+        {{1 0 0 0}} {{1 1 0 0}}
+        {{1 0 0 0}} {{1 0 1 0}}
+        {{1 0 0 0}} {{1 0 0 1}}
+        {{1 0 0 0} {1 0 0 0}} {{1 0 0 0} {2 0 0 0}}
+        {{1 0 0 0} {1 0 0 1}} {{1 0 0 0} {1 0 0 0}}
     } {
         set aux1 [poly compare $a $b]
         set aux2 [poly compare $b $a]
@@ -482,16 +482,16 @@ test poly-1.9 {poly split} {
     proc myp4 m { set a [lindex $m end] ; if {$a>2} { return 100 } ; return $a }
     proc myp5 m { set a [lindex $m end] ; if {$a>2} { return -100 } ; return $a }
     foreach x {1 2 3 4 5} {
-        foreach z {0 1 2 3 4 5 6} { set $z {{} {} {} {} {} {}}} 
+        foreach z {0 1 2 3 4 5 6} { set $z {{} {} {} {} {} {}}}
         set aux [poly split $pol myp$x 0 1 2 3 4]
-        set fr {}; 
+        set fr {};
         foreach var {aux 0 1 2 3 4 5 6} { eval append fr \"-\[llength \$$var\]\" }
         lappend res $fr
         # test whether varsplit gives the same results
         foreach z {0 1 2 3 4 5 6} { set $z {{} {} {} {} {} {}} }
-        set aux $pol 
+        set aux $pol
         poly varsplit aux myp$x 0 1 2 3 4
-        set sr {}; 
+        set sr {};
         foreach var {aux 0 1 2 3 4 5 6} { eval append sr \"-\[llength \$$var\]\" }
         if {$fr != $sr} {
             lappend res "(mismatch: $fr!=$sr)"
@@ -520,8 +520,8 @@ foreach prime {2 3 5 7 11 13} {
                 if {$cf!=$bn} { lappend res "coeffs:$cf!=$bn" }
             }
             set ln [llength $pol1]
-            if {($i<$prime) && ($ln!=[expr 1+$i])} { 
-                lappend res "length:$ln!=[expr 1+$i]" 
+            if {($i<$prime) && ($ln!=[expr 1+$i])} {
+                lappend res "length:$ln!=[expr 1+$i]"
             }
         }
         set res
@@ -539,8 +539,8 @@ foreach prime {2 3 5 7 11 13} {
                 if {$cf!=$bn} { lappend res "coeffs:$cf!=$bn" }
             }
             set ln [llength $pol1]
-            if {($i<$prime) && ($ln!=[expr 1+$i])} { 
-                lappend res "length:$ln!=[expr 1+$i]" 
+            if {($i<$prime) && ($ln!=[expr 1+$i])} {
+                lappend res "length:$ln!=[expr 1+$i]"
             }
         }
         set res
@@ -550,8 +550,8 @@ foreach prime {2 3 5 7 11 13} {
 
 test poly-1.12 {poly posmult/negmult, signs} {
     set res {}
-    foreach {a b} {1 1 2 2 1 2 2 1 1 6 6 1 5 2 2 5 3 4 4 3 
-        8 1 1 8 2 8 8 2 10 9 9 10 10 5 5 10} { 
+    foreach {a b} {1 1 2 2 1 2 2 1 1 6 6 1 5 2 2 5 3 4 4 3
+        8 1 1 8 2 8 8 2 10 9 9 10 10 5 5 10} {
         set po1 [list [list 1 $a 0 0]]
         set po2 [list [list 1 $b 0 0]]
         set aux1 [lindex [poly posmult $po1 $po2] 0 0]
@@ -575,8 +575,8 @@ proc polycompare {a b} {
 customMatch poly polycompare
 
 foreach ply {
-    {{1 0 0 1}} 
-    {{4 0 1 3} {2 0 1 3} {1 2 0 0} {3 2 1 0}} 
+    {{1 0 0 1}}
+    {{4 0 1 3} {2 0 1 3} {1 2 0 0} {3 2 1 0}}
     {{0 2 0 0}}
 } {
     test poly "poly foreach (reassembly, $ply)" -body [subst -nocommands {
@@ -608,9 +608,28 @@ test poly "isabove + foreach + shift violates EIAS" -body {
     set res
 } -result ok -constraints KNOWN-BUG
 
+test poly "motations" -body {
+    set ans {}
+    foreach p {
+	{{1 0 {3 4} 7} {1 3 {0 0 0 2} 9} {1 2 1 3}}
+    } {
+	lappend ans [steenrod::poly motate $p]
+    }
+    set ans
+} -result {{{1 0 {6 8} 7} {1 0 {1 1 0 4} 9} {1 0 {2 1} 3}}}
+
+test poly "inverse motations" -body {
+    set ans {}
+    foreach p {
+	{{1 0 {6 8} 7} {1 0 {1 1 0 4} 9} {1 0 {2 1} 3}}
+    } {
+	lappend ans [steenrod::poly etatom $p]
+    }
+    set ans
+} -result {{{1 0 {3 4} 7} {1 3 {0 0 0 2} 9} {1 2 1 3}}}
+
 # --------------------------------------------------------------------------
 
 # cleanup
 ::tcltest::cleanupTests
 return
-

@@ -1,7 +1,7 @@
 /*
  * Basic information that depends on the prime
  *
- * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  *  $Id$
  *
@@ -15,19 +15,21 @@
 
 /*::: Basic stuff ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
+#define NALGEXT (NALG+5)
+
 /* primpows, extdegs, reddegs */
 int piiBasic(primeInfo *pi) {
     int i, havempx=0;
     xint mpx;
     pi->tpmo = (pi->prime - 1) << 1;
     pi->prime2 = pi->prime * pi->prime;
-    if (NULL==(pi->primpows = mallox(sizeof(int) * NALG))) return PI_NOMEM;
-    if (NULL==(pi->extdegs  = mallox(sizeof(int) * NALG))) return PI_NOMEM;
-    if (NULL==(pi->reddegs  = mallox(sizeof(int) * NALG))) return PI_NOMEM;
+    if (NULL==(pi->primpows = mallox(sizeof(int) * NALGEXT))) return PI_NOMEM;
+    if (NULL==(pi->extdegs  = mallox(sizeof(int) * NALGEXT))) return PI_NOMEM;
+    if (NULL==(pi->reddegs  = mallox(sizeof(int) * NALGEXT))) return PI_NOMEM;
     pi->primpows[0] = 1;
     pi->extdegs[0] = 1;
     pi->reddegs[0] = 1;
-    for (i=1; i<NALG; i++) {
+    for (i=1; i<NALGEXT; i++) {
         pi->primpows[i] = pi->prime * pi->primpows[i-1];
         pi->extdegs[i]  = pi->prime * (pi->extdegs[i-1] + 1) - 1;
         pi->reddegs[i]  = 

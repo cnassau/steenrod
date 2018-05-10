@@ -1,9 +1,7 @@
 /*
  * Tcl interface to the polynomial routines
  *
- * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
- *
- *  $Id$
+ * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -24,7 +22,7 @@
 #define FREETCLOBJ(obj) { INCREFCNT(obj); DECREFCNT(obj); }
 
 #define RETERR(errmsg) \
-{ if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; } 
+{ if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
 
 #define RETINT(i) { Tcl_SetObjResult(ip, Tcl_NewIntObj(i)); return TCL_OK; }
 
@@ -38,10 +36,10 @@
 
 /**************************************************************************
  *
- * The Tcl type for extended monomials. We use PTR1 as a pointer to 
- * an exmo structure. The string representation takes the form 
- *  
- *  { coefficient exterior {list of exponents} generator }        
+ * The Tcl type for extended monomials. We use PTR1 as a pointer to
+ * an exmo structure. The string representation takes the form
+ *
+ *  { coefficient exterior {list of exponents} generator }
  */
 
 static int monCount;
@@ -71,7 +69,7 @@ exmo *exmoFromTclObj(Tcl_Obj *obj) {
 
 Tcl_Obj *Tcl_NewExmoObj(exmo *ex) {
     Tcl_Obj *res = Tcl_NewObj();
-    PTR1(res) = ex; 
+    PTR1(res) = ex;
     res->typePtr = &tclExmo;
     Tcl_InvalidateStringRep(res);
     INCMONCNT;
@@ -105,26 +103,26 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
 
     if (TCL_OK != Tcl_ListObjGetElements(ip, objPtr, &objc, &objv))
         return TCL_ERROR;
-    if (4 != objc) 
+    if (4 != objc)
         RETERR("malformed monomial: wrong number of entries");
     if (NULL == (e = (exmo *) mallox(sizeof(exmo))))
         RETERR("out of memory");
-    if (TCL_OK != Tcl_GetIntFromObj(ip,objv[0],&aux)) 
+    if (TCL_OK != Tcl_GetIntFromObj(ip,objv[0],&aux))
         FREEEANDRETERR;
     e->coeff = aux;
-    if (TCL_OK != Tcl_GetIntFromObj(ip,objv[1],&aux)) 
+    if (TCL_OK != Tcl_GetIntFromObj(ip,objv[1],&aux))
         FREEEANDRETERR;
     e->ext = aux;
-    if (TCL_OK != Tcl_GetIntFromObj(ip,objv[3],&(e->gen))) 
+    if (TCL_OK != Tcl_GetIntFromObj(ip,objv[3],&(e->gen)))
         FREEEANDRETERR;
     if (TCL_OK != Tcl_ListObjGetElements(ip, objv[2], &objc2, &objv2))
         return TCL_ERROR;
-    if (objc2 > NALG) 
+    if (objc2 > NALG)
         RETERR("exponent sequence too long");
-    
+
     aux = e->ext;
     for (i=0;i<objc2;i++) {
-        if (TCL_OK != Tcl_GetIntFromObj(ip,objv2[i],&aux)) 
+        if (TCL_OK != Tcl_GetIntFromObj(ip,objv2[i],&aux))
             FREEEANDRETERR;
         e->r.dat[i] = aux;
     }
@@ -142,7 +140,7 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
 /* Create a new list Obj from the objPtr */
 Tcl_Obj *Tcl_NewListFromExmo(Tcl_Obj *objPtr) {
     exmo *e = (exmo *) PTR1(objPtr);
-    Tcl_Obj *res, *(objv[4]), **arr; 
+    Tcl_Obj *res, *(objv[4]), **arr;
     int i, len = exmoGetRedLen(e);
     arr = (Tcl_Obj **) ckalloc(sizeof(Tcl_Obj *)*len);
     for (i=0;i<len;i++) arr[i] = Tcl_NewIntObj(e->r.dat[i]);
@@ -165,19 +163,25 @@ void ExmoUpdateStringProc(Tcl_Obj *objPtr) {
 /* create copy */
 void ExmoDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     exmo *new = (exmo *) mallox(sizeof(exmo));
-    TCLMEMASSERT(new); 
+    TCLMEMASSERT(new);
     memcpy(new, PTR1(srcPtr), sizeof(exmo));
     PTR1(dupPtr) = new;
     dupPtr->typePtr = srcPtr->typePtr;
     INCMONCNT;
 }
 
+void exmoLog(const char *message,const exmo *exm) {
+  Tcl_Obj *o = Tcl_NewExmoCopyObj((exmo *)exm);
+  fprintf(stderr,"%s: %s (at %p)\n",message,Tcl_GetString(o),(void*)exm);
+  Tcl_DecrRefCount(o);
+}
+
 /**************************************************************************
  *
- * The Tcl type for generic polynomials. To the Tcl user such a thing 
- * behaves like a list of extended monomials. 
+ * The Tcl type for generic polynomials. To the Tcl user such a thing
+ * behaves like a list of extended monomials.
  *
- * The implementation lets PTR1 point to the polyType and PTR2 to the data. 
+ * The implementation lets PTR1 point to the polyType and PTR2 to the data.
  */
 
 static int polCount;
@@ -200,7 +204,7 @@ int Tcl_ConvertToPoly(Tcl_Interp *ip, Tcl_Obj *obj) {
 
 #define LOGPOLY(obj) \
 DBGPOLY printf("  typePtr = %p, polyPtr = %p, isShared = %d\n", \
-   PTR1(obj), PTR2(obj), Tcl_IsShared(obj)); 
+   PTR1(obj), PTR2(obj), Tcl_IsShared(obj));
 
 
 int Tcl_ObjIsPoly(Tcl_Obj *obj) { return &tclPoly == obj->typePtr; }
@@ -249,11 +253,11 @@ int PolySetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     DBGPOLY printf("PolySetFromAnyProc obj = %p\n",objPtr);
     if (TCL_OK != Tcl_ListObjGetElements(ip, objPtr, &objc, &objv))
         return TCL_ERROR;
-    if (NULL == (pol = (stdpoly->createCopy)(NULL))) 
+    if (NULL == (pol = (stdpoly->createCopy)(NULL)))
         RETERR("out of memory");
     for (i=0;i<objc;i++) {
-        if (TCL_OK != Tcl_ConvertToExmo(ip,objv[i])) { 
-            (stdpoly->free)(pol); 
+        if (TCL_OK != Tcl_ConvertToExmo(ip,objv[i])) {
+            (stdpoly->free)(pol);
             return TCL_ERROR;
         }
         if (SUCCESS != PLappendExmo(stdpoly,pol,exmoFromTclObj(objv[i]))) {
@@ -306,13 +310,13 @@ void Tcl_PolyObjConvert(Tcl_Obj *obj, polyType *newtype) {
         ASSERT(NULL == "Tcl_PolyObjConvert called for shared object");
     aux = PLcreateCopy(newtype,PTR1(obj),PTR2(obj));
     PLfree(PTR1(obj),PTR2(obj));
-    PTR2(obj) = aux; 
+    PTR2(obj) = aux;
     PTR1(obj) = (void *) newtype;
     Tcl_InvalidateStringRep(obj);
 }
 
 Tcl_Obj *Tcl_PolyObjCancel(Tcl_Obj *obj, int mod) {
-    if (Tcl_IsShared(obj)) 
+    if (Tcl_IsShared(obj))
         obj = Tcl_DuplicateObj(obj);
     PLcancel(PTR1(obj),PTR2(obj),mod);
     Tcl_InvalidateStringRep(obj);
@@ -321,20 +325,42 @@ Tcl_Obj *Tcl_PolyObjCancel(Tcl_Obj *obj, int mod) {
 
 Tcl_Obj *Tcl_PolyObjReflect(Tcl_Obj *obj) {
     polyType *tp = PTR1(obj);
-    if (Tcl_IsShared(obj)) 
+    if (Tcl_IsShared(obj))
         obj = Tcl_DuplicateObj(obj);
-    if (NULL == tp->reflect) 
+    if (NULL == tp->reflect)
         Tcl_PolyObjConvert(obj, (tp = stdpoly));
     (tp->reflect)(PTR2(obj));
     Tcl_InvalidateStringRep(obj);
     return obj;
 }
 
+Tcl_Obj *Tcl_PolyObjMotate(Tcl_Obj *obj) {
+    polyType *tp = PTR1(obj);
+    if (Tcl_IsShared(obj))
+        obj = Tcl_DuplicateObj(obj);
+    if (NULL == tp->motate)
+        Tcl_PolyObjConvert(obj, (tp = stdpoly));
+    (tp->motate)(PTR2(obj));
+    Tcl_InvalidateStringRep(obj);
+    return obj;
+}
+
+Tcl_Obj *Tcl_PolyObjEtatom(Tcl_Obj *obj) {
+    polyType *tp = PTR1(obj);
+    if (Tcl_IsShared(obj))
+        obj = Tcl_DuplicateObj(obj);
+    if (NULL == tp->etatom)
+        Tcl_PolyObjConvert(obj, (tp = stdpoly));
+    (tp->etatom)(PTR2(obj));
+    Tcl_InvalidateStringRep(obj);
+    return obj;
+}
+
 Tcl_Obj *Tcl_PolyObjScaleMod(Tcl_Obj *obj, int scale, int mod) {
     polyType *tp = PTR1(obj);
-    if (Tcl_IsShared(obj)) 
+    if (Tcl_IsShared(obj))
         obj = Tcl_DuplicateObj(obj);
-    if (NULL == tp->scaleMod) 
+    if (NULL == tp->scaleMod)
         Tcl_PolyObjConvert(obj, (tp = stdpoly));
     (tp->scaleMod)(PTR2(obj),scale,mod);
     Tcl_InvalidateStringRep(obj);
@@ -342,7 +368,7 @@ Tcl_Obj *Tcl_PolyObjScaleMod(Tcl_Obj *obj, int scale, int mod) {
 }
 
 Tcl_Obj *Tcl_PolyObjAppend(Tcl_Obj *obj, Tcl_Obj *pol2, int scale, int mod) {
-    if (Tcl_IsShared(obj)) 
+    if (Tcl_IsShared(obj))
         ASSERT(NULL == "obj must not be shared in Tcl_PolyObjAppend");
 
     if (SUCCESS != PLappendPoly(PTR1(obj),PTR2(obj),PTR1(pol2),PTR2(pol2),NULL,0,scale,mod))
@@ -363,7 +389,7 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
     bsh = Tcl_IsShared(b);
 
     if (SUCCESS == PLcompare(PTR1(ac),PTR2(ac),
-                             PTR1(bc),PTR2(bc), 
+                             PTR1(bc),PTR2(bc),
                              &rval, (ash || bsh) ? 0 : PLF_ALLOWMODIFY)) {
 
         DECREFCNT(a);
@@ -378,7 +404,7 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
 
     if (ash) ac = Tcl_DuplicateObj(a);
     if (bsh) bc = Tcl_DuplicateObj(b);
-    
+
     rcode = PLcompare(PTR1(ac),PTR2(ac),PTR1(bc),PTR2(bc),&rval,PLF_ALLOWMODIFY);
 
     /* destroy private copies */
@@ -393,7 +419,7 @@ Tcl_Obj *Tcl_PolyObjShift(Tcl_Obj *obj, exmo *e, int flags) {
 
     ASSERTUNSHARED(obj, Tcl_PolyObjShift);
 
-    if (NULL == tp->shift) 
+    if (NULL == tp->shift)
         Tcl_PolyObjConvert(obj, (tp = stdpoly));
 
     (tp->shift)(PTR2(obj),e,flags);
@@ -448,9 +474,9 @@ Tcl_Obj *Tcl_PolyObjGetCoeff(Tcl_Obj *obj, Tcl_Obj *exm, int mod) {
     if (SUCCESS != PLcollectCoeffs(PTR1(obj),PTR2(obj),
                                    exmoFromTclObj(exm),&rval,mod,safeflags)) {
         DECREFCNT(obj);
-        obj = Tcl_DuplicateObj(obj);   
+        obj = Tcl_DuplicateObj(obj);
         INCREFCNT(obj);
-        
+
         if (SUCCESS != PLcollectCoeffs(PTR1(obj),PTR2(obj),
                                        exmoFromTclObj(exm),&rval,
                                        mod,PLF_ALLOWMODIFY)) {
@@ -478,25 +504,25 @@ Tcl_Obj *Tcl_PolyObjGetInfo(Tcl_Obj *obj) {
                    poli.maxRedLength);
 
     return NEWSTRINGOBJ(aux);
-}        
+}
 
 
-int Tcl_PolyForeachProc(Tcl_Interp *ip, Tcl_Obj *src, 
+int Tcl_PolyForeachProc(Tcl_Interp *ip, Tcl_Obj *src,
                         Tcl_Obj *mvar, Tcl_Obj *script) {
     int rc = TCL_OK;
-    polyType *pt; void *pdat; 
+    polyType *pt; void *pdat;
     int pns, idx;
     exmo mono;
 
     if (TCL_OK != Tcl_ConvertToPoly(ip, src))
         return TCL_ERROR;
-        
+
     pt   = polyTypeFromTclObj(src);
     pdat = polyFromTclObj(src);
     pns  = PLgetNumsum(pt, pdat);
 
     for (idx=0; idx<pns; idx++) {
-        
+
         if (SUCCESS != PLgetExmo(pt, pdat, &mono, idx)) {
             Tcl_SetResult(ip, "internal error in Tcl_PolyForeachProc: "
                           "PLgetExmo failed", TCL_STATIC);
@@ -514,70 +540,70 @@ int Tcl_PolyForeachProc(Tcl_Interp *ip, Tcl_Obj *src,
 	if( rc == TCL_BREAK ) break;
         if( rc != TCL_OK ) return rc;
     }
-    
+
     return TCL_OK;
 }
 
-/* The Tcl_PolySplitProc 
+/* The Tcl_PolySplitProc
  *
  *  - iterates through the monomials in *src,
  *  - calls "*proc <mono>" for each monomial,
- * 
+ *
  * Let x be the result of this call. It determines the next action
- *      
+ *
  *   x < 0   : append this monomial to *res
  *   x >= 0  : append this monomial to "$(*objv[x])"
  *
  * If x is too big for the objv array the monomial is forgotten. */
 
-int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc, 
+int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
                       Tcl_Obj * CONST objv[], Tcl_Obj **res) {
-    
-    polyType *pt; void *pdat; 
+
+    polyType *pt; void *pdat;
     int pns, idx, i, x;
     exmo mono;
-    Tcl_Obj **array; 
+    Tcl_Obj **array;
     void **parray;
-    int rcode = SUCCESS, prc; 
+    int rcode = SUCCESS, prc;
     Tcl_Obj *(cmd[2]);
 
     if (TCL_OK != Tcl_ConvertToPoly(ip, src))
         return TCL_ERROR;
 
-    /* First create an array of empty polynomials. We let array[k+1] 
+    /* First create an array of empty polynomials. We let array[k+1]
      * correspond to objv[k] and array[0] to *res. */
-    
+
     if (NULL == (array = mallox(sizeof(Tcl_Obj *) * (objc + 1))))
         RETERR("out of memory");
-    
+
     if (NULL == (parray = mallox(sizeof(void *) * (objc + 1)))) {
-        freex(array); 
+        freex(array);
         RETERR("out of memory");
     }
 
     for (i=0; i<(objc+1); i++) {
         if (NULL == (parray[i] = PLcreate(stdpoly))) {
-            for (;i--;) DECREFCNT(array[i]); 
+            for (;i--;) DECREFCNT(array[i]);
             freex(array); freex(parray);
             RETERR("out of memory");
         }
         array[i] = Tcl_NewPolyObj(stdpoly, parray[i]);
     }
-    
+
     *res = array[0];
 
     /* Now assign array[i] to the variable objv[i]. Once we've done that
      * we need no longer worry about their refCounts. */
 
-    for (i=0; i<objc; i++) 
+    for (i=0; i<objc; i++)
         if (NULL == Tcl_ObjSetVar2(ip, objv[i], NULL,
                                    array[i+1], TCL_LEAVE_ERR_MSG)) {
-            for (;i<objc;i++) 
+            for (;i<objc;i++)
                 DECREFCNT(array[i+1]);
             DECREFCNT(array[0]);
             return TCL_ERROR;
         }
-    
+
 
     pt   = polyTypeFromTclObj(src);
     pdat = polyFromTclObj(src);
@@ -586,7 +612,7 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
     cmd[0] = proc; cmd[1] = NULL;
 
     for (idx=0; idx<pns; idx++) {
-        
+
         if (SUCCESS != PLgetExmo(pt, pdat, &mono, idx)) {
             Tcl_SetResult(ip, "internal error in Tcl_PolySplitProc: "
                           "PLgetExmo failed", TCL_STATIC);
@@ -596,11 +622,11 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
 
         /* invoke filter proc */
 
-        if (NULL != cmd[1]) DECREFCNT(cmd[1]); 
-        cmd[1] = Tcl_NewExmoCopyObj(&mono); 
+        if (NULL != cmd[1]) DECREFCNT(cmd[1]);
+        cmd[1] = Tcl_NewExmoCopyObj(&mono);
         INCREFCNT(cmd[1]);
 
-        prc = Tcl_EvalObjv(ip, 2, cmd, 0); 
+        prc = Tcl_EvalObjv(ip, 2, cmd, 0);
 
         if (TCL_OK != prc) {
             if (TCL_CONTINUE == prc) continue;
@@ -628,12 +654,12 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
             goto leave;
         }
 
-        if (x>=0) { 
+        if (x>=0) {
             if (++x>objc) continue;
         } else x=0;
 
         /* append to parray[x] */
-        
+
         if (SUCCESS != PLappendExmo(stdpoly, parray[x], &mono)) {
             Tcl_SetResult(ip, "internal error in Tcl_PolySplitProc: "
                           "PLappendExmo failed", TCL_STATIC);
@@ -643,12 +669,12 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
     }
 
  leave:
-    if (NULL != cmd[1]) DECREFCNT(cmd[1]); 
+    if (NULL != cmd[1]) DECREFCNT(cmd[1]);
 
     freex(array);
     freex(parray);
 
-    if (SUCCESS != rcode) 
+    if (SUCCESS != rcode)
         DECREFCNT(*res);
 
     return rcode;
@@ -697,40 +723,40 @@ Tcl_Obj *TakePolyFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
 /**** Implementation of the poly combi-command ********************************/
 
-typedef enum { CREATE, TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT, 
-               STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT, 
-               COMPARE, SPLIT, VARSPLIT, COEFF, FOREACH, EBPMULT } pcmdcode;
+typedef enum { CREATE, TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT,
+               STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT,
+               COMPARE, SPLIT, VARSPLIT, COEFF, FOREACH, EBPMULT, MOTATE, ETATOM } pcmdcode;
 
-static CONST char *pCmdNames[] = { "create", "test", "info", "append", "cancel", 
+static CONST char *pCmdNames[] = { "create", "test", "info", "append", "cancel",
                                    "add", "posmult", "negmult", "steenmult",
                                    "varappend", "varcancel", "shift", "reflect",
                                    "compare", "split", "varsplit", "coeff",
-                                   "foreach", "ebpmult",
+                                   "foreach", "ebpmult", "motate", "etatom",
                                    (char *) NULL };
 
 static pcmdcode pCmdmap[] = { CREATE, TEST, INFO, APPEND, CANCEL, ADD,
-                              POSMULT, NEGMULT, STEENMULT, VARAPPEND, VARCANCEL, 
-                              SHIFT, REFLECT, COMPARE, SPLIT, VARSPLIT, COEFF, 
-                              FOREACH, EBPMULT };
+                              POSMULT, NEGMULT, STEENMULT, VARAPPEND, VARCANCEL,
+                              SHIFT, REFLECT, COMPARE, SPLIT, VARSPLIT, COEFF,
+                              FOREACH, EBPMULT, MOTATE, ETATOM };
 
 int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index, scale, modval;
     primeInfo *pi;
     exmo *ex;
     Tcl_Obj *(varp[5]), *obj1, *obj;
-    
+
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");
         return TCL_ERROR;
     }
-    
+
     result = Tcl_GetIndexFromObj(ip, objv[1], pCmdNames, "subcommand", 0, &index);
     if (result != TCL_OK) return result;
 
     switch (pCmdmap[index]) {
         case CREATE:
             EXPECTARGS(2, 0, 0, NULL);
-            
+
             Tcl_SetObjResult(ip, Tcl_NewPolyObj(stdpoly, PLcreate(stdpoly)));
             return TCL_OK;
 
@@ -750,7 +776,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             return TCL_OK;
 
         case APPEND:
-            EXPECTARGS(2, 2, 4, "<polynomial> <polynomial> ?<scale>? ?<mod>?"); 
+            EXPECTARGS(2, 2, 4, "<polynomial> <polynomial> ?<scale>? ?<mod>?");
 
             scale = 1; modval = 0;
             if (objc > 4)
@@ -766,11 +792,11 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
                 return TCL_ERROR;
-            
+
             /* TODO: check if we should increment the refcount first! */
 
             obj = objv[2];
-            if (Tcl_IsShared(obj)) 
+            if (Tcl_IsShared(obj))
                 obj = Tcl_DuplicateObj(obj);
 
             if (NULL == (obj1 = Tcl_PolyObjAppend(obj, objv[3], scale, modval)))
@@ -780,9 +806,9 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;
-            
+
         case CANCEL:
-            EXPECTARGS(2, 1, 2, "<polynomial> ?<integer>?"); 
+            EXPECTARGS(2, 1, 2, "<polynomial> ?<integer>?");
 
             modval = 0;
             if (objc > 3)
@@ -796,7 +822,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             return TCL_OK;
 
         case ADD:
-            EXPECTARGS(2, 2, 4, "<polynomial> <polynomial> ?<scale>? ?<mod>?"); 
+            EXPECTARGS(2, 2, 4, "<polynomial> <polynomial> ?<scale>? ?<mod>?");
 
             scale = 1; modval = 0;
             if (objc > 4)
@@ -812,9 +838,9 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
                 return TCL_ERROR;
-            
+
             obj = objv[2];
-            if (Tcl_IsShared(obj)) 
+            if (Tcl_IsShared(obj))
                 obj = Tcl_DuplicateObj(obj);
             if (NULL == (obj1 = Tcl_PolyObjAppend(obj, objv[3], scale, modval)))
                 RETERR("PLappendPoly failed");
@@ -822,10 +848,10 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             ASSERT(obj == obj1);
 
             Tcl_SetObjResult(ip, Tcl_PolyObjCancel(obj1, modval));
-            return TCL_OK;  
-             
+            return TCL_OK;
+
         case POSMULT:
-            EXPECTARGS(2, 2, 3, "<polynomial> <polynomial> ?<mod>?"); 
+            EXPECTARGS(2, 2, 3, "<polynomial> <polynomial> ?<mod>?");
 
             modval = 0;
             if (objc > 4)
@@ -842,10 +868,10 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 RETERR("Tcl_PolyObjPosProduct failed");
 
             Tcl_SetObjResult(ip, obj1);
-            return TCL_OK;  
+            return TCL_OK;
 
         case NEGMULT:
-            EXPECTARGS(2, 2, 3, "<polynomial> <polynomial> ?<mod>?"); 
+            EXPECTARGS(2, 2, 3, "<polynomial> <polynomial> ?<mod>?");
 
             modval = 0;
             if (objc > 4)
@@ -862,10 +888,10 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 RETERR("Tcl_PolyObjNegProduct failed");
 
             Tcl_SetObjResult(ip, obj1);
-            return TCL_OK;  
+            return TCL_OK;
 
         case STEENMULT:
-            EXPECTARGS(2, 3, 3, "<polynomial> <polynomial> <prime>"); 
+            EXPECTARGS(2, 3, 3, "<polynomial> <polynomial> <prime>");
 
             if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[4], &pi))
                 return TCL_ERROR;
@@ -880,10 +906,10 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 RETERR("Tcl_PolyObjSteenrodProduct failed");
 
             Tcl_SetObjResult(ip, obj1);
-            return TCL_OK;  
+            return TCL_OK;
 
         case EBPMULT:
-            EXPECTARGS(2, 3, 3, "<polynomial> <polynomial> <prime>"); 
+            EXPECTARGS(2, 3, 3, "<polynomial> <polynomial> <prime>");
 
             if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[4], &pi))
                 return TCL_ERROR;
@@ -898,10 +924,10 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 RETERR("Tcl_PolyObjSteenrodProduct failed");
 
             Tcl_SetObjResult(ip, obj1);
-            return TCL_OK;  
+            return TCL_OK;
 
         case VARAPPEND:
-            EXPECTARGS(2, 2, 4, "<variable> <polynomial> ?<scale>? ?<mod>?"); 
+            EXPECTARGS(2, 2, 4, "<variable> <polynomial> ?<scale>? ?<mod>?");
 
             scale = 1; modval = 0;
             if (objc > 4)
@@ -927,12 +953,12 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
-            
+
             DECREFCNT(varp[1]);
             return TCL_OK;
-            
+
         case VARCANCEL:
-            EXPECTARGS(2, 1, 2, "<variable> ?<integer>?"); 
+            EXPECTARGS(2, 1, 2, "<variable> ?<integer>?");
 
             modval = 0;
             if (objc > 3)
@@ -943,7 +969,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 return TCL_ERROR;
 
             obj1 = Tcl_PolyObjCancel(varp[1], modval);
-            
+
             /* since varp[1] is unshared, we should have obj1 == varp[1] */
 
             ASSERT(obj1 == varp[1]);
@@ -952,12 +978,12 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
-            
+
             DECREFCNT(varp[1]);
             return TCL_OK;
 
         case SPLIT:
-            EXPECTARGS(2, 2, 666, "<polynomial> <filter proc> ?var0? ?var1? ..."); 
+            EXPECTARGS(2, 2, 666, "<polynomial> <filter proc> ?var0? ?var1? ...");
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
                 return TCL_ERROR;
@@ -965,23 +991,23 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             if (TCL_OK != Tcl_PolySplitProc(ip, objc-4, objv[2],
                                             objv[3], objv+4, &obj1))
                 return TCL_ERROR;
-            
+
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;
-            
+
         case FOREACH:
-            EXPECTARGS(2, 3, 3, "<polynomial> <monovar> <script>"); 
+            EXPECTARGS(2, 3, 3, "<polynomial> <monovar> <script>");
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
                 return TCL_ERROR;
 
             if (TCL_OK != Tcl_PolyForeachProc(ip, objv[2], objv[3], objv[4]))
                 return TCL_ERROR;
-            
+
             return TCL_OK;
-            
+
         case VARSPLIT:
-            EXPECTARGS(2, 2, 666, "<variable> <filter proc> ?var0? ?var1? ..."); 
+            EXPECTARGS(2, 2, 666, "<variable> <filter proc> ?var0? ?var1? ...");
 
             if (NULL == (varp[1] = TakePolyFromVar(ip, objv[2])))
                 return TCL_ERROR;
@@ -996,15 +1022,15 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                 DECREFCNT(varp[1]);
                 return TCL_ERROR;
             }
- 
+
             DECREFCNT(varp[1]);
             return TCL_OK;
-           
+
         case SHIFT:
             EXPECTARGS(2, 2, 3, "<polynomial> <monomial> ?<boolean: with signs>?");
 
             modval = 0;
-            
+
             if (objc > 4)
                 if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &modval))
                     return TCL_ERROR;
@@ -1027,7 +1053,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             }
 
             Tcl_SetObjResult(ip, Tcl_PolyObjShift(obj, ex, modval));
-            
+
             DECREFCNT(obj);
             return TCL_OK;
 
@@ -1036,7 +1062,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
                 return TCL_ERROR;
-            
+
             Tcl_SetObjResult(ip, Tcl_PolyObjReflect(objv[2]));
             return TCL_OK;
 
@@ -1050,13 +1076,13 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
                 return TCL_ERROR;
-            
+
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[3]))
                 return TCL_ERROR;
-            
+
             if (NULL == (obj1 = Tcl_PolyObjCompare(objv[2],objv[3])))
                 RETERR("comparison not possible");
-            
+
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;
 
@@ -1065,24 +1091,43 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
                 return TCL_ERROR;
-            
+
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
                 return TCL_ERROR;
-            
+
             if (NULL == (obj1 = Tcl_PolyObjGetCoeff(objv[2], objv[3], 0)))
                 RETERR("PLcollectCoeff failed");
 
             Tcl_SetObjResult(ip, obj1);
             return TCL_OK;
+
+    case MOTATE:
+            EXPECTARGS(2, 1, 1, "<polynomial>");
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, Tcl_PolyObjMotate(objv[2]));
+            return TCL_OK;
+
+    case ETATOM:
+            EXPECTARGS(2, 1, 1, "<polynomial>");
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            Tcl_SetObjResult(ip, Tcl_PolyObjEtatom(objv[2]));
+            return TCL_OK;
+
     }
-    
+
     Tcl_SetResult(ip, "internal error in PolyCombiCmd", TCL_STATIC);
     return TCL_ERROR;
 }
 
 /**** Implementation of the mono combi-command ********************************/
 
-typedef enum { MTEST, ISABOVE, ISBELOW, MCOMPARE, LENGTH, RLENGTH, PADDING, 
+typedef enum { MTEST, ISABOVE, ISBELOW, MCOMPARE, LENGTH, RLENGTH, PADDING,
                GEN, MCOEFF, MEXT, MEXP, MDEG, MRDEG, MEDEG } mcmdcode;
 
 static CONST char *mCmdNames[] = { "test", "isabove", "isbelow", "compare",
@@ -1091,7 +1136,7 @@ static CONST char *mCmdNames[] = { "test", "isabove", "isbelow", "compare",
                                    "degree", "rdegree", "edegree",
                                    (char *) NULL };
 
-static mcmdcode mCmdmap[] = { MTEST, ISABOVE, ISBELOW, MCOMPARE, LENGTH, RLENGTH, PADDING, 
+static mcmdcode mCmdmap[] = { MTEST, ISABOVE, ISBELOW, MCOMPARE, LENGTH, RLENGTH, PADDING,
                               GEN, MCOEFF, MEXT, MEXP, MDEG, MRDEG, MEDEG };
 
 int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
@@ -1118,7 +1163,7 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
         return TCL_ERROR;
-        
+
         Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->gen));
             return TCL_OK;
 
@@ -1127,7 +1172,7 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
         return TCL_ERROR;
-        
+
         Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->coeff));
             return TCL_OK;
 
@@ -1136,7 +1181,7 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
         return TCL_ERROR;
-        
+
         Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoFromTclObj(objv[2])->ext));
             return TCL_OK;
 
@@ -1145,7 +1190,7 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
         return TCL_ERROR;
-        
+
         Tcl_SetObjResult(ip, Tcl_NewIntObj(BITCOUNT(exmoFromTclObj(objv[2])->ext)));
             return TCL_OK;
 
@@ -1154,10 +1199,10 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
                 return TCL_ERROR;
-            
+
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
         return TCL_ERROR;
-        
+
             Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoIdeg(pi,exmoFromTclObj(objv[3]))));
             return TCL_OK;
 
@@ -1166,10 +1211,10 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
                 return TCL_ERROR;
-            
+
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[3]))
         return TCL_ERROR;
-        
+
             Tcl_SetObjResult(ip, Tcl_NewIntObj(exmoRdeg(pi,exmoFromTclObj(objv[3]))));
             return TCL_OK;
 
@@ -1178,10 +1223,10 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
         return TCL_ERROR;
-        
+
         if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &index))
         return TCL_ERROR;
-        
+
         if (index < 0) {
         Tcl_SetResult(ip, "index must be nonnegative", TCL_STATIC);
         return TCL_ERROR;
@@ -1192,13 +1237,13 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
         } else {
         result = exmoFromTclObj(objv[2])->r.dat[index];
         }
-        
+
         Tcl_SetObjResult(ip, Tcl_NewIntObj(result));
             return TCL_OK;
 
         case ISABOVE:
             EXPECTARGS(2, 2, 2, "<monomial> <monomial>");
-            
+
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
                 return TCL_ERROR;
 
@@ -1212,7 +1257,7 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
         case MCOMPARE:
             EXPECTARGS(2, 2, 2, "<monomial> <monomial>");
-            
+
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
                 return TCL_ERROR;
 
@@ -1226,7 +1271,7 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 
         case ISBELOW:
             EXPECTARGS(2, 2, 2, "<monomial> <monomial>");
-            
+
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
                 return TCL_ERROR;
 
@@ -1268,7 +1313,7 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
                                  exmoGetPad(exmoFromTclObj(objv[2]))));
             return TCL_OK;
     }
-    
+
     Tcl_SetResult(ip, "internal error in MonoCombiCmd", TCL_STATIC);
     return TCL_ERROR;
 }
@@ -1281,14 +1326,14 @@ int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
 int Tpoly_HaveTypes = 0;
 
 int Tpoly_Init(Tcl_Interp *ip) {
-    
+
     Tcl_InitStubs(ip, "8.0", 0);
 
     Tptr_Init(ip);
     Tprime_Init(ip);
 
     if (!Tpoly_HaveTypes) {
-        /* set up types and register */ 
+        /* set up types and register */
         tclExmo.name               = "monomial";
         tclExmo.freeIntRepProc     = ExmoFreeInternalRepProc;
         tclExmo.dupIntRepProc      = ExmoDupInternalRepProc;
@@ -1296,8 +1341,8 @@ int Tpoly_Init(Tcl_Interp *ip) {
         tclExmo.setFromAnyProc     = ExmoSetFromAnyProc;
         Tcl_RegisterObjType(&tclExmo);
         TPtr_RegObjType(TP_EXMO, &tclExmo);
-        
-        /* set up types and register */ 
+
+        /* set up types and register */
         tclPoly.name               = "polynomial";
         tclPoly.freeIntRepProc     = PolyFreeInternalRepProc;
         tclPoly.dupIntRepProc      = PolyDupInternalRepProc;
@@ -1305,7 +1350,7 @@ int Tpoly_Init(Tcl_Interp *ip) {
         tclPoly.setFromAnyProc     = PolySetFromAnyProc;
         Tcl_RegisterObjType(&tclPoly);
         TPtr_RegObjType(TP_POLY, &tclPoly);
-       
+
         Tpoly_HaveTypes = 1;
     }
 
@@ -1314,12 +1359,12 @@ int Tpoly_Init(Tcl_Interp *ip) {
 
     Tcl_LinkVar(ip, POLYNSP "_multCount", (char *) &multCount, TCL_LINK_INT);
 
-    Tcl_UnlinkVar(ip, POLYNSP "_polCount"); 
-    Tcl_LinkVar(ip, POLYNSP "_polCount", (char *) &polCount, 
+    Tcl_UnlinkVar(ip, POLYNSP "_polCount");
+    Tcl_LinkVar(ip, POLYNSP "_polCount", (char *) &polCount,
                 TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
-    Tcl_UnlinkVar(ip, POLYNSP "_monCount"); 
-    Tcl_LinkVar(ip, POLYNSP "_monCount", (char *) &monCount, 
+    Tcl_UnlinkVar(ip, POLYNSP "_monCount");
+    Tcl_LinkVar(ip, POLYNSP "_monCount", (char *) &monCount,
                 TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
     return TCL_OK;

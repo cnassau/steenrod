@@ -2,9 +2,7 @@
 #
 # A test suite for the linear algebra routines
 #
-# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
-#
-#  $Id$
+# Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -28,7 +26,7 @@ proc same-span {p m1 m2} {
     set m1copy $m1
     set m2copy $m2
     matrix ortho $p m1 aux1
-    matrix ortho $p m2 aux2
+    matrix ortho $p m2 "" basis
     #foreach vnm {m1 m1copy m2 m2copy} {puts $vnm=[set $vnm]}
     matrix quot $p m1copy $m2
     matrix quot $p m2copy $m1

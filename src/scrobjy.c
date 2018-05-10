@@ -1,9 +1,7 @@
 /*
  * Scripted Tcl-Object support (scrobjy)
  *
- * Copyright (C) 2009 Christian Nassau <nassau@nullhomotopie.de>
- *
- *  $Id$
+ * Copyright (C) 2009-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This file is hereby released into the Public Domain.
  * To view a copy of the public domain dedication, visit

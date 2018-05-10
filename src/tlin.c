@@ -1,9 +1,7 @@
 /*
  * Tcl interface for the linear algebra routines
  *
- * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
- *
- *  $Id$
+ * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -315,22 +313,33 @@ int Tcl_MatrixGetDimensions(Tcl_Interp *ip, Tcl_Obj *obj, int *rows, int *cols) 
 
 /**** wrappers for the adlin routines  */
 
-Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft,
+#define FAILASSERT(msg) { Tcl_SetResult(ip,msg,TCL_VOLATILE); return NULL; }
+
+Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft, Tcl_Obj *bas,
                      Tcl_Interp *ip, const char *progvar, int pmsk, int *interruptVar) {
     matrixType *mt = PTR1(inp), *mt2 = PTR1(lft);
     int krows, kcols, irows, icols;
     void *rdat;
     progressInfo pro;
 
+    if(NULL == bas) {
+      if(Tcl_IsShared(inp))
+        FAILASSERT("inp must not be shared in Tcl_OrthoCmd!");
+    }
+
     /* since we cannibalize lft, it must not be shared */
     if (Tcl_IsShared(lft))
-        ASSERT(NULL == "lft must not be shared in Tcl_OrthoCmd!");
+        FAILASSERT("lft must not be shared in Tcl_OrthoCmd!");
 
-    if ((NULL == (mt->liftFunc)) || (mt != mt2))
-        ASSERT(NULL == "lift computation not fully implemented");
+    if ((NULL == (mt->liftFunc)))
+        FAILASSERT("matrix type has no lift func");
+
+    if ((mt != mt2)) {
+        FAILASSERT("matrix types differ");
+    }
 
     if (PTR2(inp) == PTR2(lft))
-        ASSERT(NULL == "lifting matrix through itself not yet supported");
+        FAILASSERT(NULL == "lifting matrix through itself not yet supported");
 
     /* Note: a matrix with 0 rows does not have a well defined number
      * of columns, since the string representation is always {}. So
@@ -350,7 +359,8 @@ Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft,
     pro.interruptVar = interruptVar;
 
     Tcl_InvalidateStringRep(lft);
-    rdat = (mt->liftFunc)(pi, PTR2(inp), PTR2(lft), (NULL != progvar) ? &pro : NULL);
+    if(NULL == bas) Tcl_InvalidateStringRep(inp);
+    rdat = (mt->liftFunc)(pi, PTR2(inp), PTR2(lft), bas ? PTR2(bas) : NULL, (NULL != progvar) ? &pro : NULL);
 
     if (NULL == rdat) return NULL;
 
@@ -415,7 +425,8 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp,
 }
 
 Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj **urb,
-                      Tcl_Interp *ip, const char *progvar, int pmsk, int *interruptVar) {
+                      Tcl_Interp *ip, int wantkernel,
+		      const char *progvar, int pmsk, int *interruptVar) {
     matrixType *mt = PTR1(inp);
     progressInfo pro;
     void *res, *oth, *oth2;
@@ -442,15 +453,15 @@ Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj **urb,
         oth2 = NULL;
     }
 
-    res = (mt->orthoFunc)(pi, PTR2(inp), oth2, (NULL != progvar) ? &pro : NULL);
-
-    if (NULL == res) return NULL;
+    res = (mt->orthoFunc)(pi, PTR2(inp), oth2, wantkernel, (NULL != progvar) ? &pro : NULL);
 
     if (NULL != urb) {
         *urb = Tcl_NewMatrixObj(mt, oth);
     }
 
     Tcl_InvalidateStringRep(inp);
+
+    if (NULL == res) return NULL;
 
     return Tcl_NewMatrixObj(mt, res);
 }
@@ -548,6 +559,15 @@ int ExtractColsCmd(Tcl_Interp *ip, Tcl_Obj *mat, int *ind, int num) {
 
     for (i=0;i<num;i++) {
         int idx = ind[i];
+	if(idx<0) {
+	  Tcl_SetResult(ip,"negative index",TCL_STATIC);
+	  mt2->destroyMatrix(mdat2);
+	  return TCL_ERROR;
+	} else if (idx>=ic) {
+	  Tcl_SetResult(ip,"index too big",TCL_STATIC);
+	  mt2->destroyMatrix(mdat2);
+	  return TCL_ERROR;
+	}
         for (j=0;j<ir;j++) {
             int val;
             mt1->getEntry(mdat1, j, idx, &val);
@@ -981,11 +1001,11 @@ int Tcl_MultMatrixCmd(Tcl_Interp *ip, primeInfo *pi,
 
 static CONST char *rcnames[] = { "rows", "cols", "single-row", "single-column", NULL };
 
-typedef enum { ORTHO, LIFT, QUOT, DIMS, CREATE, ADDTO,
+typedef enum { ORTHO, LIFT, LIFTV, QUOT, DIMS, CREATE, ADDTO,
                ISZERO, TEST, EXTRACT, ENCODE64, DECODE,
                TYPE, CONVERT2, MULT, UNIT } matcmdcode;
 
-static CONST char *mCmdNames[] = { "orthonormalize", "lift",
+static CONST char *mCmdNames[] = { "orthonormalize", "lift", "liftvar",
                                    "quotient", "extract", "dimensions",
                                    "create", "addto", "iszero",
                                    "test", "encode64", "decode",
@@ -993,7 +1013,7 @@ static CONST char *mCmdNames[] = { "orthonormalize", "lift",
                                    "unit",
                                    (char *) NULL };
 
-static matcmdcode mCmdmap[] = { ORTHO, LIFT, QUOT, EXTRACT,
+static matcmdcode mCmdmap[] = { ORTHO, LIFT, LIFTV, QUOT, EXTRACT,
                                 DIMS, CREATE, ADDTO, ISZERO, TEST, ENCODE64, DECODE,
                                 TYPE, CONVERT2, MULT, UNIT };
 
@@ -1085,7 +1105,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             return TCL_OK;
 
         case LIFT:
-            EXPECTARGS(2, 3, 3, "<prime> <matrix> <varname>");
+            EXPECTARGS(2, 4, 4, "<prime> <matrix> <basis> <varname>");
 
             if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
                 return TCL_ERROR;
@@ -1093,10 +1113,13 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[3]))
                 return TCL_ERROR;
 
-            if (NULL == (varp[2] = TakeMatrixFromVar(ip, objv[4])))
+            if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[4]))
                 return TCL_ERROR;
 
-            varp[3] = Tcl_LiftCmd(pi, objv[3], varp[2], ip, THEPROGVAR, theprogmsk, interruptVar);
+            if (NULL == (varp[2] = TakeMatrixFromVar(ip, objv[5])))
+                return TCL_ERROR;
+
+            varp[3] = Tcl_LiftCmd(pi, objv[3], varp[2], objv[4], ip, THEPROGVAR, theprogmsk, interruptVar);
 
             if (NULL == varp[3]) {
                 DECREFCNT(varp[2]);
@@ -1104,7 +1127,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
                 return TCL_ERROR;
             }
 
-            if (NULL == Tcl_ObjSetVar2(ip, objv[4], NULL, varp[2], TCL_LEAVE_ERR_MSG)) {
+            if (NULL == Tcl_ObjSetVar2(ip, objv[5], NULL, varp[2], TCL_LEAVE_ERR_MSG)) {
                 DECREFCNT(varp[2]);
                 return TCL_ERROR;
             }
@@ -1114,7 +1137,42 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             Tcl_SetObjResult(ip, varp[3]);
             return TCL_OK;
 
+        case LIFTV:
+            EXPECTARGS(2, 3, 3, "<prime> <matrixvar> <toliftvar>");
+
+            if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
+                return TCL_ERROR;
+
+            if (NULL == (varp[4] = TakeMatrixFromVar(ip, objv[3])))
+                return TCL_ERROR;
+
+            if (NULL == (varp[2] = TakeMatrixFromVar(ip, objv[4])))
+                return TCL_ERROR;
+
+            varp[3] = Tcl_LiftCmd(pi, varp[4], varp[2], NULL, ip, THEPROGVAR, theprogmsk, interruptVar);
+
+            if (NULL == varp[3]) {
+                DECREFCNT(varp[4]);
+                DECREFCNT(varp[2]);
+		CHECK_INTERRUPT_VARIABLE(lift);
+                return TCL_ERROR;
+            }
+
+            if (NULL == Tcl_ObjSetVar2(ip, objv[4], NULL, varp[2], TCL_LEAVE_ERR_MSG)) {
+                DECREFCNT(varp[4]);
+                DECREFCNT(varp[2]);
+                return TCL_ERROR;
+            }
+
+	    DECREFCNT(varp[4]);
+            DECREFCNT(varp[2]);
+
+            Tcl_SetObjResult(ip, varp[3]);
+            return TCL_OK;
+
         case ORTHO:
+	  {
+	    int wantkernel;
             EXPECTARGS(2, 3, 4, "<prime> <inputvar> <kernelvar> ?<basisvar>?");
 
             if (TCL_OK != Tcl_GetPrimeInfo(ip,objv[2],&pi))
@@ -1129,9 +1187,11 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
                 urb = NULL;
             }
 
-            varp[2] = Tcl_OrthoCmd(pi, varp[1], urb, ip, THEPROGVAR, theprogmsk, interruptVar);
+	    wantkernel = (0 != *Tcl_GetString(objv[4]));
 
-            if (NULL == varp[2]) {
+            varp[2] = Tcl_OrthoCmd(pi, varp[1], urb, ip, wantkernel, THEPROGVAR, theprogmsk, interruptVar);
+
+            if (wantkernel && NULL == varp[2]) {
                 DECREFCNT(varp[1]);
 		CHECK_INTERRUPT_VARIABLE(ortho);
                 RETERR("orthonormalization failed");
@@ -1146,8 +1206,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             }
             DECREFCNT(varp[1]);
 
-            if (NULL == Tcl_ObjSetVar2(ip, objv[4], NULL,
-                                       varp[2], TCL_LEAVE_ERR_MSG)) {
+            if (wantkernel && (NULL == Tcl_ObjSetVar2(ip, objv[4], NULL, varp[2], TCL_LEAVE_ERR_MSG))) {
                 DECREFCNT(varp[2]);
                 return TCL_ERROR;
             }
@@ -1159,7 +1218,7 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
             }
 
             return TCL_OK;
-
+	  }
         case EXTRACT:
             EXPECTARGS(2, 3, 3, "rows/cols <matrix> <list of indices>");
 

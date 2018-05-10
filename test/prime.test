@@ -69,7 +69,7 @@ test prime-1.3 {prime powers} {
         set pows [prime $p powers]
         set max  [prime $p maxpow]
         if {$max<2} { lappend res "maxpow-too-small-$p" }
-        for {set i 0} {$i<$max} {incr i} {
+        for {set i 0} {$i+1<[llength $pows] && $i<$max} {incr i} {
             if {[expr ($p * [lindex $pows $i])] != [lindex $pows [expr $i+1]]} {
                 lappend res "error-$p-$i"
             }
@@ -87,7 +87,7 @@ test prime-1.4 {prime degrees} {
         set rdegs [prime $p rdegrees]
         set tpmo [prime $p tpmo]
         set max  [prime $p maxpow]
-        for {set i 0} {$i<$max} {incr i} {
+        for {set i 0} {$i<$max && $i+1<[llength $pows]} {incr i} {
             if {[lindex $edegs $i] != [expr 2*[lindex $pows $i] - 1]} {
                 lappend res "mismatch-$p-$i-E"
             }

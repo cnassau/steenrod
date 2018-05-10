@@ -1,9 +1,7 @@
 /*
  * Custom Tcl shell with built-in Steenrod library
  *
- * Copyright (C) 2005-2009 Christian Nassau <nassau@nullhomotopie.de>
- *
- *  $Id$
+ * Copyright (C) 2005-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as

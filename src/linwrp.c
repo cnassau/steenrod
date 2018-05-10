@@ -1,9 +1,7 @@
 /*
  * Wrappers for the linear algebra implementations
  *
- * Copyright (C) 2004-2009 Christian Nassau <nassau@nullhomotopie.de>
- *
- *  $Id$
+ * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -19,7 +17,7 @@
 #include "tlin.h"
 #include <string.h>
 
-/* The standard matrix type. This is just a wrapper around the 
+/* The standard matrix type. This is just a wrapper around the
  * stuff from linalg.c */
 
 int stdGetEntry(void *m, int row, int col, int *val) {
@@ -36,8 +34,8 @@ int stdSetEntry(void *m, int row, int col, int val) {
     if ((row >= mat->rows) || (col >= mat->cols))
         return FAILIMPOSSIBLE;
     /* first check if the value fits in a "cint" */
-    tst = val; tst2 = tst; 
-    if (tst2 != val) 
+    tst = val; tst2 = tst;
+    if (tst2 != val)
         return FAILIMPOSSIBLE;
     matrix_set_entry((matrix *) mat, row, col, val);
     return SUCCESS;
@@ -47,9 +45,9 @@ int stdAddToEntry(void *m, int row, int col, int val, int mod) {
     int rcode, aux;
     if (SUCCESS != (rcode = stdGetEntry(m, row, col, &aux)))
         return rcode;
-    aux = aux + val; 
-    if (mod) 
-	if( (aux %= mod) < 0 ) aux += mod; 
+    aux = aux + val;
+    if (mod)
+	if( (aux %= mod) < 0 ) aux += mod;
     return stdSetEntry(m, row, col, aux);
 }
 
@@ -93,30 +91,30 @@ int stdReduceMatrix(void *mat, int prime) {
 
 static int zero;
 
-void *stdOrthoFunc(primeInfo *pi, void *inp, void *urb, progressInfo *prg) {
+void *stdOrthoFunc(primeInfo *pi, void *inp, void *urb, int wantkernel, progressInfo *prg) {
     matrix *ker;
-    Tcl_Interp *ip = NULL; 
+    Tcl_Interp *ip = NULL;
     const char *progvar = NULL;
     int pmsk = 0, *ivarp = NULL;
-    if (NULL != prg) { 
+    if (NULL != prg) {
         ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; ivarp = prg->interruptVar;
     }
-    ker = matrix_ortho(pi, (matrix *) inp, (matrix **) urb, ip, progvar, pmsk, ivarp ? ivarp : &zero);
+    ker = matrix_ortho(pi, (matrix *) inp, (matrix **) urb, ip, wantkernel, progvar, pmsk, ivarp ? ivarp : &zero);
     return ker;
 }
 
-void *stdLiftFunc(primeInfo *pi, void *inp, void *lft, progressInfo *prg) {
+void *stdLiftFunc(primeInfo *pi, void *inp, void *lft, void *bas, progressInfo *prg) {
     matrix *res;
-    Tcl_Interp *ip = NULL; 
+    Tcl_Interp *ip = NULL;
     const char *progvar = NULL;
     int pmsk = 0, *ivarp = NULL;
     if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk;  ivarp = prg->interruptVar;}
-    res = matrix_lift(pi, (matrix *) inp, lft, ip, progvar, pmsk, ivarp ? ivarp : &zero);
+    res = matrix_lift(pi, (matrix *) inp, lft, bas, ip, progvar, pmsk, ivarp ? ivarp : &zero);
     return res;
 }
 
 void stdQuotFunc(primeInfo *pi, void *ker, void *im, progressInfo *prg) {
-    Tcl_Interp *ip = NULL; 
+    Tcl_Interp *ip = NULL;
     const char *progvar = NULL;
     int pmsk = 0, *ivarp = NULL;
     if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk;  ivarp = prg->interruptVar;}
@@ -126,12 +124,12 @@ void stdQuotFunc(primeInfo *pi, void *ker, void *im, progressInfo *prg) {
 int stdMAdd(void *vv1, void *vv2, int scale, int mod) {
     matrix *v1 = (matrix *) vv1;
     matrix *v2 = (matrix *) vv2;
-    
-    if ((v1->rows != v2->rows) || (v1->cols != v2->cols)) 
+
+    if ((v1->rows != v2->rows) || (v1->cols != v2->cols))
         return FAILIMPOSSIBLE;
-    
+
     matrix_add(v1, v2, scale, mod);
-    
+
     return SUCCESS;
 }
 
@@ -166,8 +164,8 @@ int stdVSetEntry(void *vec, int idx, int val) {
     vector *v = (vector *) vec;
     cint tst; int tst2;
     /* first check if the value fits in a "cint" */
-    tst = val; tst2 = tst; 
-    if (tst2 != val) 
+    tst = val; tst2 = tst;
+    if (tst2 != val)
         return FAILIMPOSSIBLE;
     if (idx >= (v->num)) return FAILIMPOSSIBLE;
     vector_set_entry(v, idx, val);
@@ -207,12 +205,12 @@ int stdVReduce(void *vec, int prime) {
 int stdVAdd(void *vv1, void *vv2, int scale, int mod) {
     vector *v1 = (vector *) vv1;
     vector *v2 = (vector *) vv2;
-    
-    if (v1->num != v2->num) 
+
+    if (v1->num != v2->num)
         return FAILIMPOSSIBLE;
 
     vector_add(v1, v2, scale, mod);
-    
+
     return SUCCESS;
 }
 
@@ -256,7 +254,7 @@ int rcGetEntry(void *vec, int idx, int *val) {
     } else {
       nc = r->rowcolnum;
       nr = idx;
-    } 
+    }
     return (r->mtype)->getEntry(r->mdata,nr,nc,val);
 }
 
@@ -264,7 +262,7 @@ int rcGetLength(void*vec) {
     rcvect *r = (rcvect*)vec;
     int nr,nc;
     (r->mtype)->getDimensions(r->mdata,&nr,&nc);
-    return r->isrow ? nc : nr; 
+    return r->isrow ? nc : nr;
 }
 
 void *rcCreateCopy(void*vec) {
@@ -272,7 +270,7 @@ void *rcCreateCopy(void*vec) {
     rcvect *c = malloc(sizeof(rcvect));
     memcpy(c,r,sizeof(rcvect));
     Tcl_IncrRefCount(c->matobj);
-    return c; 
+    return c;
 }
 
 void rcDestroyVector(void*vec) {
@@ -335,9 +333,9 @@ void *createStdVectorCopy(vectorType *vt, void *vec) {
 int LAVadd(vectorType **vt1, void **vdat1,
            vectorType *vt2, void *vdat2, int scale, int mod) {
 
-    if ((vt2 == *vt1) && (NULL != vt2->add)) 
+    if ((vt2 == *vt1) && (NULL != vt2->add))
         return vt2->add(*vdat1, vdat2, scale, mod);
-    
+
     ASSERT(NULL == "LAVadd needs to be enhanced");
 
     return FAIL;
@@ -348,7 +346,7 @@ int MatrixAddNaive(matrixType *mt1, void *mdat1,
     int rows, cols, i, j;
     mt1->getDimensions(mdat1,&rows,&cols);
     mt2->getDimensions(mdat2,&i,&j);
-    if ((rows != i) || (cols != j)) 
+    if ((rows != i) || (cols != j))
         return FAILIMPOSSIBLE;
     for (i=0;i<rows;i++)
         for (j=0;j<cols;j++) {
@@ -358,7 +356,7 @@ int MatrixAddNaive(matrixType *mt1, void *mdat1,
         }
     return SUCCESS;
 }
-  
+
 int LAMadd(matrixType **vt1, void **vdat1,
            matrixType *vt2, void *vdat2, int scale, int mod) {
 
@@ -367,7 +365,7 @@ int LAMadd(matrixType **vt1, void **vdat1,
         if (0 == (0x1 & scale)) return SUCCESS;
         if ((stdmatrix2 == vt2) && (stdmatrix2 == *vt1)) {
             return stdmatrix2->add(*vdat1, vdat2, scale, mod);
-        } 
+        }
         return MatrixAddNaive(*vt1, *vdat1, vt2, vdat2, scale, mod);
     }
 
@@ -379,7 +377,7 @@ int LAMadd(matrixType **vt1, void **vdat1,
         *vdat1 = newdat;
     }
 
-    if ((vt2 == *vt1) && (NULL != vt2->add)) 
+    if ((vt2 == *vt1) && (NULL != vt2->add))
         return vt2->add(*vdat1, vdat2, scale, mod);
 
     return MatrixAddNaive(*vt1, *vdat1, vt2, vdat2, scale, mod);
