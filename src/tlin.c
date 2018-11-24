@@ -1374,6 +1374,11 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
 	    if(TCL_OK != Tcl_ListObjGetElements(ip,varval,&matcnt,&matlist))
 	      return TCL_ERROR;
 
+	    if(0==matcnt) {
+	      Tcl_ResetResult(ip);
+	      return TCL_OK;
+	    }
+
 	    int ncols=-1, nrows=0;
 
 	    mt = NULL;

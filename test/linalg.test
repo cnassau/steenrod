@@ -152,6 +152,11 @@ test linalg-5.2 "matrix concatenation" {
     steenrod::matrix concat m2
 } {{1 0 1 1 1} {0 1 1 0 0} {1 0 1 0 1} {0 0 0 0 0} {1 0 0 1 0} {0 1 1 1 0}}
 
+test linalg-5.3 "matrix concatenation" {
+    set m {}
+    steenrod::matrix concat m
+} {}
+
 # cleanup
 ::tcltest::cleanupTests
 return
