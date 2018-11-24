@@ -56,7 +56,7 @@ int BLOCKSAREZERO(BLOCKTYPE *dat, int numblocks) {
 #else
     const BLOCKTYPE zero = 0;
 #endif
-    while (numblocks--) 
+    while (numblocks--)
         if (COMPAREBLOCKS(*dat++,zero))
             return 0;
     return 1;
@@ -161,7 +161,7 @@ matrix *matrix_create(int rows, int cols) {
     /* make this a multiple of 8, might help to speed things up */
     res->nomcols = (7 + res->nomcols)/8; res->nomcols *= 8;
 #endif
-    res->data = (BLOCKTYPE *) 
+    res->data = (BLOCKTYPE *)
         mallox(sizeof(BLOCKTYPE) * res->nomcols * res->rows);
     if (NULL == res->data) {
         freex(res); return NULL;
@@ -178,6 +178,14 @@ matrix *matrix_copy(matrix *mat) {
     if (NULL == res) return NULL;
     if(mat->data) memcpy(res->data, mat->data, sizeof(BLOCKTYPE) * mat->nomcols * mat->rows);
     return res;
+}
+
+int matrix_copy_rows(matrix *d, int start, matrix *s, int f, int nrows) {
+  void *dbase = d->data + d->nomcols * start;
+  void *sbase = s->data + s->nomcols * f;
+  size_t nbytes = d->nomcols * nrows;
+  memcpy(dbase,sbase,sizeof(BLOCKTYPE)*d->nomcols*nrows);
+  return 1;
 }
 
 void matrix_clear(matrix *mat) {
@@ -225,7 +233,7 @@ void matrix_set_entry(matrix *m, int r, int c, cint val) {
     set_entry(&(m->data[m->nomcols * r + c/16]),c & 15,val);
 #else
     cint *rowptr = m->data + (m->nomcols * r);
-    rowptr[c] = val; 
+    rowptr[c] = val;
 #endif
 }
 
@@ -242,7 +250,7 @@ void matrix_add(matrix *dst, matrix *src, cint coeff, cint prime) {
         make_matrix_row(&v2, src, i);
         vector_add(&v1, &v2, coeff, prime);
     }
-#endif 
+#endif
 }
 
 void matrix_collect_ext(matrix *mdest, matrix *msrc, int r) {

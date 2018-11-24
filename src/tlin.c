@@ -324,12 +324,12 @@ Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft, Tcl_Obj *bas,
 
     if(NULL == bas) {
       if(Tcl_IsShared(inp))
-        FAILASSERT("inp must not be shared in Tcl_OrthoCmd!");
+        FAILASSERT("inp must not be shared in Tcl_LiftCmd!");
     }
 
     /* since we cannibalize lft, it must not be shared */
     if (Tcl_IsShared(lft))
-        FAILASSERT("lft must not be shared in Tcl_OrthoCmd!");
+        FAILASSERT("lft must not be shared in Tcl_LiftCmd!");
 
     if ((NULL == (mt->liftFunc)))
         FAILASSERT("matrix type has no lift func");
@@ -1003,19 +1003,19 @@ static CONST char *rcnames[] = { "rows", "cols", "single-row", "single-column", 
 
 typedef enum { ORTHO, LIFT, LIFTV, QUOT, DIMS, CREATE, ADDTO,
                ISZERO, TEST, EXTRACT, ENCODE64, DECODE,
-               TYPE, CONVERT2, MULT, UNIT } matcmdcode;
+               TYPE, CONVERT2, MULT, UNIT, CONCAT } matcmdcode;
 
 static CONST char *mCmdNames[] = { "orthonormalize", "lift", "liftvar",
                                    "quotient", "extract", "dimensions",
                                    "create", "addto", "iszero",
                                    "test", "encode64", "decode",
                                    "type", "convert2", "multiply",
-                                   "unit",
+                                   "unit", "concat",
                                    (char *) NULL };
 
 static matcmdcode mCmdmap[] = { ORTHO, LIFT, LIFTV, QUOT, EXTRACT,
                                 DIMS, CREATE, ADDTO, ISZERO, TEST, ENCODE64, DECODE,
-                                TYPE, CONVERT2, MULT, UNIT };
+                                TYPE, CONVERT2, MULT, UNIT, CONCAT };
 
 int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index, scale, modval, rows, cols;
@@ -1358,6 +1358,66 @@ int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[
                 return TCL_OK;
 
             Tcl_ResetResult(ip);
+            return TCL_OK;
+
+    case CONCAT:
+
+            EXPECTARGS(2, 1, 1, "<variable with list of matrices>");
+
+	    int i,matcnt;
+	    Tcl_Obj **matlist;
+
+	    Tcl_Obj *varval = Tcl_ObjGetVar2(ip, objv[2], NULL, TCL_LEAVE_ERR_MSG);
+	    if(NULL == varval)
+	      return TCL_ERROR;
+
+	    if(TCL_OK != Tcl_ListObjGetElements(ip,varval,&matcnt,&matlist))
+	      return TCL_ERROR;
+
+	    int ncols=-1, nrows=0;
+
+	    mt = NULL;
+	    for(i=0;i<matcnt;i++) {
+	      if (TCL_OK != Tcl_ConvertToMatrix(ip, matlist[i]))
+                return TCL_ERROR;
+	      matrixType *mt2 = matrixTypeFromTclObj(matlist[i]);
+	      int rows,cols;
+	      if (TCL_OK != Tcl_MatrixGetDimensions(ip, matlist[i], &rows, &cols))
+                return TCL_ERROR;
+	      if(NULL==mt) {
+		mt = mt2;
+		ncols = cols;
+	      } else if(mt != mt2) {
+		Tcl_SetResult(ip,"inconsistent matrix types",TCL_STATIC);
+		return TCL_ERROR;
+	      } else if(cols != ncols) {
+		Tcl_SetResult(ip,"inconsistent number of columns",TCL_STATIC);
+		return TCL_ERROR;
+	      }
+	      nrows += rows;
+	    }
+
+	    mdat = mt->createMatrix(nrows,ncols);
+	    if(NULL == mdat) {
+	      char aux[200];
+	      sprintf(aux,"could not create matrix %dx%d",nrows,ncols);
+	      Tcl_SetResult(ip,aux,TCL_VOLATILE);
+	      return TCL_ERROR;
+	    }
+
+	    nrows = 0;
+	    for(i=0;i<matcnt;i++) {
+	      int rows,cols;
+	      Tcl_MatrixGetDimensions(ip, matlist[i], &rows, &cols);
+	      void *m2 = matrixFromTclObj(matlist[i]);
+	      mt->copyRows(mdat,nrows,m2,0,rows);
+	      nrows += rows;
+	    }
+
+	    // unset the variable to release memory
+	    Tcl_ObjSetVar2(ip, objv[2], NULL, Tcl_NewObj(), 0);
+
+            Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt, mdat));
             return TCL_OK;
 
     }

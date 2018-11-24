@@ -60,6 +60,7 @@ typedef struct {
    */
   void *(*liftFunc)(primeInfo *pi, void *inp, void *lft, void *bas, progressInfo *prg);
     void (*quotFunc)(primeInfo *pi, void *ker, void *im, progressInfo *prg);
+  int (*copyRows)(void *dst, int startrow, void *src, int from, int nrows);
 } matrixType;
 
 #ifndef LINWRPC

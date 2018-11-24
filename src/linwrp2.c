@@ -165,6 +165,12 @@ void *stdCreateMCopy2(void *mat) {
     return res;
 }
 
+int stdCopyRows2(void *dst, int start, void *src, int from, int nrows) {
+  mat2 *d=(mat2*)dst, *s=(mat2*)src;
+  memcpy(d->data+start*d->ipr,s->data+from*s->ipr,s->ipr*nrows * sizeof(int));
+  return 1;
+}
+
 void stdDestroyMatrix2(void *mat) {
     mat2 *m = (mat2 *) mat;
     freex(m->data);
@@ -265,7 +271,8 @@ matrixType stdMatrixType2 = {
     .add           = stdAddMatrix2,
     .orthoFunc     = stdOrthoFunc2,
     .liftFunc      = stdLiftFunc2,
-    .quotFunc      = stdQuotFunc2
+    .quotFunc      = stdQuotFunc2,
+    .copyRows      = stdCopyRows2
 };
 
 

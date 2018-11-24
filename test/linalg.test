@@ -44,15 +44,15 @@ test linalg-1.4 {matrix test, empty input} { matrix test {} } {}
 test linalg-1.5 {matrix test, simple list 4x1} { matrix test {1 0 2 1} } {}
 test linalg-1.6 {matrix test, simple list 1x4} { matrix test {{1} {0} {2} {1}} } {}
 test linalg-1.7 {matrix test, 1x1} { matrix test {{1}} } {}
-test linalg-1.8 {matrix test, accept values up to 127} { matrix test 127 } {}    
+test linalg-1.8 {matrix test, accept values up to 127} { matrix test 127 } {}
 
-test linalg-1.9 {matrix test, shared entries} { 
-    set i 5 
-    set row [list 0 $i $i 5] 
+test linalg-1.9 {matrix test, shared entries} {
+    set i 5
+    set row [list 0 $i $i 5]
     matrix test [list $row $row $row]
 } {}
 
-test linalg-1.10 {string length [matrix test, rows of different length} { 
+test linalg-1.10 {string length [matrix test, rows of different length} {
     set res {}
     lappend res [expr ![string length [matrix test { {0 1} {} }]]]
     lappend res [expr ![string length [matrix test { {0 1} {2} }]]]
@@ -60,13 +60,13 @@ test linalg-1.10 {string length [matrix test, rows of different length} {
     lappend res [expr ![string length [matrix test { {0 1} {7 1 -1} }]]]
 } {0 0 1 0}
 
-test linalg-2.0 {matrix dimensions, 0x0} { matrix dimensions {} } {0 0} 
-test linalg-2.1 {matrix dimensions, 1x0 - 1x3} { 
+test linalg-2.0 {matrix dimensions, 0x0} { matrix dimensions {} } {0 0}
+test linalg-2.1 {matrix dimensions, 1x0 - 1x3} {
     set res {}
-    lappend res [matrix dimensions {}] 
-    lappend res [matrix dimensions {{}}] 
-    lappend res [matrix dimensions {{} {}}] 
-    lappend res [matrix dimensions {{} {} {}}] 
+    lappend res [matrix dimensions {}]
+    lappend res [matrix dimensions {{}}]
+    lappend res [matrix dimensions {{} {}}]
+    lappend res [matrix dimensions {{} {} {}}]
 } {{0 0} {1 0} {2 0} {3 0}}
 
 test linalg-2.2 {matrix dimensions, 5x1} { matrix dimensions {1 2 3 4 5} } {5 1}
@@ -78,22 +78,22 @@ test linalg-2.3 {matrix dimensions, 5x1 (sane)} { matrix dimensions {{1} {2} {3}
 
 test linalg-3.0 {matrix refcounts, create} {
     steenrod::_refcount [matrix create 5 5]
-    # always expect refcount 1, because the interpreter holds a 
+    # always expect refcount 1, because the interpreter holds a
     # reference to each argument
-} {1} 
+} {1}
 
 test linalg-3.1 {matrix refcounts, create in variable} {
     set m [matrix create 5 5]
-    steenrod::_refcount $m ;# expect 2 references: interpreter + variable 
-} {2} 
+    steenrod::_refcount $m ;# expect 2 references: interpreter + variable
+} {2}
 
 test linalg-3.2 {matrix refcounts, addto} {
     set res {}
     set v [steenrod::matrix create 5 5]
-    lappend res [steenrod::_refcount $v]  ;# expect 2 references: interpreter + variable 
+    lappend res [steenrod::_refcount $v]  ;# expect 2 references: interpreter + variable
     matrix addto v [steenrod::matrix create 5 5]
-    lappend res [steenrod::_refcount $v]  ;# expect 2 references: interpreter + variable 
-} {2 2} 
+    lappend res [steenrod::_refcount $v]  ;# expect 2 references: interpreter + variable
+} {2 2}
 
 foreach {d res} {
     0 {}
@@ -106,7 +106,7 @@ foreach {d res} {
 }
 
 test linalg-3.4 {matrix refcounts, } {
-} {} 
+} {}
 
 
 test linalg-4.1 {column/row extraction} {
@@ -134,7 +134,24 @@ test linalg-4.2 {single-row/col refernce counting} {
    lappend res [steenrod::_refcount $mat]
 } {1 2 3 2}
 
+test linalg-5.1 "matrix concatenation" {
+    set mats {}
+    lappend mats {{1 2 3 4 5} {2 3 4 5 6} {3 4 5 6 7}}
+    lappend mats {{4 5 6 7 8}}
+    lappend mats {{5 6 7 8 9} {6 7 8 9 0}}
+    steenrod::matrix concat mats
+} {{1 2 3 4 5} {2 3 4 5 6} {3 4 5 6 7} {4 5 6 7 8} {5 6 7 8 9} {6 7 8 9 0}}
+
+test linalg-5.2 "matrix concatenation" {
+    set mats {}
+    lappend mats {{1 0 1 1 1} {0 1 1 0 0} {1 0 1 0 1}}
+    lappend mats {{0 0 0 0 0}}
+    lappend mats {{1 0 0 1 0} {0 1 1 1 0}}
+    set m2 {}
+    foreach x $mats { lappend m2 [steenrod::matrix convert2 $x] }
+    steenrod::matrix concat m2
+} {{1 0 1 1 1} {0 1 1 0 0} {1 0 1 0 1} {0 0 0 0 0} {1 0 0 1 0} {0 1 1 1 0}}
+
 # cleanup
 ::tcltest::cleanupTests
 return
-

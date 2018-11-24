@@ -31,11 +31,11 @@ typedef struct {
     BLOCKTYPE *data;
 } vector;
 
-/* nomcols stands for "nominal columns"; allows to allocate space 
- * for more columns than actually present (whatever this might be 
+/* nomcols stands for "nominal columns"; allows to allocate space
+ * for more columns than actually present (whatever this might be
  * useful for ...?) */
 typedef struct {
-    int rows, cols; 
+    int rows, cols;
     int nomcols;
     BLOCKTYPE *data;
 } matrix;
@@ -69,9 +69,12 @@ int matrix_iszero(matrix *m);
 void make_matrix_row(vector *v, matrix *m, int r);
 
 /* matrix_collect is used whenever we want to throw away some
- * of the rows; for this we first set m->rows = 0, then call 
+ * of the rows; for this we first set m->rows = 0, then call
  * matrix_collect(...) for those rows that we want to keep.    */
 void matrix_collect(matrix *m, int r);
 void matrix_collect_ext(matrix *dest, matrix *src, int r);
+
+/* copy some rows from s to d */
+int matrix_copy_rows(matrix *d, int start, matrix *s, int f, int nrows);
 
 #endif

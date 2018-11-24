@@ -71,6 +71,13 @@ void *stdCreateMCopy(void *mat) {
     return matrix_copy((matrix *) mat);
 }
 
+int stdMatrixCopyRows(void *dst, int startrow, void *src, int from, int nrows) {
+  matrix *d = (matrix*)dst, *s = (matrix*)src;
+  if(d->cols != s->cols) return 0;
+  if(startrow+nrows>d->rows) return 0;
+  return matrix_copy_rows(d,startrow,s,from,nrows);
+}
+
 void stdDestroyMatrix(void *mat) {
     matrix_destroy(mat);
 }
@@ -150,7 +157,8 @@ matrixType stdMatrixType = {
     .orthoFunc     = stdOrthoFunc,
     .liftFunc      = stdLiftFunc,
     .quotFunc      = stdQuotFunc,
-    .iszero        = stdMatrixIsZero
+    .iszero        = stdMatrixIsZero,
+    .copyRows      = stdMatrixCopyRows
 };
 
 int stdVGetEntry(void *vec, int idx, int *val) {
