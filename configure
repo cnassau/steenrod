@@ -729,6 +729,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_tcl
+enable_opencl
 enable_sse2
 with_tclinclude
 enable_threads
@@ -1370,6 +1371,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-opencl         use OpenCL support (default: no)
   --enable-sse2           use sse2 instructions (default: detect)
   --enable-threads        build with threads
   --enable-shared         build and link with shared libraries (default: on)
@@ -4764,6 +4766,72 @@ done
     fi
 
 
+# openCL support
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to use OpenCL instructions" >&5
+$as_echo_n "checking whether to use OpenCL instructions... " >&6; }
+
+    # Check whether --enable-opencl was given.
+if test "${enable_opencl+set}" = set; then :
+  enableval=$enable_opencl; opencl=$enableval
+else
+  opencl=no
+fi
+
+
+if test "$opencl" != "no"; then
+ LIBSSAVED="$LIBS"
+ LIBS="$LIBS -lOpenCL"
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#define CL_TARGET_OPENCL_VERSION 120
+       #include <CL/opencl.h>
+       void f(void) {
+         cl_platform_id platform_id = NULL;
+         cl_uint ret_num_platforms;
+         cl_int ret;
+         clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
+       }
+int
+main ()
+{
+f();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  useopencl=yes
+else
+  useopencl=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+else
+    useopencl=no
+fi
+
+if test "$useopencl" = "no"; then
+    if test "$opencl" = "yes"; then
+        as_fn_error 1 "\"OpenCL requested but not available\"" "$LINENO" 5
+    fi
+    LIBS="$LIBSSAVED"
+else
+    LDFLAGS="$LDFLAGS -lOpenCL"
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $useopencl" >&5
+$as_echo "$useopencl" >&6; }
+
+if test "$useopencl" = yes; then :
+  $as_echo "#define USEOPENCL 1" >>confdefs.h
+
+fi
+if test "$useopencl" = no; then :
+  $as_echo "#define USEOPENCL 0" >>confdefs.h
+
+fi
+
 # detect SSE2-capable processor
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to use sse2 instructions" >&5
@@ -4927,7 +4995,7 @@ srcdir=src
 
 
 
-    vars="startup.tcl algebra.tc conj.tc a2nd.tc"
+    vars="startup.tcl algebra.tc conj.tc a2nd.tc opencl.tcl"
     for i in $vars; do
 	# check for existence, be strict because it is installed
 	if test ! -f "${srcdir}/$i" ; then
@@ -4937,6 +5005,42 @@ srcdir=src
     done
 
 
+if test "$useopencl" = yes; then :
+
+    vars="opencl.c"
+    for i in $vars; do
+	case $i in
+	    \$*)
+		# allow $-var names
+		PKG_SOURCES="$PKG_SOURCES $i"
+		PKG_OBJECTS="$PKG_OBJECTS $i"
+		;;
+	    *)
+		# check for existence - allows for generic/win/unix VPATH
+		# To add more dirs here (like 'src'), you have to update VPATH
+		# in Makefile.in as well
+		if test ! -f "${srcdir}/$i" -a ! -f "${srcdir}/generic/$i" \
+		    -a ! -f "${srcdir}/win/$i" -a ! -f "${srcdir}/unix/$i" \
+		    ; then
+		    as_fn_error $? "could not find source file '$i'" "$LINENO" 5
+		fi
+		PKG_SOURCES="$PKG_SOURCES $i"
+		# this assumes it is in a VPATH dir
+		i=`basename $i`
+		# handle user calling this before or after TEA_SETUP_COMPILER
+		if test x"${OBJEXT}" != x ; then
+		    j="`echo $i | sed -e 's/\.[^.]*$//'`.${OBJEXT}"
+		else
+		    j="`echo $i | sed -e 's/\.[^.]*$//'`.\${OBJEXT}"
+		fi
+		PKG_OBJECTS="$PKG_OBJECTS $j"
+		;;
+	esac
+    done
+
+
+
+fi
 
 #--------------------------------------------------------------------
 # __CHANGE__

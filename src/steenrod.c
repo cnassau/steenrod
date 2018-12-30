@@ -11,6 +11,11 @@
 
 #define STEENROD_C
 
+#if USEOPENCL
+#  include <CL/cl.h>
+#  include "opencl.h"
+#endif
+
 #include <tcl.h>
 #include <string.h>
 #include "tprime.h"
@@ -706,6 +711,14 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 #if 0
     Lepar_Init(ip);
 #endif
+
+
+    Tcl_Eval(ip, "namespace eval " POLYNSP "cl {}");
+    Tcl_SetVar(ip, POLYNSP "cl::enabled", USEOPENCL ? "1" : "0", 0);
+#if USEOPENCL
+    CL_Init(ip);
+#endif
+
 
     Tcl_CreateObjCommand(ip, POLYNSP "ComputeMatrix",
                          TMakeMatrixSameSig, (ClientData) 0, NULL);

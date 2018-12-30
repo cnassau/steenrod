@@ -14,14 +14,6 @@
 #include <string.h>
 #include "linwrp.h"
 
-#define BITSPERINT (sizeof(int) * 8)
-#define IPROCO(cols) ((BITSPERINT-1+(cols))/BITSPERINT)
-
-typedef struct {
-    int *data;
-    int size, ints;
-} vec2;
-
 int stdVGetEntry2(void *vec, int idx, int *val) {
     vec2 *v = (vec2 *) vec;
     int off = idx/BITSPERINT, msk = 1 << (idx % BITSPERINT);
@@ -97,12 +89,6 @@ vectorType stdVectorType2 = {
     .reduce        = &stdVReduce2,
     .add           = NULL
 };
-
-typedef struct {
-    int *data;
-    int rows, cols;
-    int ipr; /* ints per row */
-} mat2;
 
 int stdGetEntry2(void *m, int row, int col, int *val) {
     mat2 *mat = (mat2 *) m;

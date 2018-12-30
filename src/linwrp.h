@@ -94,4 +94,20 @@ int LAMadd(matrixType **vt1, void **vec1,
 int vectorIsZero(vectorType *vt, void *vdat);
 int matrixIsZero(matrixType *mt, void *mdat);
 
+/* selected internals for the 2-primary implementation */
+
+#define BITSPERINT (sizeof(int) * 8)
+#define IPROCO(cols) ((BITSPERINT-1+(cols))/BITSPERINT)
+
+typedef struct {
+    int *data;
+    int size, ints;
+} vec2;
+
+typedef struct {
+    int *data;
+    int rows, cols;
+    int ipr; /* ints per row */
+} mat2;
+
 #endif

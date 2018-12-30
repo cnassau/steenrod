@@ -61,6 +61,47 @@ TEA_PREFIX
 
 TEA_SETUP_COMPILER
 
+# openCL support
+
+AC_MSG_CHECKING([whether to use OpenCL instructions])
+
+    AC_ARG_ENABLE(opencl,
+        AC_HELP_STRING([--enable-opencl],
+            [use OpenCL support (default: no)]),
+        [opencl=$enableval], [opencl=no])
+
+if test "$opencl" != "no"; then
+ LIBSSAVED="$LIBS"
+ LIBS="$LIBS -lOpenCL"
+ AC_LINK_IFELSE([AC_LANG_PROGRAM(
+     [[#define CL_TARGET_OPENCL_VERSION 120
+       #include <CL/opencl.h>
+       void f(void) {
+         cl_platform_id platform_id = NULL;
+         cl_uint ret_num_platforms;
+         cl_int ret;
+         clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
+       }]], [f();])],
+           [useopencl=yes],
+           [useopencl=no])
+else
+    useopencl=no
+fi
+
+if test "$useopencl" = "no"; then
+    if test "$opencl" = "yes"; then
+        AC_MSG_ERROR( "OpenCL requested but not available", 1)
+    fi
+    LIBS="$LIBSSAVED"
+else
+    LDFLAGS="$LDFLAGS -lOpenCL"
+fi
+
+AC_MSG_RESULT([$useopencl])
+
+AS_IF([test "$useopencl" = yes], [AC_DEFINE(USEOPENCL,1)])
+AS_IF([test "$useopencl" = no], [AC_DEFINE(USEOPENCL,0)])
+
 # detect SSE2-capable processor
 
 AC_MSG_CHECKING([whether to use sse2 instructions])
@@ -116,7 +157,8 @@ TEA_ADD_INCLUDES([src])
 TEA_ADD_LIBS([])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
-TEA_ADD_TCL_SOURCES([startup.tcl algebra.tc conj.tc a2nd.tc])
+TEA_ADD_TCL_SOURCES([startup.tcl algebra.tc conj.tc a2nd.tc opencl.tcl])
+AS_IF([test "$useopencl" = yes], [TEA_ADD_SOURCES([opencl.c])])
 
 #--------------------------------------------------------------------
 # __CHANGE__
