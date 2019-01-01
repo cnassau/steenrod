@@ -714,6 +714,8 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
 
 
     Tcl_Eval(ip, "namespace eval " POLYNSP "cl {}");
+    Tcl_Eval(ip, "namespace eval " POLYNSP "cl::event {}");
+    Tcl_Eval(ip, "namespace eval " POLYNSP "cl::buffer {}");
     Tcl_SetVar(ip, POLYNSP "cl::enabled", USEOPENCL ? "1" : "0", 0);
 #if USEOPENCL
     CL_Init(ip);

@@ -17,6 +17,39 @@
 
 #define POLYNSP "::steenrod::"
 
+#ifndef TCL_TSD_INIT
+#   define TCL_TSD_INIT(keyPtr) \
+     (ThreadSpecificData*)Tcl_GetThreadData((keyPtr),sizeof(ThreadSpecificData))
+#endif
+
+typedef struct ThreadSpecificData {
+    stcl_context *ctx;
+} ThreadSpecificData;
+
+static Tcl_ThreadDataKey opencltskey;
+
+stcl_context *GetThreadContext(void) {
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&opencltskey);
+    return tsdPtr->ctx;
+}
+
+int STcl_GetContext(Tcl_Interp *ip, stcl_context **ctx) {
+    stcl_context *ans = GetThreadContext();
+    if(NULL == ans) {
+        if(ip) Tcl_SetResult(ip,"no OpenCL context chosen", TCL_STATIC);
+        return TCL_ERROR;
+    }
+    *ctx = ans;
+    return TCL_OK;
+}
+
+stcl_context *ReplaceThreadContext(stcl_context *newctx) {
+    ThreadSpecificData *tsdPtr = TCL_TSD_INIT(&opencltskey);
+    stcl_context *ans = tsdPtr->ctx;
+    tsdPtr->ctx = newctx;
+    return ans;
+}
+
 /* A cl_event can be bound to a Tcl variable (where it is stored
  * in an unset trace) */
 
@@ -199,9 +232,9 @@ static Tcl_Obj *stclDeviceInfo(cl_device_id d) {
     ADDDEVINFO_INT(d, ans, CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF);
-    ADDDEVINFO_INT( d, ans, CL_DEVICE_REFERENCE_COUNT);
-    ADDDEVINFO_INT( d, ans, CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE);
-    ADDDEVINFO_INT( d, ans, CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE);
+    ADDDEVINFO_INT(d, ans, CL_DEVICE_REFERENCE_COUNT);
+    ADDDEVINFO_INT(d, ans, CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE);
+    ADDDEVINFO_INT(d, ans, CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_VENDOR_ID);
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_GLOBAL_MEM_CACHE_SIZE);
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_GLOBAL_MEM_SIZE);
@@ -431,7 +464,9 @@ int stclKernelInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
     case KERN_WGINFO: {
 #define ADDKERWGINFO(flag, tp)                                                 \
     AddKerWGInfo(p->ker, p->dev, ip, #flag, flag, tp);
+#if 0
         ADDKERWGINFO(CL_KERNEL_GLOBAL_WORK_SIZE, 3);
+#endif
         ADDKERWGINFO(CL_KERNEL_WORK_GROUP_SIZE, 2);
         ADDKERWGINFO(CL_KERNEL_COMPILE_WORK_GROUP_SIZE, 3);
         ADDKERWGINFO(CL_KERNEL_LOCAL_MEM_SIZE, 1);
@@ -589,10 +624,22 @@ cl_command_queue GetOrCreateCommandQueue(Tcl_Interp *ip, stcl_context *ctx,
     cl_command_queue q = ctx->queue[queue];
     if (NULL == q) {
         cl_int errcode;
+#if 1
         q = clCreateCommandQueue(
             ctx->ctx, ctx->did,
             ctx->create_queues_with_profiling ? CL_QUEUE_PROFILING_ENABLE : 0,
             &errcode);
+#else
+        /* this code requires OpenCL 2.0 (cores with oclgrind) */
+        cl_queue_properties props[3];
+        props[0] = CL_QUEUE_PROPERTIES;
+        props[1] = ctx->create_queues_with_profiling ? CL_QUEUE_PROFILING_ENABLE : 0;
+        props[2] = 0;
+        q = clCreateCommandQueueWithProperties(
+            ctx->ctx, ctx->did,
+            props,
+            &errcode);
+#endif
         ctx->queue[queue] = q;
         if (NULL == q)
             SetCLErrorCode(ip, errcode);
@@ -630,17 +677,19 @@ typedef enum {
     CTX_ENQUEUE_TASK,
     CTX_ENQUEUE_BARRIER,
     CTX_FINISH,
-    CTX_EVENTINFO
+    CTX_EVENTINFO,
+    CTX_SETCONTEXT
 } ctxcmdcode;
 
 static CONST char *ctxcmdnames[] = {
     "platform", "device",  "program", "profiling", "enqndr",
-    "enqtask",  "barrier", "finish",  "eventinfo", (char *)NULL};
+    "enqtask",  "barrier", "finish",  "eventinfo", "setcontext", (char *)NULL};
 
 static ctxcmdcode ctxcmdmap[] = {
     CTX_PLATFORM,        CTX_DEVICE,      CTX_PROGRAM,
     CTX_PROFILING,       CTX_ENQUEUE_NDR, CTX_ENQUEUE_TASK,
-    CTX_ENQUEUE_BARRIER, CTX_FINISH,      CTX_EVENTINFO};
+    CTX_ENQUEUE_BARRIER, CTX_FINISH,      CTX_EVENTINFO,
+    CTX_SETCONTEXT};
 
 int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
                            Tcl_Obj *CONST objv[]) {
@@ -831,7 +880,12 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         if (objc >= 5 &&
             TCL_OK != makeWaitList(ip, objv[4], &numwait, &evtlist))
             return TCL_ERROR;
+#if 0
         cl_int rc = clEnqueueTask(q, ker->ker, numwait, evtlist, evtptr);
+#else
+        size_t wd = 1;
+        cl_int rc = clEnqueueNDRangeKernel(q,ker->ker,1,NULL,&wd,&wd,numwait,evtlist,evtptr);
+#endif
         if (evtlist)
             free(evtlist);
         if (CL_SUCCESS == rc) {
@@ -943,6 +997,10 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         }
         SetCLErrorCode(ip, retcode);
     }
+    case CTX_SETCONTEXT: {
+        ReplaceThreadContext(dev);
+        return TCL_OK;
+    }
     }
     return TCL_ERROR;
 }
@@ -988,7 +1046,8 @@ int stclPlatformCmd(ClientData cd, Tcl_Interp *ip, int objc,
     switch (plcmdmap[index]) {
     case PL_LIST: {
         cl_uint numentries;
-        if (CL_SUCCESS != clGetPlatformIDs(1, NULL, &numentries)) {
+        cl_platform_id dummy; // oclgrind needs a non-zero &dummy pointer
+        if (CL_SUCCESS != clGetPlatformIDs(1, &dummy, &numentries)) {
             Tcl_SetResult(ip, "cannot get number of platforms", TCL_STATIC);
             return TCL_ERROR;
         }
@@ -1092,8 +1151,120 @@ int STcl_GetMemObjFromObj(Tcl_Interp *ip, Tcl_Obj *obj, cl_mem *memptr) {
     return TCL_ERROR;
 }
 
+int stclEventMoveCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+    if (objc != 3) {
+        Tcl_WrongNumArgs(ip, 1, objv, "oldvarname newvarname");
+        return TCL_ERROR;
+    }
+    char *oldvar = Tcl_GetString(objv[1]);
+    char *newvar = Tcl_GetString(objv[2]);
+    cl_event evt = STcl_GetEvent(ip,oldvar);
+    if(NULL == evt) return TCL_ERROR;
+    Tcl_SetVar(ip,newvar,Tcl_GetVar(ip,oldvar,0),0);
+    clRetainEvent(evt);
+    STcl_SetEventTrace(ip,newvar,evt);
+    Tcl_UnsetVar(ip,oldvar,0);
+    return TCL_OK;                           
+}
+
+int stclBufferCreateCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+    if (objc < 3 || objc > 4) {
+        Tcl_WrongNumArgs(ip, 1, objv, "bufname varname ?flags?");
+        return TCL_ERROR;
+    }
+    stcl_context *ctx;
+    if (TCL_OK != STcl_GetContext(ip, &ctx))
+        return TCL_ERROR;
+    int flags = CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR;
+    if(objc == 4 && TCL_OK != GetMemFlagFromTclObj(ip,objv[3],&flags))
+        return TCL_ERROR;
+    Tcl_Obj *val = Tcl_ObjGetVar2(ip,objv[2],NULL,TCL_LEAVE_ERR_MSG);
+    if(NULL == val) return TCL_ERROR;
+    if(0 != (CL_MEM_USE_HOST_PTR & flags) && Tcl_IsShared(val)) {
+        Tcl_SetResult(ip,"variable value is shared, cannot use CL_MEM_USE_HOST_PTR", TCL_STATIC);
+        return TCL_ERROR;
+    }
+    int dlen;
+    unsigned char *data = Tcl_GetByteArrayFromObj(val,&dlen);
+    int rc;
+    cl_mem clm = clCreateBuffer(ctx->ctx,flags,dlen,data,&rc);
+    if(NULL == clm || rc != CL_SUCCESS) {
+        SetCLErrorCode(ip,rc);
+        return TCL_ERROR;
+    }
+    if(0 != (CL_MEM_USE_HOST_PTR & flags)) {
+        // the data pointer is now no longer owned by objv[2]
+        objv[2]->typePtr = NULL;
+    }
+    if (NULL == Tcl_ObjSetVar2(ip, objv[2], NULL, Tcl_NewObj(),
+                               TCL_LEAVE_ERR_MSG) ||
+        TCL_OK != STcl_CreateMemObj(ip, objv[1], clm)) {
+        clReleaseMemObject(clm);
+        return TCL_ERROR;
+    }
+    return TCL_OK;                           
+}
+
+int stclBufferValueCmd(ClientData cd, Tcl_Interp *ip, int objc,
+                       Tcl_Obj *CONST objv[]) {
+    if (objc != 3) {
+        Tcl_WrongNumArgs(ip, 1, objv, "buffer varname");
+        return TCL_ERROR;
+    }
+    stcl_context *ctx;
+    if (TCL_OK != STcl_GetContext(ip, &ctx))
+        return TCL_ERROR;
+    cl_mem clm;
+    if (TCL_OK != STcl_GetMemObjFromObj(ip, objv[1], &clm))
+        return TCL_ERROR;
+    size_t dsize;
+    int rc;
+    if (CL_SUCCESS != (rc = clGetMemObjectInfo(clm, CL_MEM_SIZE, sizeof(dsize),
+                                               &dsize, NULL))) {
+        SetCLErrorCode(ip, rc);
+        return TCL_ERROR;
+    }
+    Tcl_Obj *ans = Tcl_NewObj();
+    unsigned char *dptr = NULL;
+    if (ans)
+        dptr = Tcl_SetByteArrayLength(ans, dsize);
+    do {
+        rc = TCL_ERROR;
+        cl_command_queue q = GetOrCreateCommandQueue(ip, ctx, 0);
+        if (NULL == q)
+            break;
+        rc = clEnqueueReadBuffer(q, clm, 1 /* blocking */, 0, dsize, dptr, 0,
+                                 NULL, NULL);
+        if (CL_SUCCESS != rc) {
+            SetCLErrorCode(ip, rc);
+            Tcl_AddErrorInfo(ip, " from clEnqueueReadBuffer");
+            rc = TCL_ERROR;
+            break;
+        }
+        if(NULL == Tcl_ObjSetVar2(ip,objv[2],NULL,ans,TCL_LEAVE_ERR_MSG))
+            break;
+        rc = TCL_OK;
+    } while (0);
+    if (TCL_OK != rc) {
+        if (ans) {
+            Tcl_IncrRefCount(ans);
+            Tcl_DecrRefCount(ans);
+        }
+    }
+    return rc;
+}
+
 int CL_Init(Tcl_Interp *ip) {
     Tcl_CreateObjCommand(ip, POLYNSP "cl::platform", stclPlatformCmd,
+                         (ClientData)0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "cl::event::move", stclEventMoveCmd,
+                         (ClientData)0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "cl::buffer::create", stclBufferCreateCmd,
+                         (ClientData)0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "cl::buffer::value", stclBufferValueCmd,
                          (ClientData)0, NULL);
 
     const char *intType = "undefined";

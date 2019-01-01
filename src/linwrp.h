@@ -97,7 +97,13 @@ int matrixIsZero(matrixType *mt, void *mdat);
 /* selected internals for the 2-primary implementation */
 
 #define BITSPERINT (sizeof(int) * 8)
-#define IPROCO(cols) ((BITSPERINT-1+(cols))/BITSPERINT)
+#if USEOPENCL
+#  define MAT2ALIGN (256*BITSPERINT)
+#else 
+#  define MAT2ALIGN BITSPERINT
+#endif
+
+#define IPROCO(cols) (((MAT2ALIGN-1+(cols))/MAT2ALIGN)*(MAT2ALIGN/BITSPERINT))
 
 typedef struct {
     int *data;

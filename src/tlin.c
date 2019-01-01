@@ -1665,14 +1665,14 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
 #if USEOPENCL
     case CLCREATE: {
-        EXPECTARGS(2, 5, 5, "openclctx clmemobj nrows ncols script");
+        EXPECTARGS(2, 5, 5, "openclctx clmemobj nrows ncols matdimvar script");
         int nrows, ncols;
         stcl_context *ctx;
-        if (TCL_OK != STcl_GetContextFromObj(ip, objv[2], &ctx))
+        if (TCL_OK != STcl_GetContext(ip,&ctx))
             return TCL_ERROR;
-        if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &nrows))
+        if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &nrows))
             return TCL_ERROR;
-        if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &ncols))
+        if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &ncols))
             return TCL_ERROR;
         mat2 *m2 = malloc(sizeof(mat2));
         if (NULL == m2) {
@@ -1697,25 +1697,30 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
             free(m2);
             return TCL_ERROR;
         }
-        if (TCL_OK != STcl_CreateMemObj(ip, objv[3], clm)) {
+        if (TCL_OK != STcl_CreateMemObj(ip, objv[2], clm)) {
             clReleaseMemObject(clm);
             free(m2);
             return TCL_ERROR;
         }
+        Tcl_Obj *dims[3];
+        dims[0] = Tcl_NewIntObj(m2->rows);
+        dims[1] = Tcl_NewIntObj(m2->cols);
+        dims[2] = Tcl_NewIntObj(m2->ipr);
+        Tcl_ObjSetVar2(ip, objv[5], NULL, Tcl_NewListObj(3, dims), 0);
         clRetainMemObject(clm);
         Tcl_NRAddCallback(ip, MatrixCLCreatePostProc, m2, clm, ctx, 0);
         return Tcl_NREvalObj(ip, objv[6], 0);
     }
     case CLMAP: {
-        EXPECTARGS(2, 6, 6,
-                   "openclctx clmemobj clmemflags matrixvar matdimvar script");
+        EXPECTARGS(2, 5, 5,
+                   "clmemobj clmemflags matrixvar matdimvar script");
         stcl_context *ctx;
-        if (TCL_OK != STcl_GetContextFromObj(ip, objv[2], &ctx))
+        if (TCL_OK != STcl_GetContext(ip,&ctx))
             return TCL_ERROR;
         int flags;
-        if (TCL_OK != GetMemFlagFromTclObj(ip, objv[4], &flags))
+        if (TCL_OK != GetMemFlagFromTclObj(ip, objv[3], &flags))
             return TCL_ERROR;
-        Tcl_Obj *matobj = TakeMatrixFromVar(ip, objv[5]);
+        Tcl_Obj *matobj = TakeMatrixFromVar(ip, objv[4]);
         if (NULL == matobj)
             return TCL_ERROR;
         if (matrixTypeFromTclObj(matobj) != &stdMatrixType2) {
@@ -1734,7 +1739,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         dims[0] = Tcl_NewIntObj(m2->rows);
         dims[1] = Tcl_NewIntObj(m2->cols);
         dims[2] = Tcl_NewIntObj(m2->ipr);
-        Tcl_ObjSetVar2(ip, objv[6], NULL, Tcl_NewListObj(3, dims), 0);
+        Tcl_ObjSetVar2(ip, objv[5], NULL, Tcl_NewListObj(3, dims), 0);
         int rc;
         size_t dsz = sizeof(int) * m2->ipr * m2->rows;
         cl_mem clm = clCreateBuffer(ctx->ctx, flags, dsz, m2->data, &rc);
@@ -1745,13 +1750,13 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
             Tcl_AddErrorInfo(ip, msg);
             return TCL_ERROR;
         }
-        if (TCL_OK != STcl_CreateMemObj(ip, objv[3], clm)) {
+        if (TCL_OK != STcl_CreateMemObj(ip, objv[2], clm)) {
             clReleaseMemObject(clm);
             return TCL_ERROR;
         }
         clRetainMemObject(clm);
-        Tcl_NRAddCallback(ip, MatrixCLMapPostProc, matobj, clm, ctx, objv[5]);
-        return Tcl_NREvalObj(ip, objv[7], 0);
+        Tcl_NRAddCallback(ip, MatrixCLMapPostProc, matobj, clm, ctx, objv[4]);
+        return Tcl_NREvalObj(ip, objv[6], 0);
     }
 #else
     case CLCREATE:

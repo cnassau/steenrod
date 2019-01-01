@@ -32,6 +32,11 @@ typedef struct {
     
 void SetCLErrorCode(Tcl_Interp *ip, cl_int errcode);
 
+cl_event STcl_GetEvent(Tcl_Interp *ip, char *varname);
+int STcl_SetEventTrace(Tcl_Interp *ip, char *varname, cl_event evt);
+
+int STcl_GetContext(Tcl_Interp *ip, stcl_context **ctx);
+
 int STcl_GetKernelFromObj(Tcl_Interp *ip, Tcl_Obj *obj, stcl_kernel **kernel);
  
 int STcl_GetContextFromObj(Tcl_Interp *ip, Tcl_Obj *obj, stcl_context **context);

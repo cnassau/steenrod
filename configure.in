@@ -153,7 +153,7 @@ TEA_ADD_HEADERS()
 #[adlin.h   hmap.h    linwrp.h  poly.h	scrobjy.h   steenrod.h	tpoly.h
 #common.h  lepar.h   momap.h   prime.h	secmult2.h  tenum.h	tprime.h
 #enum.h	  linalg.h  mult.h    refmt.sh	ssedefs.h   tlin.h	tptr.h])
-TEA_ADD_INCLUDES([src])
+TEA_ADD_INCLUDES([-I src])
 TEA_ADD_LIBS([])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])

@@ -4950,7 +4950,7 @@ srcdir=src
 #common.h  lepar.h   momap.h   prime.h	secmult2.h  tenum.h	tprime.h
 #enum.h	  linalg.h  mult.h    refmt.sh	ssedefs.h   tlin.h	tptr.h])
 
-    vars="src"
+    vars="-I src"
     for i in $vars; do
 	PKG_INCLUDES="$PKG_INCLUDES $i"
     done
