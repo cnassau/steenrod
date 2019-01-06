@@ -49,7 +49,7 @@ int COMPAREBLOCKSDBG(__m128i x,__m128i y) {
 #  define COMPAREBLOCKS(x,y) ((x) != (y))
 #endif
 
-inline
+static inline
 int BLOCKSAREZERO(BLOCKTYPE *dat, int numblocks) {
 #ifdef USESSE2
     const __m128i zero = _mm_setzero_si128();

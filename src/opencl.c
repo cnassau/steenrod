@@ -17,6 +17,52 @@
 
 #define POLYNSP "::steenrod::"
 
+TCL_DECLARE_MUTEX(eventProfilingMutex)
+static Tcl_Obj *eventHistory;
+
+static Tcl_Obj *OBJ_CL_PROFILING_COMMAND_QUEUED;
+static Tcl_Obj *OBJ_CL_PROFILING_COMMAND_SUBMIT;
+static Tcl_Obj *OBJ_CL_PROFILING_COMMAND_START;
+static Tcl_Obj *OBJ_CL_PROFILING_COMMAND_END;
+static Tcl_Obj *OBJ_CL_PROFILING_COMMAND_INFO;
+
+static int ProfilingEnabled;
+
+void CL_CALLBACK eventProfilingCB(cl_event event, cl_int event_command_exec_status, void *user_data) {
+    Tcl_Obj *desc = (Tcl_Obj *)user_data;
+    if(!ProfilingEnabled) {
+        Tcl_DecrRefCount(desc);
+        return;
+    }
+    Tcl_Obj *evtinfo = STcl_GetEventInfo(NULL,event);
+    Tcl_ListObjAppendElement(NULL,evtinfo,OBJ_CL_PROFILING_COMMAND_INFO);
+    Tcl_ListObjAppendElement(NULL,evtinfo,desc);
+    Tcl_DecrRefCount(desc);
+    Tcl_MutexLock(&eventProfilingMutex);
+    if(NULL == eventHistory) eventHistory = Tcl_NewObj();
+    Tcl_ListObjAppendElement(NULL,eventHistory,evtinfo);
+    Tcl_MutexUnlock(&eventProfilingMutex);
+}
+
+int STcl_SetEventCB(cl_event evt, Tcl_Obj *obj) {
+    Tcl_IncrRefCount(obj);
+    return clSetEventCallback (evt, CL_COMPLETE, eventProfilingCB, (void*) obj);
+}
+
+int stclEventLogCmd(ClientData cd, Tcl_Interp *ip, int objc,
+                       Tcl_Obj *CONST objv[]) {
+    if(objc != 1) {
+        Tcl_WrongNumArgs(ip, 1, objv, "");
+        return TCL_ERROR;
+    }
+    Tcl_MutexLock(&eventProfilingMutex);
+    if(NULL == eventHistory) eventHistory = Tcl_NewObj();
+    Tcl_SetObjResult(ip,eventHistory);
+    eventHistory = Tcl_NewObj();
+    Tcl_MutexUnlock(&eventProfilingMutex);
+    return TCL_OK;
+}
+
 #ifndef TCL_TSD_INIT
 #   define TCL_TSD_INIT(keyPtr) \
      (ThreadSpecificData*)Tcl_GetThreadData((keyPtr),sizeof(ThreadSpecificData))
@@ -75,6 +121,33 @@ cl_event STcl_GetEvent(Tcl_Interp *ip, char *varname) {
                          NULL);
     }
     return ans;
+}
+
+#define EVTPROFINFO(flag)                                                      \
+    {                                                                          \
+        rc = clGetEventProfilingInfo(e, flag, sizeof(val), &val, NULL);        \
+        if (CL_SUCCESS != rc)                                                  \
+            break;                                                             \
+        Tcl_ListObjAppendElement(ip, ans, OBJ_ ## flag);        \
+        Tcl_ListObjAppendElement(ip, ans, Tcl_NewLongObj(val));                \
+    }
+Tcl_Obj *STcl_GetEventInfo(Tcl_Interp *ip, cl_event e) {
+    Tcl_Obj *ans = Tcl_NewListObj(0, NULL);
+    cl_ulong val;
+    cl_int rc = CL_SUCCESS;
+    do {
+        EVTPROFINFO(CL_PROFILING_COMMAND_QUEUED);
+        EVTPROFINFO(CL_PROFILING_COMMAND_SUBMIT);
+        EVTPROFINFO(CL_PROFILING_COMMAND_START);
+        EVTPROFINFO(CL_PROFILING_COMMAND_END);
+    } while (0);
+    if (CL_SUCCESS == rc) {
+        return ans;
+    }
+    Tcl_DecrRefCount(ans);
+    if (ip)
+        SetCLErrorCode(ip, rc);
+    return NULL;
 }
 
 #define TRYREG(f)                                                              \
@@ -188,6 +261,15 @@ static void AddDeviceInfo(int tp, cl_device_id d, Tcl_Obj *a, const char *name,
                 Tcl_ListObjAppendElement(0, a, Tcl_NewStringObj(ans, sz - 1));
                 break;
             }
+            case 5: {
+                size_t *x = (size_t *)ans;
+                Tcl_Obj *z = Tcl_NewObj();
+                for(;sz>=sizeof(size_t);x++,sz-=sizeof(size_t)) {
+                    Tcl_ListObjAppendElement(0,z,Tcl_NewLongObj(*x));
+                }
+                Tcl_ListObjAppendElement(0, a, z);
+                break;
+            }
             default:
                 Tcl_ListObjAppendElement(
                     0, a, Tcl_NewStringObj("internal error", -1));
@@ -201,6 +283,7 @@ static void AddDeviceInfo(int tp, cl_device_id d, Tcl_Obj *a, const char *name,
 #define ADDDEVINFO_INT(d, a, flag) AddDeviceInfo(0, d, a, #flag, flag)
 #define ADDDEVINFO_LONG(d, a, flag) AddDeviceInfo(1, d, a, #flag, flag)
 #define ADDDEVINFO_SIZET(d, a, flag) AddDeviceInfo(2, d, a, #flag, flag)
+#define ADDDEVINFO_SIZETARR(d, a, flag) AddDeviceInfo(5, d, a, #flag, flag)
 #define ADDDEVINFO_BOOL(d, a, flag) AddDeviceInfo(3, d, a, #flag, flag)
 #define ADDDEVINFO_STR(d, a, flag) AddDeviceInfo(4, d, a, #flag, flag)
 
@@ -252,6 +335,7 @@ static Tcl_Obj *stclDeviceInfo(cl_device_id d) {
     ADDDEVINFO_SIZET(d, ans, CL_DEVICE_MAX_WORK_GROUP_SIZE);
     ADDDEVINFO_SIZET(d, ans, CL_DEVICE_PRINTF_BUFFER_SIZE);
     ADDDEVINFO_SIZET(d, ans, CL_DEVICE_PROFILING_TIMER_RESOLUTION);
+    ADDDEVINFO_SIZETARR(d, ans, CL_DEVICE_MAX_WORK_ITEM_SIZES);
     ADDDEVINFO_BOOL(d, ans, CL_DEVICE_AVAILABLE);
     ADDDEVINFO_BOOL(d, ans, CL_DEVICE_COMPILER_AVAILABLE);
     ADDDEVINFO_BOOL(d, ans, CL_DEVICE_ENDIAN_LITTLE);
@@ -328,11 +412,11 @@ static Tcl_Obj *stclPlatformInfo(cl_platform_id p, int withdevices) {
     return ans;
 }
 
-typedef enum { MEM_INFO } memcmdcode;
+typedef enum { MEM_INFO, MEM_SIZE, MEM_DISPOSE } memcmdcode;
 
-static CONST char *memcmdnames[] = {"info", (char *)NULL};
+static CONST char *memcmdnames[] = {"info", "size", "dispose", (char *)NULL};
 
-static memcmdcode memcmdmap[] = {MEM_INFO};
+static memcmdcode memcmdmap[] = {MEM_INFO, MEM_SIZE, MEM_DISPOSE};
 
 int stclMemObjCommandInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
                                  Tcl_Obj *CONST objv[]) {
@@ -353,6 +437,15 @@ int stclMemObjCommandInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
     case MEM_INFO: {
 
         return TCL_OK;
+    }
+    case MEM_SIZE: {
+        size_t sz;
+        clGetMemObjectInfo(p,CL_MEM_SIZE,sizeof(sz),&sz,NULL);
+        Tcl_SetObjResult(ip,Tcl_NewLongObj(sz));
+        return TCL_OK;
+    }
+    case MEM_DISPOSE: {
+        return Tcl_DeleteCommand(ip,Tcl_GetString(objv[0]));
     }
     }
     return TCL_ERROR;
@@ -409,7 +502,7 @@ static kerncmdcode kerncmdmap[] = {KERN_WGINFO, KERN_SETARG};
 
 typedef enum { KA_INT, KA_BUFFER, KA_LOCAL } kacode;
 
-static CONST char *kanames[] = {"int", "buffer", "local", (char *)NULL};
+static CONST char *kanames[] = {"integer", "buffer", "local", (char *)NULL};
 
 static kacode kamap[] = {KA_INT, KA_BUFFER, KA_LOCAL};
 
@@ -513,7 +606,7 @@ int stclKernelInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
             int val;
             if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &val))
                 return TCL_ERROR;
-            rc = clSetKernelArg(p->ker, argnum, sizeof(val), NULL);
+            rc = clSetKernelArg(p->ker, argnum, val, NULL);
             if (CL_SUCCESS != rc) {
                 SetCLErrorCode(ip, rc);
                 return TCL_ERROR;
@@ -732,8 +825,8 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         break;
     }
     case CTX_ENQUEUE_BARRIER: {
-        if (objc < 3 || objc > 5) {
-            Tcl_WrongNumArgs(ip, 2, objv, "queueNumber ?waitvars? ?eventvar?");
+        if (objc < 3 || objc > 6) {
+            Tcl_WrongNumArgs(ip, 2, objv, "queueNumber ?waitvars? ?eventvar? ?eventdesc?");
             return TCL_ERROR;
         }
         int queue;
@@ -743,13 +836,15 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         if (q == NULL)
             return TCL_ERROR;
         int numwait = 0;
-        cl_event *evtlist = NULL, evt, *evtptr = (5 == objc) ? &evt : NULL;
+        cl_event *evtlist = NULL, evt, *evtptr = (5 <= objc) ? &evt : NULL;
         if (objc >= 4 &&
             TCL_OK != makeWaitList(ip, objv[3], &numwait, &evtlist))
             return TCL_ERROR;
         clEnqueueBarrierWithWaitList(q, numwait, evtlist, evtptr);
-        if (evtptr)
+        if (evtptr) {
             STcl_SetEventTrace(ip, Tcl_GetString(objv[4]), evt);
+            if(objc >= 6) STcl_SetEventCB(evt,objv[5]);
+        }
         if (evtlist)
             free(evtlist);
         return TCL_OK;
@@ -769,11 +864,11 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         return TCL_OK;
     }
     case CTX_ENQUEUE_NDR: {
-        if (objc < 7 || objc > 9) {
+        if (objc < 7 || objc > 10) {
             Tcl_WrongNumArgs(
                 ip, 2, objv,
                 "queueNumber kernel global_work_offset global_work_size "
-                "local_work_size ?waitvars? ?eventvar?");
+                "local_work_size ?waitvars? ?eventvar? ?eventdesc?");
             return TCL_ERROR;
         }
         int queue;
@@ -843,7 +938,7 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
             return TCL_ERROR;
 
         int numwait = 0;
-        cl_event *evtlist = NULL, evt, *evtptr = (9 == objc) ? &evt : NULL;
+        cl_event *evtlist = NULL, evt, *evtptr = (9 <= objc) ? &evt : NULL;
         if (objc >= 8 &&
             TCL_OK != makeWaitList(ip, objv[7], &numwait, &evtlist))
             return TCL_ERROR;
@@ -853,17 +948,19 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         if (evtlist)
             free(evtlist);
         if (CL_SUCCESS == rc) {
-            if (evtptr)
+            if (evtptr) {
                 STcl_SetEventTrace(ip, Tcl_GetString(objv[8]), evt);
+                if(objc >= 10) STcl_SetEventCB(evt,objv[9]);
+            }
             return TCL_OK;
         }
         SetCLErrorCode(ip, rc);
         return TCL_ERROR;
     }
     case CTX_ENQUEUE_TASK: {
-        if (objc < 4 || objc > 6) {
+        if (objc < 4 || objc > 7) {
             Tcl_WrongNumArgs(ip, 2, objv,
-                             "queueNumber kernel ?waitvars? ?eventvar?");
+                             "queueNumber kernel ?waitvars? ?eventvar? ?eventdesc?");
             return TCL_ERROR;
         }
         int queue;
@@ -876,7 +973,7 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         if (q == NULL)
             return TCL_ERROR;
         int numwait = 0;
-        cl_event *evtlist = NULL, evt, *evtptr = (6 == objc) ? &evt : NULL;
+        cl_event *evtlist = NULL, evt, *evtptr = (6 <= objc) ? &evt : NULL;
         if (objc >= 5 &&
             TCL_OK != makeWaitList(ip, objv[4], &numwait, &evtlist))
             return TCL_ERROR;
@@ -889,8 +986,10 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         if (evtlist)
             free(evtlist);
         if (CL_SUCCESS == rc) {
-            if (evtptr)
+            if (evtptr) {
                 STcl_SetEventTrace(ip, Tcl_GetString(objv[5]), evt);
+                if(objc >= 7) STcl_SetEventCB(evt,objv[6]);
+            }
             return TCL_OK;
         }
         SetCLErrorCode(ip, rc);
@@ -904,29 +1003,11 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         cl_event e = STcl_GetEvent(ip, Tcl_GetString(objv[2]));
         if (NULL == e)
             return TCL_ERROR;
-        Tcl_Obj *ans = Tcl_NewListObj(0, NULL);
-        cl_ulong val;
-        cl_int rc = CL_SUCCESS;
-#define EVTPROFINFO(flag)                                                      \
-    {                                                                          \
-        rc = clGetEventProfilingInfo(e, flag, sizeof(val), &val, NULL);        \
-        if (CL_SUCCESS != rc)                                                  \
-            break;                                                             \
-        Tcl_ListObjAppendElement(ip, ans, Tcl_NewStringObj(#flag, -1));        \
-        Tcl_ListObjAppendElement(ip, ans, Tcl_NewLongObj(val));                \
-    }
-        do {
-            EVTPROFINFO(CL_PROFILING_COMMAND_QUEUED);
-            EVTPROFINFO(CL_PROFILING_COMMAND_SUBMIT);
-            EVTPROFINFO(CL_PROFILING_COMMAND_START);
-            EVTPROFINFO(CL_PROFILING_COMMAND_END);
-        } while (0);
-        if (CL_SUCCESS == rc) {
-            Tcl_SetObjResult(ip, ans);
+        Tcl_Obj *ans = STcl_GetEventInfo(ip,e);
+        if(ans) {
+            Tcl_SetObjResult(ip,ans);
             return TCL_OK;
         }
-        Tcl_DecrRefCount(ans);
-        SetCLErrorCode(ip, rc);
         return TCL_ERROR;
     }
     case CTX_PROGRAM: {
@@ -1160,11 +1241,41 @@ int stclEventMoveCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST obj
     char *newvar = Tcl_GetString(objv[2]);
     cl_event evt = STcl_GetEvent(ip,oldvar);
     if(NULL == evt) return TCL_ERROR;
-    Tcl_SetVar(ip,newvar,Tcl_GetVar(ip,oldvar,0),0);
     clRetainEvent(evt);
     STcl_SetEventTrace(ip,newvar,evt);
     Tcl_UnsetVar(ip,oldvar,0);
     return TCL_OK;                           
+}
+
+int stclEventWaitCmd(ClientData cd, Tcl_Interp *ip, int objc,
+                     Tcl_Obj *CONST objv[]) {
+    if (objc != 2) {
+        Tcl_WrongNumArgs(ip, 1, objv, "eventlist");
+        return TCL_ERROR;
+    }
+    int i, oc;
+    Tcl_Obj **ov;
+    if (TCL_OK != Tcl_ListObjGetElements(ip, objv[1], &oc, &ov))
+        return TCL_ERROR;
+    cl_event *evts = malloc(sizeof(cl_event) * oc);
+    if (NULL == evts) {
+        Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+        return TCL_ERROR;
+    }
+    for (i = 0; i < oc; i++) {
+        evts[i] = STcl_GetEvent(ip,Tcl_GetString(ov[i]));
+        if (NULL == evts[i]) {
+            free(evts);
+            return TCL_ERROR;
+        }
+    }
+    i = clWaitForEvents(oc,evts);
+    free(evts);
+    if(i!=CL_SUCCESS) {
+        SetCLErrorCode(ip,i);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
 }
 
 int stclBufferCreateCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
@@ -1247,7 +1358,6 @@ int stclBufferValueCmd(ClientData cd, Tcl_Interp *ip, int objc,
     } while (0);
     if (TCL_OK != rc) {
         if (ans) {
-            Tcl_IncrRefCount(ans);
             Tcl_DecrRefCount(ans);
         }
     }
@@ -1255,10 +1365,19 @@ int stclBufferValueCmd(ClientData cd, Tcl_Interp *ip, int objc,
 }
 
 int CL_Init(Tcl_Interp *ip) {
-    Tcl_CreateObjCommand(ip, POLYNSP "cl::platform", stclPlatformCmd,
-                         (ClientData)0, NULL);
 
-    Tcl_CreateObjCommand(ip, POLYNSP "cl::event::move", stclEventMoveCmd,
+    OBJ_CL_PROFILING_COMMAND_QUEUED = Tcl_NewStringObj("CL_PROFILING_COMMAND_QUEUED",-1);
+    OBJ_CL_PROFILING_COMMAND_SUBMIT = Tcl_NewStringObj("CL_PROFILING_COMMAND_SUBMIT",-1);
+    OBJ_CL_PROFILING_COMMAND_START = Tcl_NewStringObj("CL_PROFILING_COMMAND_START",-1);
+    OBJ_CL_PROFILING_COMMAND_END = Tcl_NewStringObj("CL_PROFILING_COMMAND_END",-1);
+    OBJ_CL_PROFILING_COMMAND_INFO = Tcl_NewStringObj("info",-1);
+
+    Tcl_IncrRefCount(OBJ_CL_PROFILING_COMMAND_QUEUED);
+    Tcl_IncrRefCount(OBJ_CL_PROFILING_COMMAND_SUBMIT);
+    Tcl_IncrRefCount(OBJ_CL_PROFILING_COMMAND_START);
+    Tcl_IncrRefCount(OBJ_CL_PROFILING_COMMAND_END);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "cl::platform", stclPlatformCmd,
                          (ClientData)0, NULL);
 
     Tcl_CreateObjCommand(ip, POLYNSP "cl::buffer::create", stclBufferCreateCmd,
@@ -1266,6 +1385,17 @@ int CL_Init(Tcl_Interp *ip) {
 
     Tcl_CreateObjCommand(ip, POLYNSP "cl::buffer::value", stclBufferValueCmd,
                          (ClientData)0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "cl::event::move", stclEventMoveCmd,
+                         (ClientData)0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "cl::event::wait", stclEventWaitCmd,
+                         (ClientData)0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "cl::event::history", stclEventLogCmd,
+                         (ClientData)0, NULL);
+
+    Tcl_LinkVar(ip, POLYNSP "cl::profiling", (char *) &ProfilingEnabled, TCL_LINK_INT);
 
     const char *intType = "undefined";
     char intSize[3];

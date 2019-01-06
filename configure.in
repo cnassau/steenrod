@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so you can encode the package version directly into the source files.
 #-----------------------------------------------------------------------
 
-AC_INIT([Steenrod], [2.0])
+AC_INIT([Steenrod], [2.1])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -79,7 +79,6 @@ if test "$opencl" != "no"; then
        void f(void) {
          cl_platform_id platform_id = NULL;
          cl_uint ret_num_platforms;
-         cl_int ret;
          clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
        }]], [f();])],
            [useopencl=yes],

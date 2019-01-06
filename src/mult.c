@@ -18,7 +18,7 @@
 #  include "ssedefs.h"
 #endif
 
-inline xint XINTMULT(xint a, xint b, xint prime) {
+static inline xint XINTMULT(xint a, xint b, xint prime) {
     int aa = a, bb = b;
     xint res = (xint) ((aa * bb) % prime);
     /* printf("%2d * %2d => %2d\n",aa,bb,(int)res); */

@@ -1123,8 +1123,9 @@ int MatrixCLCreatePostProc(ClientData data[], Tcl_Interp *ip, int result) {
     mat2 *m2 = (mat2 *)data[0];
     cl_mem clm = (cl_mem)data[1];
     stcl_context *ctx = (stcl_context *)data[2];
+    int returnmatrix = (int)data[3];
     void *buf = NULL;
-    if (TCL_OK == result)
+    if (returnmatrix && TCL_OK == result)
         do {
             result = TCL_ERROR;
             size_t dsz = m2->ipr * m2->rows * sizeof(int);
@@ -1155,7 +1156,7 @@ int MatrixCLCreatePostProc(ClientData data[], Tcl_Interp *ip, int result) {
             result = TCL_OK;
         } while (0);
 
-    if (TCL_OK != result) {
+    if (!returnmatrix || TCL_OK != result) {
         if (m2 && m2->data)
             free(m2->data);
         if (m2)
@@ -1224,6 +1225,7 @@ typedef enum {
     UNIT,
     CONCAT,
     CLMAP,
+    CLALLOC,
     CLCREATE
 } matcmdcode;
 
@@ -1231,12 +1233,12 @@ static CONST char *mCmdNames[] = {
     "orthonormalize", "lift",   "liftvar", "quotient", "extract",
     "dimensions",     "create", "addto",   "iszero",   "test",
     "encode64",       "decode", "type",    "convert2", "multiply",
-    "unit",           "concat", "clmap",   "clcreate", (char *)NULL};
+    "unit",           "concat", "clmap",   "clalloc", "clcreate", (char *)NULL};
 
 static matcmdcode mCmdmap[] = {ORTHO,    LIFT,   LIFTV, QUOT,     EXTRACT,
                                DIMS,     CREATE, ADDTO, ISZERO,   TEST,
                                ENCODE64, DECODE, TYPE,  CONVERT2, MULT,
-                               UNIT,     CONCAT, CLMAP, CLCREATE};
+                               UNIT,     CONCAT, CLMAP, CLALLOC, CLCREATE};
 
 int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
                       Tcl_Obj *CONST objv[]) {
@@ -1664,8 +1666,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         return TCL_OK;
 
 #if USEOPENCL
+    case CLALLOC:
     case CLCREATE: {
-        EXPECTARGS(2, 5, 5, "openclctx clmemobj nrows ncols matdimvar script");
+        EXPECTARGS(2, 5, 5, "clmemobj nrows ncols matdimvar script");
         int nrows, ncols;
         stcl_context *ctx;
         if (TCL_OK != STcl_GetContext(ip,&ctx))
@@ -1708,7 +1711,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         dims[2] = Tcl_NewIntObj(m2->ipr);
         Tcl_ObjSetVar2(ip, objv[5], NULL, Tcl_NewListObj(3, dims), 0);
         clRetainMemObject(clm);
-        Tcl_NRAddCallback(ip, MatrixCLCreatePostProc, m2, clm, ctx, 0);
+        Tcl_NRAddCallback(ip, MatrixCLCreatePostProc, m2, clm, ctx, mCmdmap[index] == CLCREATE ? 1 : 0);
         return Tcl_NREvalObj(ip, objv[6], 0);
     }
     case CLMAP: {
