@@ -141,7 +141,7 @@ AS_IF([test "$usesse2" = yes], [AC_DEFINE(USESSE2,1)])
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-srcdir=src
+srcdir=../src
 TEA_ADD_SOURCES([
 	 enum.c	   mult.c      steenrod.c	 tprime.c
 	 adlin.c	  hmap.c	linalg.c   poly.c   tptr.c
@@ -152,7 +152,7 @@ TEA_ADD_HEADERS()
 #[adlin.h   hmap.h    linwrp.h  poly.h	scrobjy.h   steenrod.h	tpoly.h
 #common.h  lepar.h   momap.h   prime.h	secmult2.h  tenum.h	tprime.h
 #enum.h	  linalg.h  mult.h    refmt.sh	ssedefs.h   tlin.h	tptr.h])
-TEA_ADD_INCLUDES([-I src])
+TEA_ADD_INCLUDES([-I $srcdir])
 TEA_ADD_LIBS([])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
@@ -268,4 +268,4 @@ TEA_PROG_TCLSH
 # which require substituting th AC variables in.  Include these here.
 #--------------------------------------------------------------------
 
-AC_OUTPUT([Makefile pkgIndex.tcl])
+AC_OUTPUT([Makefile $srcdir/../pkgIndex.tcl])
