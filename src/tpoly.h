@@ -30,6 +30,10 @@ void     *polyFromTclObj(Tcl_Obj *obj);
 
 Tcl_Obj *Tcl_NewPolyObj(polyType *tp, void *data);
 
+#if USEOPENCL
+int Tcl_CLMapPoly(Tcl_Interp *ip, Tcl_Obj *polyobj, Tcl_Obj *lengthvar, Tcl_Obj *redbuf, Tcl_Obj *extbuf, Tcl_Obj *genbuf, Tcl_Obj *coeffbuf, int readonly);
+#endif
+
 /* our poly type */
 #define TP_POLY  19
 #define TP_EXMO  18

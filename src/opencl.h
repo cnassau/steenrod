@@ -14,6 +14,7 @@
 
 #include <CL/cl.h>
 #include <tcl.h>
+#include "poly.h"
 
 #define MAXQUEUE 5
 
@@ -29,8 +30,24 @@ typedef struct {
   cl_kernel ker;
   cl_device_id dev;
 } stcl_kernel;
-    
+
+# define CLENUMDEF                               \
+typedef struct {                                 \
+    hostint  maxdeg[NALG];                           \
+    hostint  profile[NALG];                          \
+    hostint  tablen;                                 \
+    hostint  gencnt;                                 \
+    hostint *seqtab;   /* seqtab[NALG*tablen] */     \
+    hostint *offsets;  /* offsets[gencnt] */         \
+} __attribute__ ((packed)) clenum
+
+#define hostint int
+
+CLENUMDEF;
+
 void SetCLErrorCode(Tcl_Interp *ip, cl_int errcode);
+
+int makeWaitList(Tcl_Interp *ip, Tcl_Obj *o, int *numwait, cl_event **evtlist);
 
 cl_event STcl_GetEvent(Tcl_Interp *ip, char *varname);
 int STcl_SetEventTrace(Tcl_Interp *ip, char *varname, cl_event evt);

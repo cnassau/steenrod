@@ -98,7 +98,7 @@ int matrixIsZero(matrixType *mt, void *mdat);
 
 #define BITSPERINT (sizeof(int) * 8)
 #if USEOPENCL
-#  define MAT2ALIGN (256*BITSPERINT)
+#  define MAT2ALIGN (16*BITSPERINT)
 #else 
 #  define MAT2ALIGN BITSPERINT
 #endif

@@ -1226,19 +1226,20 @@ typedef enum {
     CONCAT,
     CLMAP,
     CLALLOC,
-    CLCREATE
+    CLCREATE,
+    CLENQREAD
 } matcmdcode;
 
 static CONST char *mCmdNames[] = {
     "orthonormalize", "lift",   "liftvar", "quotient", "extract",
     "dimensions",     "create", "addto",   "iszero",   "test",
     "encode64",       "decode", "type",    "convert2", "multiply",
-    "unit",           "concat", "clmap",   "clalloc", "clcreate", (char *)NULL};
+    "unit",           "concat", "clmap",   "clalloc", "clcreate", "clenqread", (char *)NULL};
 
 static matcmdcode mCmdmap[] = {ORTHO,    LIFT,   LIFTV, QUOT,     EXTRACT,
                                DIMS,     CREATE, ADDTO, ISZERO,   TEST,
                                ENCODE64, DECODE, TYPE,  CONVERT2, MULT,
-                               UNIT,     CONCAT, CLMAP, CLALLOC, CLCREATE};
+                               UNIT,     CONCAT, CLMAP, CLALLOC, CLCREATE, CLENQREAD};
 
 int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
                       Tcl_Obj *CONST objv[]) {
@@ -1708,15 +1709,15 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         Tcl_Obj *dims[3];
         dims[0] = Tcl_NewIntObj(m2->rows);
         dims[1] = Tcl_NewIntObj(m2->cols);
-        dims[2] = Tcl_NewIntObj(m2->ipr);
+        dims[2] = Tcl_NewIntObj(m2->ipr * sizeof(int)/4);
         Tcl_ObjSetVar2(ip, objv[5], NULL, Tcl_NewListObj(3, dims), 0);
         clRetainMemObject(clm);
         Tcl_NRAddCallback(ip, MatrixCLCreatePostProc, m2, clm, ctx, mCmdmap[index] == CLCREATE ? 1 : 0);
         return Tcl_NREvalObj(ip, objv[6], 0);
     }
     case CLMAP: {
-        EXPECTARGS(2, 5, 5,
-                   "clmemobj clmemflags matrixvar matdimvar script");
+        EXPECTARGS(2, 4, 5,
+                   "clmemobj clmemflags matrixvar matdimvar ?script?");
         stcl_context *ctx;
         if (TCL_OK != STcl_GetContext(ip,&ctx))
             return TCL_ERROR;
@@ -1737,11 +1738,18 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
                 TCL_STATIC);
             return TCL_ERROR;
         }
+        if (0 != (CL_MEM_USE_HOST_PTR & flags) && objc<7) {
+            Tcl_SetResult(
+                ip,
+                "CL_MEM_USE_HOST_PTR only supported if script given",
+                TCL_STATIC);
+            return TCL_ERROR;
+        }
         mat2 *m2 = (mat2 *)matrixFromTclObj(matobj);
         Tcl_Obj *dims[3];
         dims[0] = Tcl_NewIntObj(m2->rows);
         dims[1] = Tcl_NewIntObj(m2->cols);
-        dims[2] = Tcl_NewIntObj(m2->ipr);
+        dims[2] = Tcl_NewIntObj(m2->ipr * sizeof(int)/4);
         Tcl_ObjSetVar2(ip, objv[5], NULL, Tcl_NewListObj(3, dims), 0);
         int rc;
         size_t dsz = sizeof(int) * m2->ipr * m2->rows;
@@ -1757,13 +1765,81 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
             clReleaseMemObject(clm);
             return TCL_ERROR;
         }
+        if(objc<7) {
+            return TCL_OK;
+        }
         clRetainMemObject(clm);
         Tcl_NRAddCallback(ip, MatrixCLMapPostProc, matobj, clm, ctx, objv[4]);
         return Tcl_NREvalObj(ip, objv[6], 0);
     }
+    case CLENQREAD:
+    {
+        EXPECTARGS(2, 2, 3,
+                   "clmemobj matdims ?waitvars?");
+        stcl_context *ctx;
+        if (TCL_OK != STcl_GetContext(ip,&ctx))
+            return TCL_ERROR;
+        cl_mem buf;
+        if (TCL_OK != STcl_GetMemObjFromObj(ip, objv[2], &buf))
+            return TCL_ERROR;
+        size_t dsz;
+        clGetMemObjectInfo(buf,CL_MEM_SIZE,sizeof(dsz),&dsz,NULL); 
+        int lobjc;
+        Tcl_Obj **lobjv;
+        if (TCL_OK != Tcl_ListObjGetElements(ip,objv[3],&lobjc,&lobjv))
+            return TCL_ERROR;
+        int nrows, ncols, ipr;
+        if (3 != lobjc 
+            || TCL_OK != Tcl_GetIntFromObj(ip,lobjv[0],&nrows)
+            || TCL_OK != Tcl_GetIntFromObj(ip,lobjv[1],&ncols)
+            || TCL_OK != Tcl_GetIntFromObj(ip,lobjv[2],&ipr)) {
+            Tcl_SetResult(ip, "dimension not understood", TCL_STATIC);
+            return TCL_ERROR;
+        }
+        cl_command_queue q = GetOrCreateCommandQueue(ip, ctx, 0);
+        if (NULL == q)
+            break;
+        mat2 *m2 = malloc(sizeof(mat2));
+        if (NULL == m2) {
+            Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+            return TCL_ERROR;
+        }
+        if (NULL == (m2->data = malloc(dsz ? dsz : 1))) {
+            free(m2);
+            Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+            return TCL_ERROR;
+        }
+        m2->rows = nrows;
+        m2->cols = ncols;
+        m2->ipr = ipr;
+        cl_int rc;
+        int numwait = 0;
+        cl_event *evtlist = NULL;
+        if (objc >= 5 &&
+            TCL_OK != makeWaitList(ip, objv[4], &numwait, &evtlist))
+            return TCL_ERROR;
+        void *data = clEnqueueMapBuffer(q, buf, 1 /* blocking */, CL_MAP_READ, 0,
+                                        dsz, numwait, evtlist, NULL, &rc);
+        if(CL_SUCCESS != rc || NULL == data) {
+            SetCLErrorCode(ip,rc);
+            Tcl_AddErrorInfo(ip, " from clEnqueueMapBuffer");
+            return TCL_ERROR;
+        }
+        memcpy(m2->data, data, dsz);
+        rc = clEnqueueUnmapMemObject(q, buf, data, 0, NULL, NULL);
+        if (CL_SUCCESS != rc) {
+            SetCLErrorCode(ip, rc);
+            Tcl_AddErrorInfo(ip, " from clEnqueueUnmapMemObject");
+            return TCL_ERROR;
+        }
+        Tcl_SetObjResult(ip, Tcl_NewMatrixObj(stdmatrix2, m2));
+        return TCL_OK;
+    }
 #else
+    case CLALLOC:
     case CLCREATE:
     case CLMAP:
+    case CLLOAD:
         Tcl_SetResult(ip, "library was not built with opencl support",
                       TCL_STATIC);
         return TCL_ERROR;

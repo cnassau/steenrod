@@ -9,15 +9,24 @@
 #
 
 namespace eval steenrod {
-
     # create list of available primes
-
     for {set i 1} {$i<256} {incr i} {
         if {![string length [prime $i test]]} {
             lappend primes $i
         }
     }
     unset -nocomplain i
+}
+
+proc steenrod::ComputeMatrixAll {enmsrc mmp enmdst matvar bdy} {
+    upvar 1 $matvar m
+    $enmsrc sigreset
+    $enmdst sigreset
+    while on {
+        set m [::steenrod::ComputeMatrix $enmsrc $mmp $enmdst]
+        uplevel 1 $bdy
+        if {![$enmdst signext] || ![$enmsrc signext]} break
+    }
 }
 
 

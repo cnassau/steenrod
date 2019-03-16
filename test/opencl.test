@@ -1,0 +1,214 @@
+# -*- tcl -*-
+#
+# This file provides a test suite for the OpenCL extensions
+#
+# Copyright (C) 2019 Christian Nassau <nassau@nullhomotopie.de>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import -force ::tcltest::*
+}
+
+if {[file exists pkgIndex.tcl]} {
+    set dir [pwd]
+    source pkgIndex.tcl
+    set auto_path something_useless
+}
+package require Steenrod 
+
+namespace import -force steenrod::*
+
+if {$::steenrod::cl::enabled} {
+    tcltest::configure -constraints OPENCL
+}
+
+interp alias {} refcount {} ::steenrod::_refcount
+
+proc steenrod::cl::Log {lvl msg} {
+    global env
+    set logvar YACOP_DEBUG_OPENCL
+    if {[info exists env($logvar)] && $env($logvar)} {
+        puts "$lvl: $msg"
+    }
+}
+
+# --------------------------------------------------------------------------
+
+test opencl-init {initialize} OPENCL {
+    # initialize and make sure no errors are thrown
+    cl init
+    cl config CL_DEVICE_VERSION
+    info exists ::steenrod::cl::cfgcache
+} 1
+
+# ---------- programs and kernels ------------------------------------------
+
+test kernel-1.0 "setrange kernel" OPENCL {
+    cl ctx program mytestprog {
+        kernel void set_range(global unsigned char *c, int cnt) {
+            for(int idx=0;idx<cnt;idx++) c[idx] = idx;
+        }
+        kernel void set_intval(global unsigned int *ip, int offset, int val) {
+            ip[offset] = val;
+        }
+    }
+    mytestprog kernel mytestprog.setrange set_range
+    mytestprog kernel mytestprog.setintval set_intval
+} ""
+
+# ---------- buffer commands -----------------------------------------------
+
+test buffer-1 "buffer allocation basics 1" OPENCL {
+    cl buffer allocate mybuf1 23 {CL_MEM_HOST_READ_ONLY CL_MEM_ALLOC_HOST_PTR CL_MEM_WRITE_ONLY}
+    mytestprog.setrange set 0 buffer mybuf1
+    mytestprog.setrange set 1 int 23
+    cl ctx enqndr 2 mytestprog.setrange 0 1 1 {} evt "event description"
+    cl event wait evt
+    cl buffer value mybuf1 mybufvar
+    set ans {}
+    foreach c [split $mybufvar ""] {
+        scan $c %c code
+        append ans : [format %02X $code] 
+    }
+    # only test an initial part of the result because OpenCL is allowed to enlarge the buffer at will
+    string range $ans 0 68
+} :00:01:02:03:04:05:06:07:08:09:0A:0B:0C:0D:0E:0F:10:11:12:13:14:15:16
+
+test matrix-1 "map a matrix to a buffer" OPENCL {
+    set mat [steenrod::matrix convert2 {
+        {1 0 1 1 0 1}
+        {0 1 1 1 0 0}
+        {0 1 0 0 1 0}
+    }]
+    set ans {}
+    matrix clmap mybuf CL_MEM_USE_HOST_PTR mat dims {
+        lappend ans nrows=[lindex $dims 0] ncols=[lindex $dims 1]
+        set ipr [expr {4*[lindex $dims 2]}]
+        cl buffer value mybuf mybufvar
+        set pos 0
+        scan [string index $mybufvar $pos] %c c1
+        incr pos $ipr
+        scan [string index $mybufvar $pos] %c c2
+        incr pos $ipr
+        scan [string index $mybufvar $pos] %c c3
+        lappend ans c1=$c1 c2=$c2 c3=$c3
+        mybuf dispose
+    }
+    set ans
+} "nrows=3 ncols=6 c1=45 c2=14 c3=18"
+
+test matrix-2 "create a matrix on the device 1" OPENCL {
+    matrix clcreate mymatbuf 4 7 dims {
+        set ipr [lindex $dims 2]
+        set pos 0
+        set val 1
+        foreach col "1 2 3 4" {
+            mytestprog.setintval set 0 buffer mymatbuf
+            mytestprog.setintval set 1 integer $pos
+            mytestprog.setintval set 2 integer $val
+            cl ctx enqndr 2 mytestprog.setintval 0 1 1 {} evt "event description"
+            cl event wait evt
+            incr pos $ipr
+            set val [expr {3*$val}]
+        }
+    }
+} "{1 0 0 0 0 0 0} {1 1 0 0 0 0 0} {1 0 0 1 0 0 0} {1 1 0 1 1 0 0}"
+
+test matrix-3 "create a matrix on the device 2" OPENCL {
+    matrix clalloc mymatbuf2 4 7 dims {}
+    set ipr [lindex $dims 2]
+    set pos 0
+    set val 1
+    set events {}
+    foreach col "1 2 3 4" {
+        mytestprog.setintval set 0 buffer mymatbuf2
+        mytestprog.setintval set 1 integer $pos
+        mytestprog.setintval set 2 integer $val
+        # need to use the system queue "0" here if test runs with oclgrind: https://github.com/jrprice/Oclgrind/issues/93
+        cl ctx enqndr 0 mytestprog.setintval 0 1 1 {} evt$col "event description"
+        lappend events evt$col
+        incr pos $ipr
+        set val [expr {3*$val}]
+    }
+    matrix clenqread mymatbuf2 $dims $events
+} "{1 0 0 0 0 0 0} {1 1 0 0 0 0 0} {1 0 0 1 0 0 0} {1 1 0 1 1 0 0}"
+
+# ------------------------  squence numbers --------------------------------
+
+proc range N {
+    set ans {}
+    set cnt -1
+    while {[incr cnt]<$N} {
+        lappend ans $cnt
+    }
+    return $ans
+}
+
+proc test-enum {enum name} {
+    set ans [range [$enum dimension]]
+    set basis [$enum basis]
+    set bdy [list $enum clmap enumbuf seqtabbuf offsetbuf]
+    #puts >[$enum dimension]
+    append bdy { 
+        steenrod::poly clgensplit $basis len gen buf wv {
+            cl buffer alloc outbuf [expr {4*$len}]
+            set ker ::steenrod::cl::kernels::seqno_with_deg_ivect
+            $ker setarg 0 buffer enumbuf
+            $ker setarg 1 buffer seqtabbuf
+            $ker setarg 2 buffer buf
+            $ker setarg 3 integer [expr {[en cget -ideg]/2}]
+            $ker setarg 4 buffer outbuf
+            $ker setarg 5 integer $len
+            cl ctx enqndr 0 $ker {} $len {} wv xwait
+            cl event wait xwait
+            return [cl buffer intlist outbuf]
+        }
+    }
+    test seqno-ivect-$name-[incr ::tcnt] "seqno for enum [$enum configure]" OPENCL $bdy $ans
+}
+
+enumerator en -prime 2 -genlist {{0 0}}
+
+for {set ideg 0} {$ideg<501} {incr ideg 2} {
+    en configure -ideg $ideg
+    test-enum en full
+}
+
+en configure -profile {0 0 {3 1} 0}
+for {set ideg 0} {$ideg<501} {incr ideg 2} {
+    en configure -ideg $ideg
+    test-enum en full+profile
+}
+
+en configure -algebra {1 0 {4 3 2 1} 0} -profile {}
+for {set ideg 0} {$ideg<50} {incr ideg 2} {
+    en configure -ideg $ideg
+    test-enum en subalgebra-finite
+}
+
+en configure -algebra {1 0 {5 99 99 99 99 99 99 99} 0}
+for {set ideg 0} {$ideg<501} {incr ideg 2} {
+    en configure -ideg $ideg
+    test-enum en subalgebra-infinite
+}
+
+
+# --------------------------------------------------------------------------
+
+# cleanup
+::tcltest::cleanupTests
+return
+
+
+
+
+
+
+
+
+

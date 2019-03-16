@@ -1,7 +1,7 @@
 /*
  * Monomials, polynomials, and basic operations
  *
- * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2019 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -337,14 +337,6 @@ int PLcollectCoeffs(polyType *type, void *self, const exmo *ex,
 }
 
 /**** standard polynomial type ****************************************************/
-
-/* The naive standard implementation of polynomials is as an array
- * of exmo. This is represented by the stp structure. */
-
-typedef struct {
-    int num, nalloc;
-    exmo *dat;
-} stp;
 
 int stdGetInfo(void *src, polyInfo *pli) {
     stp *s = (stp *) src;

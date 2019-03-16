@@ -1,7 +1,7 @@
 /*
  * Tcl interface to the enumerator structure
  *
- * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2019 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -18,6 +18,10 @@
 #include "poly.h"
 #include "tenum.h"
 #include "enum.h"
+
+#if USEOPENCL
+#  include "opencl.h"
+#endif
 
 #define FLOG 0
 #define DOFLOG(msg) { if (FLOG) fprintf(stderr, msg "\n"); }
@@ -51,6 +55,9 @@ typedef struct {
 
     /* The actual data. */
     enumerator *enm;
+#if USEOPENCL
+    clenum cl;
+#endif
 } tclEnum;
 
 #define TRYFREEOBJ(obj) \
@@ -259,8 +266,8 @@ if (TCL_OK != Tcl_ListObjAppendElement(ip, res, Tcl_NewListObj(2,co)))  \
          * of objv[1] we try to avoid this as much as possible. */
 
 #define ISDEFAULTARG(var) \
-({ value = objv[1]; Tcl_GetStringFromObj(value, &length); \
- if (0 == length) var = value = defaultParameter; (0==length); })
+(value = objv[1], Tcl_GetStringFromObj(value, &length), \
+ (var = length ? var : (value = defaultParameter)), (0==length))
 
         switch (optmap[index]) {
             case PRIME:
@@ -644,19 +651,134 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
     return TCL_OK;
 }
 
+#if USEOPENCL
+int STcl_EnumMap(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) {
+    stcl_context *ctx;
+    if(TCL_OK != STcl_GetContext(ip, &ctx)) return TCL_ERROR;
+    int totdim = DimensionFromEnum(te->enm);
+    if(totdim<0) {
+        Tcl_SetResult(ip, "internal error in DimensionFromEnum", TCL_STATIC);
+        return TCL_ERROR;
+    }
+    // DimensionFromEnum has initialised or updated the seqoff and seqtab tables
+    int tl = te->cl.tablen = te->enm->tablen, *st, *st2;
+    st = (int*) malloc(sizeof(int)*NALG*te->enm->tablen);
+    if(NULL == st) {
+        Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+        return TCL_ERROR;
+    }
+    st2 = st;
+    for(int k=0;k<NALG;k++)
+        for(int j=0;j<tl;j++)
+            *st2++ = te->enm->seqtab[k][j];
+    if(te->cl.seqtab) free(te->cl.seqtab);
+    te->cl.seqtab = st;
+    int gcnt = te->enm->efflen, maxid=-1;
+    for(int k=0;k<gcnt;k++) {
+        effgen *eg = &(te->enm->efflist[k]);
+        if(eg->ext) {
+            Tcl_SetResult(ip, "exterior algebra not supported", TCL_STATIC);
+        }
+        if(maxid < eg->id) maxid = eg->id;
+    }
+    if(maxid<0) {
+        maxid = 1;
+    }
+    st = malloc(maxid * sizeof(int));
+    if(NULL == st) {
+        Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+        return TCL_ERROR;
+    }
+    for(int k=0;k<gcnt;k++) {
+        effgen *eg = &(te->enm->efflist[k]);
+        st[eg->id] = te->enm->seqoff[k];
+    }
+    if(te->cl.offsets) free(te->cl.offsets);
+    te->cl.gencnt = gcnt;
+    te->cl.offsets = st;
+
+    for(int k=0;k<NALG;k++) {
+        int prd, prd2, maxdeg;
+        int rdgk = (2<<k)-1;
+        prd = te->enm->profile.r.dat[k];
+        prd2 = te->enm->algebra.r.dat[k];
+        if(prd2<prd) prd = prd2;
+        maxdeg = (te->enm->algebra.r.dat[k] - prd) * rdgk;
+        te->cl.maxdeg[k] = maxdeg;
+        te->cl.profile[k] = te->enm->profile.r.dat[k];
+    }
+
+#define NUMENMBUF 3
+    void *(buffer[NUMENMBUF]);
+    int    buflen[NUMENMBUF];
+    Tcl_Obj *bufvar[NUMENMBUF];
+
+    buffer[0] = &(te->cl);
+    buflen[0] = sizeof(clenum);
+    bufvar[0] = objv[2];
+
+    buffer[1] = te->cl.seqtab;
+    buflen[1] = NALG*te->cl.tablen*sizeof(int);
+    bufvar[1] = objv[3];
+
+    buffer[2] = te->cl.offsets;
+    buflen[2] = te->cl.gencnt*sizeof(int);
+    bufvar[2] = objv[4];
+
+    int wvpos = 5;
+    for(int k=0;k<NUMENMBUF;k++,wvpos++) {
+        cl_int rc;
+        int blocking;
+        cl_event evt, *evtptr;
+        if(wvpos<objc) {
+            blocking = 0;
+            evtptr = &evt;
+        } else {
+            blocking = 1;
+            evtptr = NULL;
+        }
+        cl_mem buf = clCreateBuffer(ctx->ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, 
+                                    buflen[k], NULL, &rc);
+        if(CL_SUCCESS == rc && buf) {
+            cl_command_queue q = GetOrCreateCommandQueue(ip,ctx,0);
+            rc = clEnqueueWriteBuffer(q,buf, blocking,0/*offset*/,buflen[k],buffer[k],0,NULL,evtptr);
+        }
+        if(CL_SUCCESS != rc) {
+            SetCLErrorCode(ip,rc);
+            return TCL_ERROR;
+        } 
+        if(evtptr) {
+            if (TCL_OK != STcl_SetEventTrace(ip, Tcl_GetString(objv[wvpos]), evt)) {
+                SetCLErrorCode(ip,rc);
+                return TCL_ERROR;
+            }
+        }
+        if(TCL_OK != STcl_CreateMemObj(ip, bufvar[k], buf)) {
+            SetCLErrorCode(ip,rc);
+            return TCL_ERROR;
+        } 
+    }
+
+    return TCL_OK;
+}
+#endif
+
 typedef enum { CGET, CONFIGURE, BASIS, SEQNO, SEQNOMOT, DIMENSION, TEST,
-               SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE, ENM_MAX, ENM_MIN } enumcmdcode;
+               SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE, ENM_MAX, ENM_MIN,
+               CLMAP } enumcmdcode;
 
 static CONST char *cmdNames[] = { "test", "cget", "configure", "min", "max",
                                   "basis", "seqno", "motseqno", "dimension",
                                   "sigreset", "signext", "siglist",
                                   "decode", "encode",
+                                  "clmap",
                                   (char *) NULL };
 
 static enumcmdcode cmdmap[] = { TEST, CGET, CONFIGURE, ENM_MIN, ENM_MAX,
                                 BASIS, SEQNO, SEQNOMOT, DIMENSION,
                                 SIGRESET, SIGNEXT, SIGLIST,
-                                DECODE, ENCODE };
+                                DECODE, ENCODE,
+                                CLMAP };
 
 static CONST char *degNames[] = { "idegree", "edegree", "hdegree", "generator", (char *) NULL };
 
@@ -694,10 +816,10 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             return Tcl_EnumBasisCmd(cd, ip, objc, objv);
 
         case SEQNO:
-	  return Tcl_EnumSeqnoCmd(cd, ip, 0, objc, objv);
+	        return Tcl_EnumSeqnoCmd(cd, ip, 0, objc, objv);
 
         case SEQNOMOT:
-	  return Tcl_EnumSeqnoCmd(cd, ip, 1, objc, objv);
+	        return Tcl_EnumSeqnoCmd(cd, ip, 1, objc, objv);
 
         case DIMENSION:
             return Tcl_EnumDimensionCmd(cd, ip, objc, objv);
@@ -780,6 +902,21 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
 
             return Tcl_EnumEncodeCmd(cd, ip, objv[2]);
 
+        case CLMAP:
+        {
+#if USEOPENCL
+            if (objc<5) {
+                Tcl_WrongNumArgs(ip, 2, objv, "enumbuf seqtabbuf offsetbuf ?waitvar1? ...");
+                return TCL_ERROR;
+            }
+            if (TCL_OK != Tcl_EnumSetValues(te, ip)) return TCL_ERROR;
+            return STcl_EnumMap(ip,te,objc,objv);
+#else
+            Tcl_SetResult(ip, "not compiled with OpenCL support", TCL_STATIC);
+            return TCL_ERROR;
+#endif
+        }
+
     }
 
     Tcl_SetResult(ip, "internal error in Tcl_EnumWidgetCmd", TCL_STATIC);
@@ -803,6 +940,10 @@ void Tcl_DestroyEnum(ClientData cd) {
         enmDestroy(te->enm);
         freex(te->enm);
     }
+#if USEOPENCL
+    if(te->cl.seqtab) free(te->cl.seqtab);
+    if(te->cl.offsets) free(te->cl.offsets);
+#endif
     freex(te);
 }
 
@@ -846,6 +987,11 @@ int Tcl_CreateEnumCmd(ClientData cd, Tcl_Interp *ip,
     /* set empty (= default) options */
     te->prime = te->alg = te->pro = te->sig = te->ideg = te->edeg = te->hdeg
         = te->genlist = NULL;
+
+#if USEOPENCL
+    te->cl.seqtab = NULL;
+    te->cl.offsets = NULL;
+#endif
 
     te->ispos = ourPosObj;
     INCREFCNT(te->ispos);

@@ -9,13 +9,21 @@
  *
  */
 
+// we are using clCreateCommandQueue
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+
 #include "opencl.h"
 #include "CL/cl.h"
 #include <string.h>
 
+// need poly.h to create steenrod::cl::typedefs
+#include "poly.h"
+
 /* we use the STCL prefix (= Steenrod + Open CL) */
 
-#define POLYNSP "::steenrod::"
+#ifndef POLYNSP
+#   define POLYNSP "::steenrod::"
+#endif
 
 TCL_DECLARE_MUTEX(eventProfilingMutex)
 static Tcl_Obj *eventHistory;
@@ -128,7 +136,7 @@ cl_event STcl_GetEvent(Tcl_Interp *ip, char *varname) {
         rc = clGetEventProfilingInfo(e, flag, sizeof(val), &val, NULL);        \
         if (CL_SUCCESS != rc)                                                  \
             break;                                                             \
-        Tcl_ListObjAppendElement(ip, ans, OBJ_ ## flag);        \
+        Tcl_ListObjAppendElement(ip, ans, OBJ_ ## flag);                       \
         Tcl_ListObjAppendElement(ip, ans, Tcl_NewLongObj(val));                \
     }
 Tcl_Obj *STcl_GetEventInfo(Tcl_Interp *ip, cl_event e) {
@@ -500,11 +508,11 @@ static CONST char *kerncmdnames[] = {"workgroupinfo", "setarg", (char *)NULL};
 
 static kerncmdcode kerncmdmap[] = {KERN_WGINFO, KERN_SETARG};
 
-typedef enum { KA_INT, KA_BUFFER, KA_LOCAL } kacode;
+typedef enum { KA_INT, KA_BUFFER, KA_LOCAL, KA_DOUBLE, } kacode;
 
-static CONST char *kanames[] = {"integer", "buffer", "local", (char *)NULL};
+static CONST char *kanames[] = {"integer", "buffer", "local", "double", (char *)NULL};
 
-static kacode kamap[] = {KA_INT, KA_BUFFER, KA_LOCAL};
+static kacode kamap[] = {KA_INT, KA_BUFFER, KA_LOCAL, KA_DOUBLE};
 
 void AddKerWGInfo(cl_kernel k, cl_device_id d, Tcl_Interp *ip, const char *name,
                   cl_kernel_work_group_info flag, int tp) {
@@ -583,6 +591,17 @@ int stclKernelInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         case KA_INT: {
             int val;
             if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &val))
+                return TCL_ERROR;
+            rc = clSetKernelArg(p->ker, argnum, sizeof(val), &val);
+            if (CL_SUCCESS != rc) {
+                SetCLErrorCode(ip, rc);
+                return TCL_ERROR;
+            }
+            return TCL_OK;
+        }
+        case KA_DOUBLE: {
+            double val;
+            if (TCL_OK != Tcl_GetDoubleFromObj(ip, objv[4], &val))
                 return TCL_ERROR;
             rc = clSetKernelArg(p->ker, argnum, sizeof(val), &val);
             if (CL_SUCCESS != rc) {
@@ -740,7 +759,7 @@ cl_command_queue GetOrCreateCommandQueue(Tcl_Interp *ip, stcl_context *ctx,
     return q;
 }
 
-static int makeWaitList(Tcl_Interp *ip, Tcl_Obj *o, int *numwait,
+int makeWaitList(Tcl_Interp *ip, Tcl_Obj *o, int *numwait,
                         cl_event **evtlist) {
     Tcl_Obj **obj;
     *evtlist = NULL;
@@ -987,6 +1006,7 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
             free(evtlist);
         if (CL_SUCCESS == rc) {
             if (evtptr) {
+                // FIXME: should this be done before calling clEnqueueNDRangeKernel?
                 STcl_SetEventTrace(ip, Tcl_GetString(objv[5]), evt);
                 if(objc >= 7) STcl_SetEventCB(evt,objv[6]);
             }
@@ -1278,6 +1298,33 @@ int stclEventWaitCmd(ClientData cd, Tcl_Interp *ip, int objc,
     return TCL_OK;
 }
 
+int stclBufferAllocCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+    if (objc < 3 || objc > 4) {
+        Tcl_WrongNumArgs(ip, 1, objv, "bufname size ?flags?");
+        return TCL_ERROR;
+    }
+    stcl_context *ctx;
+    if (TCL_OK != STcl_GetContext(ip, &ctx))
+        return TCL_ERROR;
+    int flags = CL_MEM_ALLOC_HOST_PTR;
+    if(objc == 4 && TCL_OK != GetMemFlagFromTclObj(ip,objv[3],&flags))
+        return TCL_ERROR;
+    long dlen;
+    if(TCL_OK != Tcl_GetLongFromObj(ip,objv[2],&dlen)) 
+        return TCL_ERROR;
+    int rc;
+    cl_mem clm = clCreateBuffer(ctx->ctx,flags,dlen,NULL,&rc);
+    if(NULL == clm || rc != CL_SUCCESS) {
+        SetCLErrorCode(ip,rc);
+        return TCL_ERROR;
+    }
+    if (TCL_OK != STcl_CreateMemObj(ip, objv[1], clm)) {
+        clReleaseMemObject(clm);
+        return TCL_ERROR;
+    }
+    return TCL_OK;                           
+}
+
 int stclBufferCreateCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     if (objc < 3 || objc > 4) {
         Tcl_WrongNumArgs(ip, 1, objv, "bufname varname ?flags?");
@@ -1333,6 +1380,7 @@ int stclBufferValueCmd(ClientData cd, Tcl_Interp *ip, int objc,
     if (CL_SUCCESS != (rc = clGetMemObjectInfo(clm, CL_MEM_SIZE, sizeof(dsize),
                                                &dsize, NULL))) {
         SetCLErrorCode(ip, rc);
+        Tcl_AppendResult(ip, " while getting CL_MEM_SIZE from buffer", NULL);
         return TCL_ERROR;
     }
     Tcl_Obj *ans = Tcl_NewObj();
@@ -1364,6 +1412,52 @@ int stclBufferValueCmd(ClientData cd, Tcl_Interp *ip, int objc,
     return rc;
 }
 
+const char *clint(size_t sz)
+{
+    if(1 == sz) return "char";
+    if(2 == sz) return "short";
+    if(4 == sz) return "int";
+    if(8 == sz) return "long";
+    return "errortype";
+}
+
+#define tostring(x) #x
+#define tostring2(x) tostring(x)
+#undef hostint
+
+void stclMakeTypedefs(Tcl_Interp *ip, const char *varname) {
+    Tcl_Obj *t = Tcl_NewObj();
+    exmo_aligned ex;
+    char x[20];
+    snprintf(x,sizeof(x),"%ld",sizeof(ex));
+    char y[20];
+    snprintf(y,sizeof(y),"%ld",sizeof(ex.unused));
+    Tcl_AppendStringsToObj(t,
+                        "\n   /* built-in typedefs from the Steenrod library */"
+                        "\n"
+                        "\n   typedef struct {"
+                        "\n       union {"
+                        "\n          ", clint(sizeof(ex.e.r.dat)/NALG), " dat[NALG];" 
+                        "\n       } r;" 
+                        "\n       ", clint(sizeof(ex.e.coeff)), " coeff;"
+                        "\n       ", clint(sizeof(ex.e.ext)), " ext;"
+                        "\n       ", clint(sizeof(ex.e.gen)), " gen;"
+                        "\n       char unused[",y,"];"
+                        "\n   } __attribute__ ((packed)) __attribute__ ((aligned (", x, "))) exmo;"
+                        "\n"
+                        "\n   typedef struct {" 
+                        "\n       union {"
+                        "\n          unsigned char dat[NALG];" 
+                        "\n       } r;" 
+                        "\n   } exmo2;"
+                        "\n"
+                        "\n   #define hostint ", clint(sizeof(int)),
+                        "\n   ", tostring2(CLENUMDEF), ";"
+                        "\n", NULL);
+    Tcl_SetVar(ip,varname,Tcl_GetString(t),0);
+    Tcl_DecrRefCount(t);
+}
+
 int CL_Init(Tcl_Interp *ip) {
 
     OBJ_CL_PROFILING_COMMAND_QUEUED = Tcl_NewStringObj("CL_PROFILING_COMMAND_QUEUED",-1);
@@ -1378,6 +1472,9 @@ int CL_Init(Tcl_Interp *ip) {
     Tcl_IncrRefCount(OBJ_CL_PROFILING_COMMAND_END);
 
     Tcl_CreateObjCommand(ip, POLYNSP "cl::platform", stclPlatformCmd,
+                         (ClientData)0, NULL);
+
+    Tcl_CreateObjCommand(ip, POLYNSP "cl::buffer::allocate", stclBufferAllocCmd,
                          (ClientData)0, NULL);
 
     Tcl_CreateObjCommand(ip, POLYNSP "cl::buffer::create", stclBufferCreateCmd,
@@ -1416,6 +1513,8 @@ int CL_Init(Tcl_Interp *ip) {
     }
     Tcl_SetVar(ip, POLYNSP "cl::intType", intType, 0);
     Tcl_SetVar(ip, POLYNSP "cl::intSize", intSize, 0);
+
+    stclMakeTypedefs(ip, POLYNSP "cl::typedefs");
 
     return 0;
 }

@@ -21,14 +21,14 @@
  *     (coefficient, exterior part, exponent sequence, generator id)
  **/
 
-typedef struct {
-#ifdef USESSE2  /* using shorts here might improve memory usage */
-    short coeff;
-    short ext;
+#if USEOPENCL
+#  define ATTPACKED __attribute__ ((packed)) __attribute__ ((aligned (32)))
 #else
-    int coeff;
-    int ext;
+#  define ATTPACKED 
 #endif
+
+typedef struct {
+    /* r comes first: gives a smaller sizeof(exmo) */
     union {
 #ifdef USESSE2
         short dat[NALG]; // (assuming this has 16 bits)
@@ -37,8 +37,31 @@ typedef struct {
         int dat[NALG];
 #endif
     } r;
+#ifdef xxUSESSE2  /* using shorts here might improve memory usage */
+    short coeff;
+    short ext;
+#else
+    int coeff;
+    int ext;
+#endif
     int gen;
-} exmo;
+} ATTPACKED exmo;
+
+#if USEOPENCL
+static_assert(sizeof(exmo)<=32, "bad memory layout");
+typedef struct {
+    exmo e;
+    char unused[32-sizeof(exmo)];
+}  ATTPACKED exmo_aligned;
+#endif
+
+/* The naive standard implementation of polynomials is as an array
+ * of exmo. This is represented by the stp structure. */
+
+typedef struct {
+    int num, nalloc;
+    exmo *dat;
+} stp;
 
 /* For us the "padding value" of an exponent sequence (r1, r2, r3,...) is
  * the common value of the rj for j large. Its length is the biggest

@@ -1,7 +1,7 @@
 /*
  * Tcl interface to the polynomial routines
  *
- * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
+ * Copyright (C) 2004-2019 Christian Nassau <nassau@nullhomotopie.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -16,6 +16,10 @@
 #include "tprime.h"
 #include "poly.h"
 #include "mult.h"
+
+#if USEOPENCL
+#  include "opencl.h"
+#endif
 
 #include <string.h>
 
@@ -219,7 +223,7 @@ Tcl_Obj *Tcl_NewPolyObj(polyType *tp, void *data) {
     res->typePtr = &tclPoly;
     INCPOLCNT;
     Tcl_InvalidateStringRep(res);
-    DBGPOLY printf("Tcl_NewPolyObj: created poly obj at %p, data at %p\n",res,data);
+    DBGPOLY printf("Tcl_NewPolyObj: created poly obj at %p, data at %p\n",(void*)res,data);
     return res;
 }
 
@@ -238,7 +242,7 @@ Tcl_Obj *Tcl_NewListFromPoly(Tcl_Obj *obj) {
 
 /* free internal representation */
 void PolyFreeInternalRepProc(Tcl_Obj *obj) {
-    DBGPOLY printf("PolyFreeInternalRepProc obj = %p\n",obj);
+    DBGPOLY printf("PolyFreeInternalRepProc obj = %p\n",(void*)obj);
     LOGPOLY(obj);
     PLfree((polyType *) PTR1(obj),PTR2(obj));
     DECPOLCNT;
@@ -250,7 +254,7 @@ int PolySetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
     int objc, i;
     void *pol;
     Tcl_Obj **objv;
-    DBGPOLY printf("PolySetFromAnyProc obj = %p\n",objPtr);
+    DBGPOLY printf("PolySetFromAnyProc obj = %p\n",(void*)objPtr);
     if (TCL_OK != Tcl_ListObjGetElements(ip, objPtr, &objc, &objv))
         return TCL_ERROR;
     if (NULL == (pol = (stdpoly->createCopy)(NULL)))
@@ -280,7 +284,7 @@ int PolySetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
 /* recreate string representation */
 void PolyUpdateStringProc(Tcl_Obj *objPtr) {
     Tcl_Obj *aux;
-    DBGPOLY printf("PolyUpdateStringProc obj = %p\n",objPtr);
+    DBGPOLY printf("PolyUpdateStringProc obj = %p\n",(void*)objPtr);
     LOGPOLY(objPtr);
     aux = Tcl_NewListFromPoly(objPtr);
     copyStringRep(objPtr, aux);
@@ -290,11 +294,11 @@ void PolyUpdateStringProc(Tcl_Obj *objPtr) {
 /* create copy */
 void PolyDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
     polyType *stp = (polyType *) PTR1(srcPtr);
-    DBGPOLY printf("PolyDupInternalRepProc src = %p, dup = %p\n",srcPtr, dupPtr);
+    DBGPOLY printf("PolyDupInternalRepProc src = %p, dup = %p\n",(void*)srcPtr, (void*)dupPtr);
     LOGPOLY(srcPtr);
     PTR1(dupPtr) = (void *) stp;
     PTR2(dupPtr) = PLcreateCopy(stp,stp,PTR2(srcPtr));
-    DBGPOLY printf("dupPtr poly now at %p\n", PTR2(dupPtr));
+    DBGPOLY printf("dupPtr poly now at %p\n", (void*)PTR2(dupPtr));
     dupPtr->typePtr = &tclPoly;
     INCPOLCNT;
 }
@@ -304,7 +308,7 @@ void PolyDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
 /* for some functions we need to convert the type first */
 void Tcl_PolyObjConvert(Tcl_Obj *obj, polyType *newtype) {
     void *aux;
-    DBGPOLY printf("Tcl_PolyObjConvert obj = %p\n", obj);
+    DBGPOLY printf("Tcl_PolyObjConvert obj = %p\n", (void*)obj);
     if (PTR1(obj) == newtype) return;
     if (Tcl_IsShared(obj))
         ASSERT(NULL == "Tcl_PolyObjConvert called for shared object");
@@ -716,6 +720,170 @@ Tcl_Obj *TakePolyFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
     return res;
 }
 
+
+
+#if USEOPENCL
+
+typedef struct {
+    stcl_context *ctx;
+    stp *p;
+    int idx;
+    int rc;
+    Tcl_Obj *lengthvar;
+    Tcl_Obj *genvar;
+    Tcl_Obj *buf;
+    Tcl_Obj *waitvar;
+    Tcl_Obj *bdy;
+} clgsplitcbdata;
+
+int Tcl_CLGenSplitPolyPostProc(ClientData data[], Tcl_Interp *ip, int result) {
+    clgsplitcbdata *cb = (clgsplitcbdata *)data[0];
+    stp *p = cb->p;
+    //fprintf(stderr,"res=%d, cb->idx=%d, p->num=%d\n",result,cb->idx,p->num);
+    if(TCL_OK == result || TCL_CONTINUE == result) {
+        int i=cb->idx, start=i, gen = (i<p->num) ? p->dat[i].gen : -1;
+        for(; i<p->num && p->dat[++i].gen == gen;) ;
+        //fprintf(stderr,"gen=%d start=%d ... i=%d\n",gen,start,i);
+        result = TCL_OK;
+        if(start < i) {
+            int len = i-start;
+            // map p->dat[start],...,p->dat[i-1] and run the callback
+            cb->idx = i;
+            Tcl_ObjSetVar2(ip,cb->genvar,NULL,Tcl_NewIntObj(gen),0);
+            Tcl_ObjSetVar2(ip,cb->lengthvar,NULL,Tcl_NewIntObj(len),0);
+            size_t bufsz = sizeof(exmo)*len;
+            cl_event evt;
+            cl_int rc;
+            cl_mem buf = clCreateBuffer(cb->ctx->ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, 
+                                        bufsz, NULL, &rc);
+            if(CL_SUCCESS == rc && buf) {
+                cl_command_queue q = GetOrCreateCommandQueue(ip,cb->ctx,0);
+                rc = clEnqueueWriteBuffer(q,buf,0/*blocking*/,0/*offset*/,bufsz,&(p->dat[start]),0,NULL,&evt);
+            }
+            if(CL_SUCCESS != rc) {
+                SetCLErrorCode(ip,rc);
+                result = TCL_ERROR;
+            } else {
+                if (TCL_OK != STcl_SetEventTrace(ip, Tcl_GetString(cb->waitvar), evt)) {
+                    SetCLErrorCode(ip,rc);
+                    result = TCL_ERROR;
+                } else if(TCL_OK != STcl_CreateMemObj(ip, cb->buf, buf)) {
+                    SetCLErrorCode(ip,rc);
+                    result = TCL_ERROR;
+                } else {
+                    Tcl_NRAddCallback(ip, Tcl_CLGenSplitPolyPostProc, cb, 0, 0, 0);
+                    return Tcl_NREvalObj(ip, cb->bdy, 0);
+                }
+            }
+        }
+    }
+    free(cb);
+    return result;
+}
+
+int Tcl_CLGenSplitPoly(Tcl_Interp *ip, Tcl_Obj *polyobj, Tcl_Obj *lengthvar, Tcl_Obj *genvar, Tcl_Obj *buf, Tcl_Obj *waitvar, Tcl_Obj *bdy) {
+    stcl_context *ctx;
+    if(TCL_OK != STcl_GetContext(ip, &ctx)) return TCL_ERROR;
+    polyType *pt = polyTypeFromTclObj(polyobj);
+    if(&stdPolyType != pt) {
+        Tcl_SetResult(ip, "wrong poly implementation; must be stdpoly", TCL_STATIC);
+        return TCL_ERROR;
+    }
+    clgsplitcbdata *cb = malloc(sizeof(clgsplitcbdata));
+    if(NULL == cb) {
+        Tcl_SetResult(ip,"out of memory", TCL_STATIC);
+        return TCL_ERROR;
+    } 
+    cb->ctx = ctx;
+    cb->p = (stp*) polyFromTclObj(polyobj);
+    cb->idx = 0;
+    cb->lengthvar = lengthvar;
+    cb->genvar = genvar;
+    cb->buf = buf;
+    cb->waitvar = waitvar;
+    cb->bdy = bdy;
+    ClientData data[4];
+    data[0] = (ClientData) cb;
+    return Tcl_CLGenSplitPolyPostProc(data,ip,TCL_OK);
+}
+#endif
+
+#ifdef xxxUSEOPENCL
+int Tcl_CLMapPoly(Tcl_Interp *ip, Tcl_Obj *polyobj, Tcl_Obj *lengthvar, Tcl_Obj *redbuf, Tcl_Obj *extbuf, Tcl_Obj *genbuf, Tcl_Obj *coeffbuf, int readonly) {
+
+    polyType *pt = polyTypeFromTclObj(polyobj);
+    void *pdata = polyFromTclObj(polyobj);
+
+    int len = pt->getNumsum(pdata);
+    if(NULL == Tcl_ObjSetVar2(ip,lengthvar,NULL,Tcl_NewIntObj(len),TCL_LEAVE_ERR_MSG)) {
+        return TCL_ERROR;
+    }
+
+    stcl_context *ctx;
+    if(TCL_OK != STcl_GetContext(ip, &ctx)) return TCL_ERROR;
+    cl_command_queue queue = GetOrCreateCommandQueue(ip, ctx, 0);
+    
+    Tcl_Obj *buffer[4] = { redbuf, extbuf, genbuf, coeffbuf };
+    int sizes[4] = { NALG, 1, 4, 1 };
+    for(int idx=0; idx<4; idx++) {
+        cl_int errcode;
+        Tcl_Obj *bufname = buffer[idx];
+        if(0 == *Tcl_GetString(bufname)) continue;
+        size_t basesz = sizes[idx], sz = len*basesz;
+        cl_int memflags = CL_MEM_ALLOC_HOST_PTR | CL_MEM_READ_ONLY;
+        if(readonly) memflags |= CL_MEM_HOST_WRITE_ONLY;
+        cl_mem clm = clCreateBuffer(ctx->ctx, memflags, sz, NULL, &errcode);
+        if(NULL == clm) {
+            SetCLErrorCode(ip,errcode);
+            Tcl_AppendResult(ip, " while creating buffer ", Tcl_GetString(bufname), NULL);
+            return TCL_ERROR;
+        }
+        if(TCL_OK != STcl_CreateMemObj(ip,bufname,clm)) return TCL_ERROR;
+        unsigned char *hostbuf = (unsigned char *) clEnqueueMapBuffer(queue, clm, 1, CL_MAP_WRITE_INVALIDATE_REGION, 0, sz, 0, NULL, NULL, &errcode);
+        if(NULL == hostbuf) {
+            SetCLErrorCode(ip,errcode);
+            Tcl_AppendResult(ip, " while mapping buffer ", Tcl_GetString(bufname), NULL);
+            return TCL_ERROR;
+        }
+        unsigned char *wptr = hostbuf; 
+        for(int smd=0;smd<len;smd++, wptr += basesz) {
+            exmo *e;
+            pt->getExmoPtr(pdata,&e,smd);
+            switch(idx) {
+                case 0:
+                {
+                    for (int off=0;off<8;off++)
+                        wptr[off] = e->r.dat[off];
+                    break;
+                }
+                case 1:
+                {
+                    *wptr = e->ext;
+                    break;
+                }
+                case 2:
+                {
+                    unsigned int *iptr = (unsigned int *) wptr;
+                    *iptr = e->gen;
+                    break;
+                } 
+                case 3:
+                {
+                    *wptr = e->coeff;
+                    break;
+                }
+            }
+        }
+        if(CL_SUCCESS != clEnqueueUnmapMemObject(queue, clm, hostbuf, 0, NULL, NULL)) {
+            Tcl_SetResult(ip, "clEnqueueUnmapMemObject failed", TCL_STATIC);
+        } 	
+    }
+
+    return TCL_OK;
+}
+#endif
+
+
 #define EXPECTARGS(bas,min,max,msg) {                 \
   if ((objc<((bas)+(min))) || (objc>((bas)+(max)))) { \
        Tcl_WrongNumArgs(ip, (bas), objv, msg);        \
@@ -725,21 +893,21 @@ Tcl_Obj *TakePolyFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
 typedef enum { CREATE, TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT,
                STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT,
-               COMPARE, SPLIT, VARSPLIT, COEFF, FOREACH, EBPMULT, MOTATE, ETATOM } pcmdcode;
+               COMPARE, SPLIT, VARSPLIT, COEFF, FOREACH, EBPMULT, MOTATE, ETATOM, CLGSPLIT } pcmdcode;
 
 static CONST char *pCmdNames[] = { "create", "test", "info", "append", "cancel",
                                    "add", "posmult", "negmult", "steenmult",
                                    "varappend", "varcancel", "shift", "reflect",
                                    "compare", "split", "varsplit", "coeff",
-                                   "foreach", "ebpmult", "motate", "etatom",
+                                   "foreach", "ebpmult", "motate", "etatom", "clgensplit",
                                    (char *) NULL };
 
 static pcmdcode pCmdmap[] = { CREATE, TEST, INFO, APPEND, CANCEL, ADD,
                               POSMULT, NEGMULT, STEENMULT, VARAPPEND, VARCANCEL,
                               SHIFT, REFLECT, COMPARE, SPLIT, VARSPLIT, COEFF,
-                              FOREACH, EBPMULT, MOTATE, ETATOM };
+                              FOREACH, EBPMULT, MOTATE, ETATOM, CLGSPLIT };
 
-int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+int PolyNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
     int result, index, scale, modval;
     primeInfo *pi;
     exmo *ex;
@@ -1119,10 +1287,27 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
             Tcl_SetObjResult(ip, Tcl_PolyObjEtatom(objv[2]));
             return TCL_OK;
 
+    case CLGSPLIT:
+#if USEOPENCL
+            EXPECTARGS(2, 6, 6, "<polynomial> <lengthvar> <genvar> <buf> <waitvar> <bdy>");
+
+            if (TCL_OK != Tcl_ConvertToPoly(ip, objv[2]))
+                return TCL_ERROR;
+
+            return Tcl_CLGenSplitPoly(ip, objv[2], objv[3], objv[4], objv[5], objv[6], objv[7]);
+#else
+            Tcl_SetResult(ip, "opencl not enabled", TCL_STATIC);
+#endif
+
     }
 
     Tcl_SetResult(ip, "internal error in PolyCombiCmd", TCL_STATIC);
     return TCL_ERROR;
+}
+
+int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
+                   Tcl_Obj *CONST objv[]) {
+    return Tcl_NRCallObjProc(ip, PolyNRECombiCmd, cd, objc, objv);
 }
 
 /**** Implementation of the mono combi-command ********************************/
@@ -1354,7 +1539,7 @@ int Tpoly_Init(Tcl_Interp *ip) {
         Tpoly_HaveTypes = 1;
     }
 
-    Tcl_CreateObjCommand(ip, POLYNSP "poly", PolyCombiCmd, (ClientData) 0, NULL);
+    Tcl_NRCreateCommand(ip, POLYNSP "poly", PolyCombiCmd, PolyNRECombiCmd, (ClientData) 0, NULL);
     Tcl_CreateObjCommand(ip, POLYNSP "mono", MonoCombiCmd, (ClientData) 0, NULL);
 
     Tcl_LinkVar(ip, POLYNSP "_multCount", (char *) &multCount, TCL_LINK_INT);
