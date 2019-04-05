@@ -599,13 +599,15 @@ int nextRedmonAlg(enumerator *en) {
     return 1;
 }
 
-int nextRedmonAux(enumerator *en) {
+int nextRedmonAux(enumerator *en, int *algdim) {
     while (en->gencnt < en->efflen) {
-        if (firstRedmonAlg(en, en->efflist[en->gencnt].rrideg)) {
+        int rdeg = en->efflist[en->gencnt].rrideg;
+        if (firstRedmonAlg(en, rdeg)) {
             en->theex.gen = en->efflist[en->gencnt].id;
             en->theex.ext = en->efflist[en->gencnt].ext | en->signature.ext;
             if (!en->ispos)
                 en->theex.ext = -1 - en->theex.ext;
+            if(algdim) *algdim = algDimension(en,rdeg);
             return 1;
         }
         ++(en->gencnt);
@@ -614,17 +616,25 @@ int nextRedmonAux(enumerator *en) {
 }
 
 int firstRedmon(enumerator *en) {
+    return firstRedmonWithAlgDim(en,NULL);
+}
+
+int firstRedmonWithAlgDim(enumerator *en, int *algdim) {
     if (NULL == en->efflist)
         enmRecreateEfflist(en);
     en->gencnt = 0;
     en->theex.coeff = 1;
-    return nextRedmonAux(en);
+    return nextRedmonAux(en,algdim);
 }
 
 int nextRedmon(enumerator *en) {
+    return nextRedmonWithAlgDim(en,NULL);
+}
+
+int nextRedmonWithAlgDim(enumerator *en, int *algdim) {
     if (nextRedmonAlg(en)) return 1;
     ++(en->gencnt);
-    return nextRedmonAux(en);
+    return nextRedmonAux(en,algdim);
 }
 
 /**** SIGNATURE ENUMERATION **************************************************/

@@ -370,6 +370,12 @@ namespace eval ::steenrod::cl {
                 outbuf[offset] = inbuf[offset];
             }
         }
+        kernel void copycharbuffer(global const char *inbuf, global char *outbuf, int buflen) {
+            int offset = get_global_id(0);
+            if(offset < buflen) {
+                outbuf[offset] = inbuf[offset];
+            }
+        }
     }
 
     # Steenrod algebra sequence numbers

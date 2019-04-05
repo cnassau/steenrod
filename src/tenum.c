@@ -652,6 +652,84 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
 }
 
 #if USEOPENCL
+typedef struct {
+    stcl_context *ctx;
+    stp *p;
+    tclEnum *te;
+    enumerator *enm;
+    int more;
+    int algdim;
+    Tcl_Obj *lengthvar;
+    Tcl_Obj *genvar;
+    Tcl_Obj *buf;
+    Tcl_Obj *bdy;
+} clenumbasiscbdata;
+
+int STcl_EnumBasisPostProc(ClientData data[], Tcl_Interp *ip, int result) {
+    clenumbasiscbdata *cb = (clenumbasiscbdata *)data[0];
+    //fprintf(stderr,"res=%d, cb->more=%d, cb->algdim=%d\n",result,cb->more,cb->algdim);
+    if(cb->more && (TCL_OK == result || TCL_CONTINUE == result)) {
+        stp *p = cb->p;
+        stdRealloc(p,cb->algdim);
+        int gen = cb->te->enm->theex.gen;
+        int len = cb->algdim;
+        while(cb->enm->theex.gen == gen && cb->more) {
+            stdpoly->appendExmo(p,&(cb->enm->theex));
+            cb->more = nextRedmonWithAlgDim(cb->enm,&(cb->algdim));
+        }
+
+        result = TCL_OK;
+
+        Tcl_ObjSetVar2(ip,cb->genvar,NULL,Tcl_NewIntObj(gen),0);
+        Tcl_ObjSetVar2(ip,cb->lengthvar,NULL,Tcl_NewIntObj(len),0);
+        size_t bufsz = sizeof(exmo)*len;
+        cl_int rc;
+        cl_mem buf = clCreateBuffer(cb->ctx->ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, 
+                                    bufsz, NULL, &rc);
+        if(CL_SUCCESS == rc && buf) {
+            cl_command_queue q = GetOrCreateCommandQueue(ip,cb->ctx,0);
+            rc = clEnqueueWriteBuffer(q,buf,1/*blocking*/,0/*offset*/,bufsz,&(p->dat[0]),0,NULL,NULL);
+        }
+        if(CL_SUCCESS != rc) {
+            SetCLErrorCode(ip,rc);
+            result = TCL_ERROR;
+        } else {
+            if(TCL_OK != STcl_CreateMemObj(ip, cb->buf, buf)) {
+                SetCLErrorCode(ip,rc);
+                result = TCL_ERROR;
+            } else {
+                Tcl_NRAddCallback(ip, STcl_EnumBasisPostProc, cb, 0, 0, 0);
+                return Tcl_NREvalObj(ip, cb->bdy, 0);
+            }
+        }
+        
+    }
+    stdpoly->free(cb->p);
+    free(cb);
+    return result;
+}
+
+int STcl_EnumBasis(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) {
+    stcl_context *ctx;
+    if(TCL_OK != STcl_GetContext(ip, &ctx)) return TCL_ERROR;
+    clenumbasiscbdata *cb = malloc(sizeof(clenumbasiscbdata));
+    if(NULL == cb) {
+        Tcl_SetResult(ip,"out of memory",TCL_STATIC);
+        return TCL_ERROR;
+    }
+    cb->p = stdpoly->createCopy(NULL);
+    cb->ctx = ctx;
+    cb->lengthvar = objv[2];
+    cb->genvar = objv[3];
+    cb->buf = objv[4];
+    cb->bdy = objv[5];
+    cb->te = te;
+    cb->enm = te->enm;
+    cb->more = firstRedmonWithAlgDim(cb->enm,&(cb->algdim));
+    Tcl_NRAddCallback(ip, STcl_EnumBasisPostProc, cb, 0, 0, 0);
+    return TCL_OK;
+}
+
 int STcl_EnumMap(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) {
     stcl_context *ctx;
     if(TCL_OK != STcl_GetContext(ip, &ctx)) return TCL_ERROR;
@@ -765,20 +843,20 @@ int STcl_EnumMap(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) 
 
 typedef enum { CGET, CONFIGURE, BASIS, SEQNO, SEQNOMOT, DIMENSION, TEST,
                SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE, ENM_MAX, ENM_MIN,
-               CLMAP } enumcmdcode;
+               CLMAP, CLBASIS } enumcmdcode;
 
 static CONST char *cmdNames[] = { "test", "cget", "configure", "min", "max",
                                   "basis", "seqno", "motseqno", "dimension",
                                   "sigreset", "signext", "siglist",
                                   "decode", "encode",
-                                  "clmap",
+                                  "clmap", "clbasis",
                                   (char *) NULL };
 
 static enumcmdcode cmdmap[] = { TEST, CGET, CONFIGURE, ENM_MIN, ENM_MAX,
                                 BASIS, SEQNO, SEQNOMOT, DIMENSION,
                                 SIGRESET, SIGNEXT, SIGLIST,
                                 DECODE, ENCODE,
-                                CLMAP };
+                                CLMAP, CLBASIS };
 
 static CONST char *degNames[] = { "idegree", "edegree", "hdegree", "generator", (char *) NULL };
 
@@ -916,7 +994,20 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             return TCL_ERROR;
 #endif
         }
-
+        case CLBASIS:
+        {
+#if USEOPENCL
+            if (objc!=6) {
+                Tcl_WrongNumArgs(ip, 2, objv, "lenvar genvar buffer bdy");
+                return TCL_ERROR;
+            }
+            if (TCL_OK != Tcl_EnumSetValues(te, ip)) return TCL_ERROR;
+            return STcl_EnumBasis(ip,te,objc,objv);
+#else
+            Tcl_SetResult(ip, "not compiled with OpenCL support", TCL_STATIC);
+            return TCL_ERROR;
+#endif
+        }
     }
 
     Tcl_SetResult(ip, "internal error in Tcl_EnumWidgetCmd", TCL_STATIC);

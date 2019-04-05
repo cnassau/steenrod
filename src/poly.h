@@ -264,6 +264,8 @@ extern polyType stdPolyType;
 
 #define stdpoly (&(stdPolyType))
 
+int stdRealloc(void *self, int nalloc);
+
 /* create a stdpoly copy of a polynomial */
 void *PLcreateStdCopy(polyType *type, void *poly);
 

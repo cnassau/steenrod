@@ -89,6 +89,9 @@ int enmSetGenlist(enumerator *en, int *gl, int num);
 int firstRedmon(enumerator *en);
 int nextRedmon(enumerator *en);
 
+int firstRedmonWithAlgDim(enumerator *en, int *algdim);
+int nextRedmonWithAlgDim(enumerator *en, int *algdim);
+
 int SeqnoFromEnum(enumerator *en, exmo *ex);
 int DimensionFromEnum(enumerator *en);
 
