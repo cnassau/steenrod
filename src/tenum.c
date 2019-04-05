@@ -654,7 +654,6 @@ int Tcl_EnumEncodeCmd(ClientData cd, Tcl_Interp *ip, Tcl_Obj *obj) {
 #if USEOPENCL
 typedef struct {
     stcl_context *ctx;
-    stp *p;
     tclEnum *te;
     enumerator *enm;
     int more;
@@ -662,14 +661,20 @@ typedef struct {
     Tcl_Obj *lengthvar;
     Tcl_Obj *genvar;
     Tcl_Obj *buf;
+    Tcl_Obj *waitvar;
     Tcl_Obj *bdy;
 } clenumbasiscbdata;
+
+static void eventcbfreepoly (cl_event event, cl_int event_command_exec_status, void *user_data) {
+    stp *p = (stp *) user_data;
+    stdpoly->free(p);
+}
 
 int STcl_EnumBasisPostProc(ClientData data[], Tcl_Interp *ip, int result) {
     clenumbasiscbdata *cb = (clenumbasiscbdata *)data[0];
     //fprintf(stderr,"res=%d, cb->more=%d, cb->algdim=%d\n",result,cb->more,cb->algdim);
     if(cb->more && (TCL_OK == result || TCL_CONTINUE == result)) {
-        stp *p = cb->p;
+        stp *p = stdpoly->createCopy(NULL);
         stdRealloc(p,cb->algdim);
         int gen = cb->te->enm->theex.gen;
         int len = cb->algdim;
@@ -684,17 +689,23 @@ int STcl_EnumBasisPostProc(ClientData data[], Tcl_Interp *ip, int result) {
         Tcl_ObjSetVar2(ip,cb->lengthvar,NULL,Tcl_NewIntObj(len),0);
         size_t bufsz = sizeof(exmo)*len;
         cl_int rc;
+        cl_event evt;
         cl_mem buf = clCreateBuffer(cb->ctx->ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, 
                                     bufsz, NULL, &rc);
         if(CL_SUCCESS == rc && buf) {
             cl_command_queue q = GetOrCreateCommandQueue(ip,cb->ctx,0);
-            rc = clEnqueueWriteBuffer(q,buf,1/*blocking*/,0/*offset*/,bufsz,&(p->dat[0]),0,NULL,NULL);
+            rc = clEnqueueWriteBuffer(q,buf,1/*blocking*/,0/*offset*/,bufsz,&(p->dat[0]),0,NULL,&evt);
         }
         if(CL_SUCCESS != rc) {
+            stdpoly->free(p);
             SetCLErrorCode(ip,rc);
             result = TCL_ERROR;
         } else {
-            if(TCL_OK != STcl_CreateMemObj(ip, cb->buf, buf)) {
+            clSetEventCallback(evt, CL_COMPLETE, eventcbfreepoly, p);
+            if (TCL_OK != STcl_SetEventTrace(ip, Tcl_GetString(cb->waitvar), evt)) {
+                SetCLErrorCode(ip,rc);
+                result = TCL_ERROR;
+            } else if(TCL_OK != STcl_CreateMemObj(ip, cb->buf, buf)) {
                 SetCLErrorCode(ip,rc);
                 result = TCL_ERROR;
             } else {
@@ -702,9 +713,7 @@ int STcl_EnumBasisPostProc(ClientData data[], Tcl_Interp *ip, int result) {
                 return Tcl_NREvalObj(ip, cb->bdy, 0);
             }
         }
-        
     }
-    stdpoly->free(cb->p);
     free(cb);
     return result;
 }
@@ -717,12 +726,12 @@ int STcl_EnumBasis(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]
         Tcl_SetResult(ip,"out of memory",TCL_STATIC);
         return TCL_ERROR;
     }
-    cb->p = stdpoly->createCopy(NULL);
     cb->ctx = ctx;
     cb->lengthvar = objv[2];
     cb->genvar = objv[3];
     cb->buf = objv[4];
-    cb->bdy = objv[5];
+    cb->waitvar = objv[5];
+    cb->bdy = objv[6];
     cb->te = te;
     cb->enm = te->enm;
     cb->more = firstRedmonWithAlgDim(cb->enm,&(cb->algdim));
@@ -997,8 +1006,8 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
         case CLBASIS:
         {
 #if USEOPENCL
-            if (objc!=6) {
-                Tcl_WrongNumArgs(ip, 2, objv, "lenvar genvar buffer bdy");
+            if (objc!= 7) {
+                Tcl_WrongNumArgs(ip, 2, objv, "lenvar genvar buffer waitvar bdy");
                 return TCL_ERROR;
             }
             if (TCL_OK != Tcl_EnumSetValues(te, ip)) return TCL_ERROR;
