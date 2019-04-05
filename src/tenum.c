@@ -694,7 +694,7 @@ int STcl_EnumBasisPostProc(ClientData data[], Tcl_Interp *ip, int result) {
                                     bufsz, NULL, &rc);
         if(CL_SUCCESS == rc && buf) {
             cl_command_queue q = GetOrCreateCommandQueue(ip,cb->ctx,0);
-            rc = clEnqueueWriteBuffer(q,buf,1/*blocking*/,0/*offset*/,bufsz,&(p->dat[0]),0,NULL,&evt);
+            rc = clEnqueueWriteBuffer(q,buf,0/*blocking*/,0/*offset*/,bufsz,&(p->dat[0]),0,NULL,&evt);
         }
         if(CL_SUCCESS != rc) {
             stdpoly->free(p);
