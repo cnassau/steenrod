@@ -43,7 +43,7 @@ The status line of the resolver shows
   - the prime
   - the subalgebra A that is being resolved
   - an auxiliary subalgebra B that is used to divide the computation into smaller pieces 
-- - the dimension of the matrices for the initial homology calculation
+  - the dimension of the matrices for the initial homology calculation
   - the dimension of the matrix involved in the current lifting problem
 
 There is also a non-graphical version that runs when you specify "-usegui 0".
