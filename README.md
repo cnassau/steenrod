@@ -22,9 +22,11 @@ package with its "wish" executable.
 
 Change to directory demo. Then try some of the following command lines
 
+```
   wish ./resolver.tcl -prime 3 -algebra '0 -1 {9 9 9 9 9 9} 0' -maxdim 80 -maxs 25
   wish ./resolver.tcl -prime 2 -algebra '0 0 {9 9 9 9 9 9} 0' -maxdim 80 -maxs 25 -viewtype even
   wish ./resolver.tcl -prime 2 -algebra '0 0 {3 2 1} 0' -maxdim 80 -maxs 25 -viewtype even
+```
 
 The algebra format deserves some explanation: the algebra is specified as
 a list of 4 entries, 2 of which are actually ignored. The meaning of the 4 constituents
