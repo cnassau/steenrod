@@ -31,6 +31,7 @@ array set defoptions {
     -dbg     { 0  "log computation, used for debugging" }
     -decomp  { auto "smartness: either auto, upper, lower, none" }
     -repcnt  { 1  "number of repetitions (debug parameter)" }
+    -viewtype { odd "use 'even' for traditional charts at p=2"}
 }
 
 foreach {opt val} [array get defoptions] {
@@ -129,6 +130,11 @@ incr maxs
 
 set tridegree  {} 
 set theprofile {}
+
+set mathomdimfmt "%3d->%3d->%3d"
+set matliftdimfmt "%3d->%3d"
+set mathomdim ""
+set matliftdim ""
 
 proc finito {} { puts "Done." }
 
@@ -269,6 +275,12 @@ proc maxLowerProfile {prime algebra s ideg edeg} {
     error not-reached!
 }
 
+switch -regexp -nocase -- $options(-viewtype) {
+    ^o {set ::viewtypeeven 0}
+    ^e {set ::viewtypeeven 1}
+    default {error "viewtype $options(-viewtype) not understood"}
+}
+
 while {$repcnt} { 
 
     # create empty modules and maps
@@ -294,7 +306,11 @@ while {$repcnt} {
             rename d[expr $sdeg-2] ""
         }
 
-        set maxi [expr $maxdim + $sdeg]
+        if {$::viewtypeeven} {
+            set maxi [expr {2*$maxdim + $sdeg}]
+        } else {
+            set maxi [expr {$maxdim + $sdeg}]
+        }
         
         for {set ideg $sdeg} {$ideg<=$maxi} {incr ideg} {
 
@@ -365,6 +381,11 @@ while {$repcnt} {
                     eval set mdsc \[steenrod::ComputeMatrix C$sc d$sc C$sp\]  
                     eval set mdsn \[steenrod::ComputeMatrix C$sn d$sn C$sc\]  
                 }
+
+                foreach {nr nc} [matrix dimensions $mdsn] break
+                foreach {cr cc} [matrix dimensions $mdsc] break
+                set mathomdim [format $mathomdimfmt $nr $nc $cc]
+                set matliftdim ""
 
                 # compute image...
                 matrix ortho $p mdsn ker  ;# (ker is not used) 
@@ -458,10 +479,13 @@ while {$repcnt} {
                     # compute relevant part of matrix   C$sc -> C$sp 
                     set mdsn [eval steenrod::ComputeMatrix C$sc d$sc C$sp]
 
+                    foreach {nr nc} [matrix dimensions $mdsn] break
+                    set matliftdim [format $matliftdimfmt $nr $nc]
+
                     dbgadd { "    matrix is $mdsn" }
 
                     # compute lift
-                    set lft [matrix lift $p $mdsn errmat]
+                    set lft [matrix liftvar $p mdsn errmat]
 
                     dbgadd { "    lift is $lft" }
 

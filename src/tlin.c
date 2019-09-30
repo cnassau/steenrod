@@ -1839,7 +1839,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
     case CLALLOC:
     case CLCREATE:
     case CLMAP:
-    case CLLOAD:
+    case CLENQREAD:
         Tcl_SetResult(ip, "library was not built with opencl support",
                       TCL_STATIC);
         return TCL_ERROR;

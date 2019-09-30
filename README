@@ -1,105 +1,33 @@
-# Getting started with the Steenrod library 
-#
-# $Id$
-#
+# The Steenrod Tcl library
 
-# 0 - Prerequisites
+This repository contains the author's C-code for efficient manipulation
+of Steenrod algebra related structures; this includes enumeration of Steenrod
+algebra elements and optimized multiplication routines. All computations
+take place in the Milnor basis. The library is meant to be used through its
+Tcl interface; its primary purpose is to function as the main "engine"
+underlying the author's [Sage/Yacop](https://github.com/cnassau/yacop-sage) project.
 
-Since this is a Tcl library, you need to have a Tcl installation on 
-your system to use it. On most Unix systems this is automatically the 
-case. There's also nothing that prevents you from installing your own
-private Tcl-version in case the system-wide installation doesn't fulfill
-all requirements.
+## Building the library
 
-The easiest way to obtain a working Tcl interpreter is to download the
-appropriate tclkit binary from 
+* Make sure you have Tcl headers and development libraries installed. On Ubuntu
+you need, for example, to install the tcl-dev package - other distributions will
+offer similar packages. For the graphical demo resolver you also need the "tk"
+package with its "wish" executable.
 
-   http://www.equi4.com/tclkit.html
+* To build, create a subdirectory "build" and cd into it. Then run "../configure", "make", and "sudo make install"
 
-To compile the Steenrod package you also need to know the location of the tcl
-header file "tcl.h" and the stubs library "libtclstub". Standard places to
-look are /usr/include and /usr/lib. If you don't have these files you can
-either 
+* After running "make install" you can run "make bigtest" to run some consistency tests.
 
- - download the ActiveTcl distribution from http://www.activestate.com/   
-   (recommended, also has lots of useful extra packages)
+## Running the demo resolver
 
- - build your own tcl from the Tcl sources: http://tcl.sourceforge.net/
-
-# 1 - Compiling the Steenrod library
-
-1) Change to the directory "src". 
-
-2) Adapt the following variables in the "Makefile"
-
-SYSTEM        either "Unix" or "Windows"
-TCLINCDIR     point to directory that contains "tcl.h"
-TCLLIBDIR     point to directory that contains "libtclstub"
-TCLSTUBLIB    name of the "tclstub" library
-
-3) Type "make install"
-
-This should produce a file "libsteenrod.so" in the directory 
-
-   ./lib/<platform name>
-
-4) Test the integrity of the package.
-
-Change to the directory "test" and run the file "all.tcl". 
-
-Example:
-cn@jehova:~/steenrod/test> tclsh all.tcl
-Tests running in interp:  /usr/bin/tclsh
-Tests located in:  /home/cn/steenrod/test
-Tests running in:  /home/cn/steenrod/test
-Temporary files stored in /home/cn/steenrod/test
-Test files run in separate interpreters
-Running tests that match:  *
-Skipping test files that match:  l.*.test
-Only running test files that match:  *.test
-Tests began at Do Mai 05 20:44:20 CEST 2005
-enum.test
-linalg.test
-matenc.test
-monomap.test
-poly.test
-prime.test
-
-Tests ended at Do Mai 05 20:44:40 CEST 2005
-all.tcl:        Total   5997    Passed  5621    Skipped 376     Failed  0
-Sourced 6 Test Files.
-Number of tests skipped for each constraint:
-        376     BIGTEST
-
-The important line here is the one that says "Failed 0". This means that
-presumably everything is ok.
-
-5) Create the documentation. 
-
-This needs the "doctools" Tcl package (included in the ActiveTcl distribution).
-First change to the directory "doc". Adapt the path at the beginning of
-makedocs.tcl so that the doctools package can be found. Then just type "make".
-
-The documentation is produced in various formats: html, tmml, man. Only the
-man pages look nice. If you add the doc/man directory to your MANPATH
-environment variable you can then access the documentation through the man
-program. The Steenrod documentation can be found in section "3st".
-
-Example:
-
-   man -S 3st steenrod
-
-6) Run the demo resolver
-
-Change to directory demo. Then try, for example,
+Change to directory demo. Then try some of the following command lines
 
   wish ./resolver.tcl -prime 3 -algebra '0 -1 {9 9 9 9 9 9} 0' -maxdim 80 -maxs 25
+  wish ./resolver.tcl -prime 2 -algebra '0 0 {9 9 9 9 9 9} 0' -maxdim 80 -maxs 25 -viewtype even
+  wish ./resolver.tcl -prime 2 -algebra '0 0 {3 2 1} 0' -maxdim 80 -maxs 25 -viewtype even
 
-Instead of "wish" you could also take "tclkit"; just plain "tclsh" will not
-work because that doesn't contain the graphical Tk library.
-
-The algebra format might deserve some explanation: the algebra is specified as
-an "extended monomial" (see "mono" manpage). The meaning of the 4 constituents
+The algebra format deserves some explanation: the algebra is specified as
+a list of 4 entries, 2 of which are actually ignored. The meaning of the 4 constituents
 is this:
 
     "0"          coefficient (ignored)
@@ -107,13 +35,13 @@ is this:
     "9 9 9 9 9"  profile of the reduced part of the subalgebra     
     "0"          generator id (ignored)
 
-If you wonder where the resolutions are stored, rest assured: they
-aren't. When you exit the program, all of the information is lost...
+The resolutions are recomputed from scratch on every run, nothing is saved.
+
+The status line of the resolver shows
+  - the prime
+  - the subalgebra A that is being resolved
+  - an auxiliary subalgebra B that is used to divide the computation into smaller pieces 
+- - the dimension of the matrices for the initial homology calculation
+  - the dimension of the matrix involved in the current lifting problem
 
 There is also a non-graphical version that runs when you specify "-usegui 0".
-
-7) Enjoy!
-
-Should 7) for some reason not be possible, complain to nassau@nullhomotopie.de
-
-Good luck!
