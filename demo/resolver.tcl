@@ -307,7 +307,7 @@ while {$repcnt} {
         }
 
         if {$::viewtypeeven} {
-            set maxi [expr {2*$maxdim + $sdeg}]
+            set maxi [expr {2*($maxdim + $sdeg)}]
         } else {
             set maxi [expr {$maxdim + $sdeg}]
         }
@@ -325,8 +325,11 @@ while {$repcnt} {
                 set sc $sdeg
                 set sn [expr $sdeg+1]
                 
+                set alldims {}
                 foreach hdg [list $sp $sc $sn] {
                     C$hdg configure -edeg $edeg -ideg $ideg 
+                    C$hdg configure -profile {} -sig {}
+                    lappend alldims [C$hdg dimension]
                 }
 
                 # find maximal possible profiles  
@@ -356,7 +359,7 @@ while {$repcnt} {
                 # at this point the gui's trace will trigger
                 set tridegree [list $sdeg $ideg $edeg]
 
-                            puts "(s:$sdeg, i:$ideg, e:$edeg) : profile $theprofile"
+                puts "(s:$sdeg, i:$ideg, e:$edeg) : profile $theprofile"
 
                 foreach mod [list C$sp C$sc C$sn] { 
                     $mod configure -profile $theprofile 
@@ -407,6 +410,19 @@ while {$repcnt} {
                 # go to next round if no new gens needed:
                 if {!$ngen} continue 
                 
+                set tdim [expr {$ideg-$sdeg}]
+                if {$::viewtypeeven} {set tdim [expr {$ideg/2-$sdeg}]}
+                catch {close $ch}
+                set logfile log.$sdeg.$edeg.$tdim
+                set ch [open $logfile w]
+                puts $ch "# data for s=$sdeg e=$edeg i=$ideg tdim=$tdim profile=$theprofile"
+                puts $ch "# full dimensions = $alldims = prev curr next"
+                puts $ch "# number of new generators = $ngen"
+                puts $ch "# initial homology calculation $nr -> $nc -> $cc"
+                puts $ch "x y label"
+                puts $ch "$nc $cc hom$sdeg.$edeg.$ideg"
+                puts $ch "$nn $nc moh$sdeg.$edeg.$ideg"
+
                 # Ok, we need $ngen new generators, and so far we only know the
                 # signature-zero part of their differentials. 
 
@@ -482,6 +498,8 @@ while {$repcnt} {
                     foreach {nr nc} [matrix dimensions $mdsn] break
                     set matliftdim [format $matliftdimfmt $nr $nc]
 
+                    puts $ch "$nr $nc lft$sdeg.$edeg.$ideg"
+
                     dbgadd { "    matrix is $mdsn" }
 
                     # compute lift
@@ -538,6 +556,7 @@ while {$repcnt} {
                     lappend gl [list $id $ideg $edeg 0]
                     eval d$sn set \[list 0 0 0 $id\] \$df
                     newgen $id [expr $sn] $edeg $ideg $df
+                    puts $ch "# gen $id diff = [llength $df] summands"
                 }
                 eval C$sn configure -genlist \$gl
 
