@@ -24,12 +24,21 @@ set algname $options(-algebra)
 if {$algname==""} { set algname "full algebra" }
 
 pack [label $tpf.adv \
-          -text "Settings: prime = $options(-prime), algebra = \{$algname\}"] \
+          -text "Settings: p = $options(-prime), A = \{$algname\}"] \
     -side left -expand 0 -fill x -anchor w
 
-pack [label $tpf.plab -text "  profile ="] -side left -expand 0 -fill x -anchor w
+pack [label $tpf.plab -text "  B ="] -side left -expand 0 -fill x -anchor w
 pack [label $tpf.prof -textvariable ::theprofile] \
     -side left -expand 0 -fill x -anchor w
+
+pack [label $tpf.pmh -text "  homology ="] -side left -expand 0 -fill x -anchor w
+pack [label $tpf.plmh -textvariable ::mathomdim] \
+    -side left -expand 0 -fill x -anchor w
+
+pack [label $tpf.pml -text "  lifting ="] -side left -expand 0 -fill x -anchor w
+pack [label $tpf.plml -textvariable ::matliftdim] \
+    -side left -expand 0 -fill x -anchor w
+
 
 # now create frame for canvas and scrollbars:
 
@@ -96,7 +105,7 @@ proc degchange {name1 name2 op} {
     global wpl cvs
     foreach {s i e} $::tridegree break
     # $::statlab configure -text "Current tridegree (s,t,e) = ($s,$i,$e)"
-    
+    if {$::viewtypeeven} {set i [expr {$i/2}]}
     incr s 1 
 
     if {$wpl != {}} { $cvs delete $wpl } 
@@ -161,7 +170,8 @@ proc newgen {id s e i diff} {
     # puts [format "%3d / %3d : gen %d (diff = %s)" $s $i $id $diff]
     set ::currgenid $id
     set ::currs $s
-    addDot [expr $i-$s] $s $e $id $s
+    if {$::viewtypeeven} {set i [expr {$i/2}]}
+    addDot [expr {$i-$s}] $s $e $id $s
     poly split $diff ::myfilter
 
     update

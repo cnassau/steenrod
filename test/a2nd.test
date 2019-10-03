@@ -24,7 +24,7 @@ if {[file exists pkgIndex.tcl]} {
 
 package require Steenrod 
 
-source src/a2nd.tc
+#source src/a2nd.tc
 namespace import -force steenrod::*
 
 
