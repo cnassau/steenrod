@@ -11,6 +11,10 @@
 
 #define STEENROD_C
 
+#ifndef NULL
+#  define NULL ((void*)0)
+#endif
+
 #if USEOPENCL
 #  include <CL/cl.h>
 #  include "opencl.h"
