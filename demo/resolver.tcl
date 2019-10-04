@@ -2,9 +2,7 @@
 #
 # Resolve an algebra and display the results in a canvas
 #
-# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
-#
-#  $Id$
+# Copyright (C) 2004-2019 Christian Nassau <nassau@nullhomotopie.de>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -32,6 +30,7 @@ array set defoptions {
     -decomp  { auto "smartness: either auto, upper, lower, none" }
     -repcnt  { 1  "number of repetitions (debug parameter)" }
     -viewtype { odd "use 'even' for traditional charts at p=2"}
+    -record  { off "whether to record decomposition details" }
 }
 
 foreach {opt val} [array get defoptions] {
@@ -64,6 +63,12 @@ foreach {opt val} $argv {
 }
 
 if {$options(-prime)==""} { usage }
+
+if {!$options(-record)} {
+    proc rec args {}
+} else {
+    interp alias {} rec {} eval 
+}
 
 # see if options make sense
 enumerator x 
@@ -412,17 +417,18 @@ while {$repcnt} {
                 
                 set tdim [expr {$ideg-$sdeg}]
                 if {$::viewtypeeven} {set tdim [expr {$ideg/2-$sdeg}]}
-                catch {close $ch}
-                set logfile log.$sdeg.$edeg.$tdim
-                set ch [open $logfile w]
-                puts $ch "# data for s=$sdeg e=$edeg i=$ideg tdim=$tdim profile=$theprofile"
-                puts $ch "# full dimensions = $alldims = prev curr next"
-                puts $ch "# number of new generators = $ngen"
-                puts $ch "# initial homology calculation $nr -> $nc -> $cc"
-                puts $ch "x y label"
-                puts $ch "$nc $cc hom$sdeg.$edeg.$ideg"
-                puts $ch "$nn $nc moh$sdeg.$edeg.$ideg"
-
+                rec {
+                    catch {close $ch}
+                    set logfile log.$sdeg.$edeg.$tdim
+                    set ch [open $logfile w]
+                    puts $ch "# data for s=$sdeg e=$edeg i=$ideg tdim=$tdim profile=$theprofile"
+                    puts $ch "# full dimensions = $alldims = prev curr next"
+                    puts $ch "# number of new generators = $ngen"
+                    puts $ch "# initial homology calculation $nr -> $nc -> $cc"
+                    puts $ch "x y label"
+                    puts $ch "$nc $cc hom$sdeg.$edeg.$ideg"
+                    puts $ch "$nr $nc moh$sdeg.$edeg.$ideg"
+                }
                 # Ok, we need $ngen new generators, and so far we only know the
                 # signature-zero part of their differentials. 
 
@@ -498,7 +504,9 @@ while {$repcnt} {
                     foreach {nr nc} [matrix dimensions $mdsn] break
                     set matliftdim [format $matliftdimfmt $nr $nc]
 
-                    puts $ch "$nr $nc lft$sdeg.$edeg.$ideg"
+                    rec {
+                        puts $ch "$nr $nc lft$sdeg.$edeg.$ideg"
+                    }
 
                     dbgadd { "    matrix is $mdsn" }
 
@@ -556,7 +564,9 @@ while {$repcnt} {
                     lappend gl [list $id $ideg $edeg 0]
                     eval d$sn set \[list 0 0 0 $id\] \$df
                     newgen $id [expr $sn] $edeg $ideg $df
-                    puts $ch "# gen $id diff = [llength $df] summands"
+                    rec {
+                        puts $ch "# gen $id diff = [llength $df] summands"
+                    }
                 }
                 eval C$sn configure -genlist \$gl
 
