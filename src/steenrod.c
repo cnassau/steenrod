@@ -16,7 +16,6 @@
 #endif
 
 #if USEOPENCL
-#  include <CL/cl.h>
 #  include "opencl.h"
 #endif
 

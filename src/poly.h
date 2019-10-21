@@ -51,7 +51,6 @@ typedef struct {
 static_assert(sizeof(exmo)<=32, "bad memory layout");
 typedef struct {
     exmo e;
-    char unused[32-sizeof(exmo)];
 }  ATTPACKED exmo_aligned;
 #endif
 

@@ -325,7 +325,7 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
             CHCKARGSERR("too few arguments"); 
         }
 
-        if (0) printf("argchk: obj (%p), refcnt %d\n",*objv,(*objv)->refCount); 
+        if (0) printf("argchk: obj (%p), refcnt %d\n",(void*)*objv,(*objv)->refCount); 
   
         /* check for type mismatch */
 
@@ -411,8 +411,8 @@ void copyStringRep(Tcl_Obj *dest, Tcl_Obj *src) {
 }
 
 void printObj(const char *vname, Tcl_Obj *obj) {
-    printf("Tcl_Obj (%s) at %p:\n",(NULL != vname) ? vname : "no name given", obj);
+    printf("Tcl_Obj (%s) at %p:\n",(NULL != vname) ? vname : "no name given", (void*)obj);
     printf("  refCount=%d, bytes=%p, length=%d, type=%p (%s)\n", 
-           obj->refCount, obj->bytes, obj->length, obj->typePtr,
+           obj->refCount, (void*)obj->bytes, obj->length, (void*)obj->typePtr,
            (NULL != obj->typePtr) ? (obj->typePtr->name) : "---");
 }

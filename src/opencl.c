@@ -226,10 +226,12 @@ void SetCLErrorCode(Tcl_Interp *ip, cl_int errcode) {
     TRYREG(CL_INVALID_COMPILER_OPTIONS);
     TRYREG(CL_INVALID_LINKER_OPTIONS);
     TRYREG(CL_INVALID_DEVICE_PARTITION_COUNT);
+    #ifdef CL_INVALID_PIPE_SIZE
     TRYREG(CL_INVALID_PIPE_SIZE);
     TRYREG(CL_INVALID_DEVICE_QUEUE);
     TRYREG(CL_INVALID_SPEC_ID);
     TRYREG(CL_MAX_SIZE_RESTRICTION_EXCEEDED);
+    #endif
     char ec[100];
     sprintf(ec, "unknown CL error code %d", errcode);
     Tcl_SetResult(ip, ec, TCL_VOLATILE);
@@ -324,8 +326,10 @@ static Tcl_Obj *stclDeviceInfo(cl_device_id d) {
     ADDDEVINFO_INT(d, ans, CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_REFERENCE_COUNT);
+    #ifdef CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE
     ADDDEVINFO_INT(d, ans, CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE);
+    #endif
     ADDDEVINFO_INT(d, ans, CL_DEVICE_VENDOR_ID);
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_GLOBAL_MEM_CACHE_SIZE);
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_GLOBAL_MEM_SIZE);
@@ -1430,8 +1434,6 @@ void stclMakeTypedefs(Tcl_Interp *ip, const char *varname) {
     exmo_aligned ex;
     char x[20];
     snprintf(x,sizeof(x),"%ld",sizeof(ex));
-    char y[20];
-    snprintf(y,sizeof(y),"%ld",sizeof(ex.unused));
     Tcl_AppendStringsToObj(t,
                         "\n   /* built-in typedefs from the Steenrod library */"
                         "\n"
@@ -1442,7 +1444,6 @@ void stclMakeTypedefs(Tcl_Interp *ip, const char *varname) {
                         "\n       ", clint(sizeof(ex.e.coeff)), " coeff;"
                         "\n       ", clint(sizeof(ex.e.ext)), " ext;"
                         "\n       ", clint(sizeof(ex.e.gen)), " gen;"
-                        "\n       char unused[",y,"];"
                         "\n   } __attribute__ ((packed)) __attribute__ ((aligned (", x, "))) exmo;"
                         "\n"
                         "\n   typedef struct {" 

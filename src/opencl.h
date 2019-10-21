@@ -12,9 +12,12 @@
 #ifndef STEENROD_OPENCL
 #define STEENROD_OPENCL
 
+#define CL_TARGET_OPENCL_VERSION 120
+
 #include <CL/cl.h>
 #include <tcl.h>
 #include "poly.h"
+#include <stddef.h>
 
 #define MAXQUEUE 5
 
