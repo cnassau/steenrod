@@ -38,7 +38,7 @@ namespace eval ::steenrod::cl {
         if {1 < [llength $answers]} {
             error "More than one OpenCL device found. Set YACOP_OPENCL_DEVICE to pick one of '[join $keys {', '}]'"
         }
-        platform context [namespace current]::ctx $platformid $deviceid
+        platform context [namespace current]::ctx {*}[lindex $answers 0]
         ctx setcontext
     }
 
@@ -171,7 +171,7 @@ namespace eval ::steenrod::cl {
                 $DTP b=1;
                 for(;b;b<<=1) {
                     if(0 == colcnt--) printf("|");
-                    printf("%d",(val&b)?1:0);
+                    //printf("%d",(val&b)?1:0);
                 }
             }
             void kbprintrow$SIZE(global $DTP *data, int ncols) {
@@ -183,7 +183,7 @@ namespace eval ::steenrod::cl {
             }
             void kbprintmat$SIZE(global $DTP *data, int nrows, int ncols, int ipr) {
                 for(int i=0;i<nrows;i++,data += ipr) {
-                    printf("%3d:",i);
+                    //printf("%3d:",i);
                     kbprintrow$SIZE(data,ncols);
                 }
             }
@@ -205,7 +205,7 @@ namespace eval ::steenrod::cl {
                                      global $DTP *unitmat,
                                      int urows, int ucols, int upr,
                                      int rownum) {
-                printf("row %d: pivot=%d\n",rownum,*pivot);
+                //printf("row %d: pivot=%d\n",rownum,*pivot);
                 kbprintmat$SIZE(data,nrows,ncols,ipr);
                 kbprintmat$SIZE(unitmat,urows,ucols,upr);
             }
@@ -221,7 +221,7 @@ namespace eval ::steenrod::cl {
                 int row = get_global_id(1), col = get_global_id(0);
                 if(~0 == *pivot) {
                     // row is in kernel
-                    if(0==col && row == baserow+1) printf("row %d in kernel\n",baserow);
+                    //if(0==col && row == baserow+1) printf("row %d in kernel\n",baserow);
                     return;
                 }
                 $DTP pval = data[row*ipr+*pivot];
@@ -271,8 +271,8 @@ namespace eval ::steenrod::cl {
                 int kerdim=0;
 
                 if(get_global_id(0)==0) {
-                    printf("size=%d, ncols=%d, numblocks=%d, maskatlastblock=%FMT\n",$SIZE,ncols,numblocks,maskatlastblock);
-                    printf("kernbasis$SIZE: gsz=%d, lsz =%d, nrows=%d, ncols=%d, ipr=%d, uipr=%d, kbflag=%p\n",get_global_size(0),get_local_size(0),nrows,ncols,ipr,uipr,kbflag);
+                    //printf("size=%d, ncols=%d, numblocks=%d, maskatlastblock=%FMT\n",$SIZE,ncols,numblocks,maskatlastblock);
+                    //printf("kernbasis$SIZE: gsz=%d, lsz =%d, nrows=%d, ncols=%d, ipr=%d, uipr=%d, kbflag=%p\n",get_global_size(0),get_local_size(0),nrows,ncols,ipr,uipr,kbflag);
                 }
 
                 global $DTP *kbptr = kbflag;
@@ -298,7 +298,7 @@ namespace eval ::steenrod::cl {
                     barrier(CLK_LOCAL_MEM_FENCE); // use *pivot
                     if(0) {
                         if(get_global_id(0)==0) {
-                            printf("rownum=%d\n",rownum);
+                            //printf("rownum=%d\n",rownum);
                             kbprintmat$SIZE(data,nrows,ncols,ipr);
                         }
                         barrier(CLK_LOCAL_MEM_FENCE); // print matrix
@@ -352,11 +352,11 @@ namespace eval ::steenrod::cl {
                     printf("kb=");
                     for(int j=0;j<nrows;j+=$SIZE) {
                         $DTP d = *kbptr; kdim += BITCOUNT(d);
-                        printf("%FMT",*kbptr++);
+                        //printf("%FMT",*kbptr++);
                     }
                     $DTP d = *kbptr; kdim += BITCOUNT(d);
-                    printf("%FMT / kdim = %d / kerdim = %d\n",*kbptr,kdim,kerdim);
-                    printf("using %d bytes for kbptr\n",kbptr-kbflag);
+                    //printf("%FMT / kdim = %d / kerdim = %d\n",*kbptr,kdim,kerdim);
+                    //printf("using %d bytes for kbptr\n",kbptr-kbflag);
                 }
 
             }
@@ -556,14 +556,15 @@ namespace eval ::steenrod::cl {
     append code {
         void print_steenrod(int issf, __global const uchar *a) {
             if(issf) {
-                printf("sf=Sq(%d,%d,%d,%d,%d,%d,%d,%d)",a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]);
+//                printf("sf=Sq(%d,%d,%d,%d,%d,%d,%d,%d)",a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]);
             } else {
-                printf("ff=Sq(%d,%d,%d,%d,%d,%d,%d,%d)",a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]);
+//                printf("ff=Sq(%d,%d,%d,%d,%d,%d,%d,%d)",a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]);
             }
         }
     }
 
     append code [AutoIndent [MultCode]]
+
 
     #puts code=$code
 
@@ -857,18 +858,42 @@ namespace eval ::steenrod::cl {
             buf::seqno dispose
         }
 
-        proc ComputeMatrix {enmsrc mmp enmdst -> clmat {eventlist {}} {waitvar {}} {desc {}}}  {
-            upvar 1 $clmat mat $waitvar wv
-            if {$desc eq ""} {
-                set desc "ComputeMatrix"
+        proc ComputeMatrix {options enmsrc mmp enmdst signaturevar matbufvar matdims waitvar bdy} {
+            upvar 1 $signaturevar sig $matdims dims $matbufvar buf $waitvar wv
+            variable matcnt
+            array set opt {
+                prefetch on
+                loop on
             }
-            set nrows [$enmsrc dimension]
-            set ncols [$enmdst dimension]
-            ::steenrod::matrix clalloc buf $N $M dimsvar
-            ::steenrod::cl::mat2::RunKernel zeromatrix $mdims evt
-            lappend eventlist $evt
-            ...
-            ::steenrod::matrix clload buf $dimsvar {} wv "$desc: fetch result"
+            array set opt $options
+            set mker ::steenrod::cl::kernels::computematrix 
+            $enmsrc sigreset
+            while on {
+                set sig [$enmsrc cget -signature]
+                $enmdst configure -signature $sig
+
+                $enmdst clmap ::steenrod::cl::buf::enumbuf ::steenrod::cl::buf::seqtabbuf ::steenrod::cl::buf::offsetbuf
+
+                set buf ::steenrod::cl::buf::cm[incr matcnt]
+                set nrows [$enmsrc dimension]
+                set ncols [$enmdst dimension]
+                ::steenrod::matrix clalloc $buf $N $M dims
+                ::steenrod::cl::mat2::RunKernel zeromatrix $mdims zeromat
+
+                set srcoff 0
+                $enmsrc clbasis len gen bufsrc w {
+                    set bsrc ::steenrod::cl::buf::cm[incr matcnt]
+                    steenrod::poly clgensplit [$mmp get [list 1 0 {} $gen]] len2 gen2 bufdg wv {
+                        $mker setarg integer 0 0
+                        ...
+
+                    }
+                    incr srcoff $len
+                }
+
+            }
+            
+            #::steenrod::matrix clload buf $dimsvar {} wv "$desc: fetch result"
         }
 
         proc ComputeMatrixAll {enmsrc mmp enmdst matvar bdy} {
