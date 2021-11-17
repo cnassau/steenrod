@@ -885,7 +885,7 @@ void hmapDestroy(hmap *hm) {
 
 typedef enum { ADD, LIST, SELECT } hmapcmdcode;
 
-static CONST char *cmdNames[] = { "add", "list", "select", (char *) NULL };
+static const char *cmdNames[] = { "add", "list", "select", (char *) NULL };
 
 static hmapcmdcode cmdmap[] = { ADD, LIST, SELECT };
 
@@ -942,7 +942,7 @@ void Tcl_DestroyHmap(ClientData cd) {
 }
 
 int Tcl_CreateHmapCmd(ClientData cd, Tcl_Interp *ip,
-                      int objc, Tcl_Obj * CONST objv[]) {
+                      int objc, Tcl_Obj * const objv[]) {
     hmap *hm;
     int nm, ni;
 

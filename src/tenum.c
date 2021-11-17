@@ -104,7 +104,7 @@ int *getGenList(Tcl_Interp *ip, Tcl_Obj *obj, int *length) {
     return res;
 }
 
-static CONST char *typeNames[] = { "positive", "negative", NULL };
+static const char *typeNames[] = { "positive", "negative", NULL };
 
 int checkForType(Tcl_Interp *ip, Tcl_Obj *obj, int *ispos) {
     int index;
@@ -194,7 +194,7 @@ static Tcl_Obj *ourNegObj; /* always holds the value "negative" */
 typedef enum  { PRIME, ALGEBRA, PROFILE, SIGNATURE,
                 TYPE, IDEG, EDEG, HDEG, GENLIST } enumoptcode;
 
-static CONST char *optNames[] = { "-prime", "-algebra", "-profile", "-signature",
+static const char *optNames[] = { "-prime", "-algebra", "-profile", "-signature",
                                   "-type", "-ideg", "-edeg", "-hdeg", "-genlist",
                                   (char *) NULL };
 
@@ -854,7 +854,7 @@ typedef enum { CGET, CONFIGURE, BASIS, SEQNO, SEQNOMOT, DIMENSION, TEST,
                SIGRESET, SIGNEXT, SIGLIST, DECODE, ENCODE, ENM_MAX, ENM_MIN,
                CLMAP, CLBASIS } enumcmdcode;
 
-static CONST char *cmdNames[] = { "test", "cget", "configure", "min", "max",
+static const char *cmdNames[] = { "test", "cget", "configure", "min", "max",
                                   "basis", "seqno", "motseqno", "dimension",
                                   "sigreset", "signext", "siglist",
                                   "decode", "encode",
@@ -867,7 +867,7 @@ static enumcmdcode cmdmap[] = { TEST, CGET, CONFIGURE, ENM_MIN, ENM_MAX,
                                 DECODE, ENCODE,
                                 CLMAP, CLBASIS };
 
-static CONST char *degNames[] = { "idegree", "edegree", "hdegree", "generator", (char *) NULL };
+static const char *degNames[] = { "idegree", "edegree", "hdegree", "generator", (char *) NULL };
 
 int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
                       int objc, Tcl_Obj * const objv[]) {
@@ -1070,7 +1070,7 @@ enumerator *Tcl_EnumFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
 }
 
 int Tcl_CreateEnumCmd(ClientData cd, Tcl_Interp *ip,
-                      int objc, Tcl_Obj * CONST objv[]) {
+                      int objc, Tcl_Obj * const objv[]) {
     tclEnum *te;
 
     if (objc < 2) {

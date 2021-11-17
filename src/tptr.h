@@ -73,7 +73,7 @@ void TPtr_RegObjType(int type, Tcl_ObjType *obtype);
  * types given as extra args. On failure it leaves an error message 
  * in ip's result variable. 
  */
-int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[], ...);
+int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], ...);
 
 /* a few helper functions & macros */
 Tcl_Obj *Tcl_ListFromArray(int len, int *list) ;

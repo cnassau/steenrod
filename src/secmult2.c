@@ -387,7 +387,7 @@ int Secmult(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-int SecmultCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+int SecmultCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
 
     polyType *ptp1, *ptp2, *ptp3;
     void *pol1, *pol2, *pol3;

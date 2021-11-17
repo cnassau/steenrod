@@ -82,7 +82,7 @@ void DeleteParser(Parser * p) {
 
 typedef enum { PPARSE, PRESET, PFEED, PTRACE } pcmdcode;
 
-static CONST char *pCmdNames[] = { "parse", "reset", "feed", "trace",
+static const char *pCmdNames[] = { "parse", "reset", "feed", "trace",
                                    (char *) NULL };
 
 static pcmdcode pCmdmap[] = { PPARSE, PRESET, PFEED, PTRACE };
@@ -90,7 +90,7 @@ static pcmdcode pCmdmap[] = { PPARSE, PRESET, PFEED, PTRACE };
 int ParserObjCmdProc(ClientData clientData,
                      Tcl_Interp *interp,
                      int objc,
-                     Tcl_Obj *CONST objv[]) {
+                     Tcl_Obj *const objv[]) {
 
     Parser *p = (Parser *) clientData;
     Tcl_Interp *ip = p->ip;
@@ -202,7 +202,7 @@ void ParserDeleteProc(ClientData clientData)
 int ParserCreateProc(ClientData clientData,
                      Tcl_Interp *interp,
                      int objc,
-                     Tcl_Obj *CONST objv[]) {
+                     Tcl_Obj *const objv[]) {
 
     Parser *pxx;
 

@@ -266,7 +266,7 @@ typedef enum {
     REGISTER, CONVERT, VALUE, EVAL, TYPEINFO, SETANYMODE, GETSTRING
 } ScrobjCmdCode;
 
-static CONST char *ScrobjCmdNames[] = {
+static const char *ScrobjCmdNames[] = {
     "register", "convert", "value", "eval", "info", "setmode",
     "getstring", NULL
 };
@@ -279,7 +279,7 @@ typedef enum {
     LOCAL, REMOTE
 } ScrobjConvertOption;
 
-static CONST char *ScrobjConvertOptionNames[] = {
+static const char *ScrobjConvertOptionNames[] = {
     "local", "remote", NULL
 };
 
@@ -287,7 +287,7 @@ static ScrobjConvertOption ScrobjConvertOptionmap[] = {
     LOCAL, REMOTE
 };
 
-int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+int ScrobjyCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
     int index, result;
     Tcl_HashTable *TypeTablePtr = (Tcl_HashTable *) cd;
 

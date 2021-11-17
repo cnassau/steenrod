@@ -296,7 +296,7 @@ ckArgsErr(ip, Tcl_GetString(*objvorig), &ap, pos, msg);    \
 va_end(ap);                                                \
 return TCL_ERROR; } while (0)
 
-int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
+int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * const objv[], ...) {
     va_list ap;
     int type, lasttype; 
     int pos = 0;
@@ -305,7 +305,7 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * CONST objv[], ...) {
 
     TPtrTypeInfo *tpi;
 
-    Tcl_Obj * CONST *objvorig = objv; /* backup copy */
+    Tcl_Obj * const *objvorig = objv; /* backup copy */
   
     /* skip program name */
     objc--; objv++;

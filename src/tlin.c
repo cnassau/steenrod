@@ -767,7 +767,7 @@ Tcl_Obj *TakeVectorFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
 typedef enum { ENCHEX } enctype;
 
-static CONST char *encnames[] = {"hex", (char *)NULL};
+static const char *encnames[] = {"hex", (char *)NULL};
 
 /* static enctype encmap[] = { ENCHEX }; */
 
@@ -1203,7 +1203,7 @@ int MatrixCLMapPostProc(ClientData data[], Tcl_Interp *ip, int result) {
         return TCL_ERROR;                                                      \
     }
 
-static CONST char *rcnames[] = {"rows", "cols", "single-row", "single-column",
+static const char *rcnames[] = {"rows", "cols", "single-row", "single-column",
                                 NULL};
 
 typedef enum {
@@ -1230,7 +1230,7 @@ typedef enum {
     CLENQREAD
 } matcmdcode;
 
-static CONST char *mCmdNames[] = {
+static const char *mCmdNames[] = {
     "orthonormalize", "lift",   "liftvar", "quotient", "extract",
     "dimensions",     "create", "addto",   "iszero",   "test",
     "encode64",       "decode", "type",    "convert2", "multiply",
@@ -1242,7 +1242,7 @@ static matcmdcode mCmdmap[] = {ORTHO,    LIFT,   LIFTV, QUOT,     EXTRACT,
                                UNIT,     CONCAT, CLMAP, CLALLOC, CLCREATE, CLENQREAD};
 
 int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                      Tcl_Obj *CONST objv[]) {
+                      Tcl_Obj *const objv[]) {
     int result, index, scale, modval, rows, cols;
     primeInfo *pi;
     matrixType *mt;
@@ -1851,7 +1851,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 }
 
 int MatrixCombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                   Tcl_Obj *CONST objv[]) {
+                   Tcl_Obj *const objv[]) {
     return Tcl_NRCallObjProc(ip, MatrixNRECombiCmd, cd, objc, objv);
 }
 

@@ -26,7 +26,7 @@
 
 typedef enum { TEST, MAXPOW, TPMO, N, PRIMPOWS, RDEGS, EDEGS, INVERSE, BINOM, BINOM2 } ecmdcode;
 
-static CONST char *eCmdNames[] = { "test", "maxpower", "tpmo", "NALG", "powers",
+static const char *eCmdNames[] = { "test", "maxpower", "tpmo", "NALG", "powers",
                                    "rdegrees", "edegrees", "inverse", "binom", "binom2",
                                    (char *) NULL };
 
@@ -36,7 +36,7 @@ static ecmdcode eCmdmap[] = { TEST, MAXPOW, TPMO, N, PRIMPOWS,
 #define EXPECTARGS(num,msg) \
  { if (objc != (num)) { Tcl_WrongNumArgs(ip, 3, objv, msg); return TCL_ERROR; } }
 
-int PrimeCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[])
+int PrimeCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[])
  {
     int result, index, a, b;
     primeInfo *pi;

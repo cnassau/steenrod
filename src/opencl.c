@@ -58,7 +58,7 @@ int STcl_SetEventCB(cl_event evt, Tcl_Obj *obj) {
 }
 
 int stclEventLogCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                       Tcl_Obj *CONST objv[]) {
+                       Tcl_Obj *const objv[]) {
     if(objc != 1) {
         Tcl_WrongNumArgs(ip, 1, objv, "");
         return TCL_ERROR;
@@ -303,7 +303,7 @@ static Tcl_Obj *stclDeviceInfo(cl_device_id d) {
     ADDDEVINFO_INT(d, ans, CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_CLOCK_FREQUENCY);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_COMPUTE_UNITS);
-    ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_CONSTANT_ARGS);
+    ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_constANT_ARGS);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_READ_IMAGE_ARGS);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_SAMPLERS);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS);
@@ -334,7 +334,7 @@ static Tcl_Obj *stclDeviceInfo(cl_device_id d) {
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_GLOBAL_MEM_CACHE_SIZE);
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_GLOBAL_MEM_SIZE);
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_LOCAL_MEM_SIZE);
-    ADDDEVINFO_LONG(d, ans, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE);
+    ADDDEVINFO_LONG(d, ans, CL_DEVICE_MAX_constANT_BUFFER_SIZE);
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_MAX_MEM_ALLOC_SIZE);
     ADDDEVINFO_SIZET(d, ans, CL_DEVICE_IMAGE2D_MAX_HEIGHT);
     ADDDEVINFO_SIZET(d, ans, CL_DEVICE_IMAGE2D_MAX_WIDTH);
@@ -426,12 +426,12 @@ static Tcl_Obj *stclPlatformInfo(cl_platform_id p, int withdevices) {
 
 typedef enum { MEM_INFO, MEM_SIZE, MEM_DISPOSE } memcmdcode;
 
-static CONST char *memcmdnames[] = {"info", "size", "dispose", (char *)NULL};
+static const char *memcmdnames[] = {"info", "size", "dispose", (char *)NULL};
 
 static memcmdcode memcmdmap[] = {MEM_INFO, MEM_SIZE, MEM_DISPOSE};
 
 int stclMemObjCommandInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                                 Tcl_Obj *CONST objv[]) {
+                                 Tcl_Obj *const objv[]) {
     cl_mem p = (cl_mem)cd;
 
     int result, index;
@@ -508,13 +508,13 @@ int GetMemFlagFromTclObj(Tcl_Interp *ip, Tcl_Obj *obj, int *ans) {
 
 typedef enum { KERN_WGINFO, KERN_SETARG } kerncmdcode;
 
-static CONST char *kerncmdnames[] = {"workgroupinfo", "setarg", (char *)NULL};
+static const char *kerncmdnames[] = {"workgroupinfo", "setarg", (char *)NULL};
 
 static kerncmdcode kerncmdmap[] = {KERN_WGINFO, KERN_SETARG};
 
 typedef enum { KA_INT, KA_BUFFER, KA_LOCAL, KA_DOUBLE, } kacode;
 
-static CONST char *kanames[] = {"integer", "buffer", "local", "double", (char *)NULL};
+static const char *kanames[] = {"integer", "buffer", "local", "double", (char *)NULL};
 
 static kacode kamap[] = {KA_INT, KA_BUFFER, KA_LOCAL, KA_DOUBLE};
 
@@ -551,7 +551,7 @@ void AddKerWGInfo(cl_kernel k, cl_device_id d, Tcl_Interp *ip, const char *name,
 }
 
 int stclKernelInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                          Tcl_Obj *CONST objv[]) {
+                          Tcl_Obj *const objv[]) {
     stcl_kernel *p = (stcl_kernel *)cd;
 
     int result, index;
@@ -654,12 +654,12 @@ void stclKernelInstanceDestructor(ClientData cd) {
 
 typedef enum { PROG_LIST, PROG_KERNEL } progcmdcode;
 
-static CONST char *progcmdnames[] = {"list", "kernel", (char *)NULL};
+static const char *progcmdnames[] = {"list", "kernel", (char *)NULL};
 
 static progcmdcode progcmdmap[] = {PROG_LIST, PROG_KERNEL};
 
 int stclProgramInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                           Tcl_Obj *CONST objv[]) {
+                           Tcl_Obj *const objv[]) {
     cl_program p = (cl_program)cd;
 
     int result, index;
@@ -797,7 +797,7 @@ typedef enum {
     CTX_SETCONTEXT
 } ctxcmdcode;
 
-static CONST char *ctxcmdnames[] = {
+static const char *ctxcmdnames[] = {
     "platform", "device",  "program", "profiling", "enqndr",
     "enqtask",  "barrier", "finish",  "eventinfo", "setcontext", (char *)NULL};
 
@@ -808,7 +808,7 @@ static ctxcmdcode ctxcmdmap[] = {
     CTX_SETCONTEXT};
 
 int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                           Tcl_Obj *CONST objv[]) {
+                           Tcl_Obj *const objv[]) {
     stcl_context *dev = (stcl_context *)cd;
     int result, index;
     if (objc < 2) {
@@ -1130,12 +1130,12 @@ void clnotifycb(const char *errinfo, const void *private_info, size_t cb,
 
 typedef enum { PL_LIST, PL_CONTEXT } plcmdcode;
 
-static CONST char *plcmdnames[] = {"list", "context", (char *)NULL};
+static const char *plcmdnames[] = {"list", "context", (char *)NULL};
 
 static plcmdcode plcmdmap[] = {PL_LIST, PL_CONTEXT};
 
 int stclPlatformCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                    Tcl_Obj *CONST objv[]) {
+                    Tcl_Obj *const objv[]) {
     int result, index;
 
     if (objc < 2) {
@@ -1256,7 +1256,7 @@ int STcl_GetMemObjFromObj(Tcl_Interp *ip, Tcl_Obj *obj, cl_mem *memptr) {
     return TCL_ERROR;
 }
 
-int stclEventMoveCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+int stclEventMoveCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
     if (objc != 3) {
         Tcl_WrongNumArgs(ip, 1, objv, "oldvarname newvarname");
         return TCL_ERROR;
@@ -1272,7 +1272,7 @@ int stclEventMoveCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST obj
 }
 
 int stclEventWaitCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                     Tcl_Obj *CONST objv[]) {
+                     Tcl_Obj *const objv[]) {
     if (objc != 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "eventlist");
         return TCL_ERROR;
@@ -1302,7 +1302,7 @@ int stclEventWaitCmd(ClientData cd, Tcl_Interp *ip, int objc,
     return TCL_OK;
 }
 
-int stclBufferAllocCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+int stclBufferAllocCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
     if (objc < 3 || objc > 4) {
         Tcl_WrongNumArgs(ip, 1, objv, "bufname size ?flags?");
         return TCL_ERROR;
@@ -1329,7 +1329,7 @@ int stclBufferAllocCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST o
     return TCL_OK;                           
 }
 
-int stclBufferCreateCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+int stclBufferCreateCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
     if (objc < 3 || objc > 4) {
         Tcl_WrongNumArgs(ip, 1, objv, "bufname varname ?flags?");
         return TCL_ERROR;
@@ -1368,7 +1368,7 @@ int stclBufferCreateCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST 
 }
 
 int stclBufferValueCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                       Tcl_Obj *CONST objv[]) {
+                       Tcl_Obj *const objv[]) {
     if (objc != 3) {
         Tcl_WrongNumArgs(ip, 1, objv, "buffer varname");
         return TCL_ERROR;

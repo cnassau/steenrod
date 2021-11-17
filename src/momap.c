@@ -124,7 +124,7 @@ int momapSetValPtr(momap *mo, Tcl_Obj *key, Tcl_Obj *val) {
 
 typedef enum { CLEAR, SET, GET, LIST, UNSET, ADD, APPEND } momacmdcode;
 
-static CONST char *cmdNames[] = { "clear", "set", "get", "list", "unset", "add", "append",
+static const char *cmdNames[] = { "clear", "set", "get", "list", "unset", "add", "append",
                                   (char *) NULL };
 
 static momacmdcode cmdmap[] = { CLEAR, SET, GET, LIST, UNSET, ADD, APPEND };
@@ -283,7 +283,7 @@ momap *Tcl_MomapFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
 
 
 int Tcl_CreateMomaCmd(ClientData cd, Tcl_Interp *ip,
-                      int objc, Tcl_Obj * CONST objv[]) {
+                      int objc, Tcl_Obj * const objv[]) {
     momap *mo;
 
     if (objc != 2) {

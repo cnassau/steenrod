@@ -561,7 +561,7 @@ int Tcl_PolyForeachProc(Tcl_Interp *ip, Tcl_Obj *src,
  * If x is too big for the objv array the monomial is forgotten. */
 
 int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
-                      Tcl_Obj * CONST objv[], Tcl_Obj **res) {
+                      Tcl_Obj * const objv[], Tcl_Obj **res) {
 
     polyType *pt; void *pdat;
     int pns, idx, i, x;
@@ -895,7 +895,7 @@ typedef enum { CREATE, TEST, INFO, APPEND, CANCEL, ADD, POSMULT, NEGMULT,
                STEENMULT, VARAPPEND, VARCANCEL, SHIFT, REFLECT,
                COMPARE, SPLIT, VARSPLIT, COEFF, FOREACH, EBPMULT, MOTATE, ETATOM, CLGSPLIT } pcmdcode;
 
-static CONST char *pCmdNames[] = { "create", "test", "info", "append", "cancel",
+static const char *pCmdNames[] = { "create", "test", "info", "append", "cancel",
                                    "add", "posmult", "negmult", "steenmult",
                                    "varappend", "varcancel", "shift", "reflect",
                                    "compare", "split", "varsplit", "coeff",
@@ -907,7 +907,7 @@ static pcmdcode pCmdmap[] = { CREATE, TEST, INFO, APPEND, CANCEL, ADD,
                               SHIFT, REFLECT, COMPARE, SPLIT, VARSPLIT, COEFF,
                               FOREACH, EBPMULT, MOTATE, ETATOM, CLGSPLIT };
 
-int PolyNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+int PolyNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
     int result, index, scale, modval;
     primeInfo *pi;
     exmo *ex;
@@ -1306,7 +1306,7 @@ int PolyNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv
 }
 
 int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
-                   Tcl_Obj *CONST objv[]) {
+                   Tcl_Obj *const objv[]) {
     return Tcl_NRCallObjProc(ip, PolyNRECombiCmd, cd, objc, objv);
 }
 
@@ -1315,7 +1315,7 @@ int PolyCombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 typedef enum { MTEST, ISABOVE, ISBELOW, MCOMPARE, LENGTH, RLENGTH, PADDING,
                GEN, MCOEFF, MEXT, MEXP, MDEG, MRDEG, MEDEG } mcmdcode;
 
-static CONST char *mCmdNames[] = { "test", "isabove", "isbelow", "compare",
+static const char *mCmdNames[] = { "test", "isabove", "isbelow", "compare",
                                    "length", "rlength", "padding",
                                    "gen", "coeff", "exterior", "exponent",
                                    "degree", "rdegree", "edegree",
@@ -1324,7 +1324,7 @@ static CONST char *mCmdNames[] = { "test", "isabove", "isbelow", "compare",
 static mcmdcode mCmdmap[] = { MTEST, ISABOVE, ISBELOW, MCOMPARE, LENGTH, RLENGTH, PADDING,
                               GEN, MCOEFF, MEXT, MEXP, MDEG, MRDEG, MEDEG };
 
-int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *CONST objv[]) {
+int MonoCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
     int result, index;
     primeInfo *pi;
 

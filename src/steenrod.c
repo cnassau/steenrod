@@ -40,7 +40,7 @@ void SignalHandler(int c) {
 #endif
 
 int InterruptibleCmd(ClientData cd, Tcl_Interp *ip,
-		     int objc, Tcl_Obj * CONST objv[]) {
+		     int objc, Tcl_Obj * const objv[]) {
     int rc;
     void (*sigint)(int);
 
@@ -375,7 +375,7 @@ int MakeMatrixSameSig(Tcl_Interp *ip, enumerator *src, momap *map, enumerator *d
 }
 
 int TMakeMatrixSameSig(ClientData cd, Tcl_Interp *ip,
-                       int objc, Tcl_Obj * CONST objv[]) {
+                       int objc, Tcl_Obj * const objv[]) {
 
     enumerator *src, *dst;
     momap *map;
@@ -549,7 +549,7 @@ int MakeImages(Tcl_Interp *ip, Tcl_Obj *plist, momap *map, enumerator *dst,
 }
 
 int TMakeImages(ClientData cd, Tcl_Interp *ip,
-                int objc, Tcl_Obj * CONST objv[]) {
+                int objc, Tcl_Obj * const objv[]) {
 
     enumerator *dst;
     momap *map;
@@ -615,7 +615,7 @@ int TMakeImages(ClientData cd, Tcl_Interp *ip,
  * for sqlite if value should be treated as blob */
 
 int MakeBinaryCmd(ClientData cd, Tcl_Interp *ip,
-                  int objc, Tcl_Obj * CONST objv[]) {
+                  int objc, Tcl_Obj * const objv[]) {
     Tcl_ObjType *bin = (Tcl_ObjType *) cd;
     Tcl_Obj *res = objv[1];
 
@@ -638,7 +638,7 @@ int MakeBinaryCmd(ClientData cd, Tcl_Interp *ip,
 
 #define STEALCOMMAND "StealStringRep"
 int StealStringRep(ClientData cd, Tcl_Interp *ip,
-                   int objc, Tcl_Obj * CONST objv[]) {
+                   int objc, Tcl_Obj * const objv[]) {
     Tcl_Obj *obj;
 
     if (objc != 2)
@@ -654,7 +654,7 @@ int StealStringRep(ClientData cd, Tcl_Interp *ip,
 }
 
 int GetRefCount(ClientData cd, Tcl_Interp *ip,
-                int objc, Tcl_Obj * CONST objv[]) {
+                int objc, Tcl_Obj * const objv[]) {
     if (objc != 2) {
         Tcl_SetResult(ip, "usage: ", TCL_STATIC);
         Tcl_AppendResult(ip, Tcl_GetString(objv[0]), " <argument>", NULL);
@@ -667,7 +667,7 @@ int GetRefCount(ClientData cd, Tcl_Interp *ip,
 }
 
 int VersionCmd(ClientData cd, Tcl_Interp *ip,
-               int objc, Tcl_Obj * CONST objv[]) {
+               int objc, Tcl_Obj * const objv[]) {
     Tcl_SetResult(ip, PACKAGE_NAME "-" PACKAGE_VERSION
 #ifdef USESSE2
                   "-sse2"
