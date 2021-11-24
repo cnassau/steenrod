@@ -1,0 +1,58 @@
+# -*- tcl -*-
+#
+# This file provides a test suite for the signature decomposition
+# and the computation of the signature preserving parts of differentials
+#
+# Copyright (C) 2021 Christian Nassau <nassau@nullhomotopie.de>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+source [file join [file dir [info script]] matsig.tcl]
+
+# --- verify computation of some matrices in the minimal resolution for p=2
+
+source [file join [file dirname [info script]] matsig.res2]
+
+test "matsig resolution 2" "matrix 40" -body {
+    test-matrix 40 0 -> mat
+} -constraints BIGTEST -result {23 41 a198263552080a60b703943a3fa6d313}
+
+test "matsig resolution 2" "signature decomposition" -body {
+    test-profile mat {0 0 {2 1} 0}
+} -constraints BIGTEST -result {
+    3 6 9ad2743497e16e53a6d32f0b7c1f982c
+    5 5 17ebecfae5c7abedbc17043b84f91499
+    4 8 7c49a3537418b687207d35859f63ca54
+    3 6 b5367bba24865d7bc82200e5ac6881eb
+    3 6 b5367bba24865d7bc82200e5ac6881eb
+    2 4 4b4f8f975e023022a94a2957ef9f2b73
+    2 3 52dfcf3a483bd803e4c72029735085f8
+    1 3 a0200bb9f5aab95810d393e3caf17575
+} -match list
+
+test "matsig resolution 2" "matrix 80" -body {
+    test-matrix 80 0 -> mat
+} -constraints BIGTEST -result {249 341 dc3d77238dc5a5a04780cc79d9579e52}
+
+test "matsig resolution 2" "signature decomposition" -body {
+    test-profile mat {0 0 {0 2 1} 0}
+} -constraints BIGTEST -result {
+    57 74 446a088985169f5838a97076eb50cdfc
+    46 62 a5195922d1544f69259185867205af42
+    35 48 fd64f61623d10e7c904bd638e90325b5
+    25 34 4947dfe7e5921056b5454cd84f058d8a
+    31 43 ac9c049065b61704bc51c832cb676e44
+    23 32 1de52df4ac843af64c70896f933c0026
+    19 27 de3505173b2b7b58b748ce8a53d95847
+    13 21 c9efdfcef2043b3bae09ed89e634f2c2
+} -match list
+
+
+# --------------------------------------------------------------------------
+
+# cleanup
+::tcltest::cleanupTests
+return

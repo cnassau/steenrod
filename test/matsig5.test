@@ -1,0 +1,113 @@
+# -*- tcl -*-
+#
+# This file provides a test suite for the signature decomposition
+# and the computation of the signature preserving parts of differentials
+#
+# Copyright (C) 2021 Christian Nassau <nassau@nullhomotopie.de>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+source [file join [file dir [info script]] matsig.tcl]
+
+# --- verify computation of some matrices in the minimal resolution for p=5
+
+source [file join [file dirname [info script]] matsig.res5]
+
+test "matsig resolution 5" "matrix 520" -body {
+    test-matrix 520 0 -> mat
+} -constraints BIGTEST -result {41 52 05cabee47124670b37c0509bf491e81b}
+
+test "matsig resolution 5" "signature decomposition" -body {
+    test-profile mat {0 0 {2 1} 0}
+} -constraints BIGTEST -result {
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 2 f021ec385d5cd07d048684c2ca2ec195
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    2 1 27a3f1a3d555387ab7bf589ca716c295
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    2 1 27a3f1a3d555387ab7bf589ca716c295
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 2 f021ec385d5cd07d048684c2ca2ec195
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    2 1 27a3f1a3d555387ab7bf589ca716c295
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 2 f021ec385d5cd07d048684c2ca2ec195
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    2 1 27a3f1a3d555387ab7bf589ca716c295
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 2 f021ec385d5cd07d048684c2ca2ec195
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    2 1 27a3f1a3d555387ab7bf589ca716c295
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    1 2 f021ec385d5cd07d048684c2ca2ec195
+    1 1 cfcd208495d565ef66e7dff9f98764da
+} -match list
+
+test "matsig resolution 5" "matrix 380" -body {
+    test-matrix 380 4 -> mat
+} -constraints BIGTEST -result {185 140 a897fe09caedbf62f012abfed348b6bb}
+
+test "matsig resolution 5" "signature decomposition" -body {
+    test-profile mat {0 14 {0 2 1} 0}
+} -constraints BIGTEST -result {
+    4 1 be99a9fcd125d201c39eab692b6cab38
+    4 1 3fc7c359e4cde1607bba71bcd6f778a4
+    4 1 e95c47686fd61c478044fe1ce5e5be60
+    4 1 3967b5cfbeed3eb2766bfb8521c872ec
+    3 1 e041eac72e668a2a6ef96f896dd044e3
+    3 1 7425692ceea385cbe185e2807a899c5f
+    3 1 343398fda015b7f11fa9cae873ecc423
+    3 1 fb18d799a13830e9fc871cf2e9abe099
+    3 1 7425692ceea385cbe185e2807a899c5f
+    3 1 343398fda015b7f11fa9cae873ecc423
+    2 1 6f56517a024c64526d52b0cfdf038dfa
+    7 4 78e13254721775e0ace9668a48d2bda1
+    7 4 12c644ae7ca24fac9fcf9b39a8768f98
+    7 4 dae575c518c7a8e520b9848655c4e895
+    7 4 1309f8dcf11fb7e16bcdbaec8e262d68
+    4 3 77f0ff9a90dc52097646c9a15d05550b
+    4 3 b529d5641a9110cbf662d7df7233b240
+    4 3 c02690fd092e33f24fdf3dec6e3f61bb
+    1 2 616db7fa269efa2d23c915ff62df270b
+    4 3 7d799c6045578ce8235037d36b9ed14c
+    4 3 ae5b7b4d334f479e4d82c776b9ca28e1
+    7 4 5e2bae46b2cf9b998b68ea1e7a89096f
+    7 4 a4097af6a7e3db3d77aab477217e36e2
+    7 4 dee4ce0d5b05096f1dc9afed99c6b27b
+    5 3 dfc41bf09ac4202d48ac413f5c0ea4fc
+    4 3 37de2509bf9a747d608dd0179122bfcb
+    4 3 d797d22183bef264b9f01f384d40c788
+    3 3 43ab8445dd0b730ee6c641f9d17220cf
+    4 3 c02690fd092e33f24fdf3dec6e3f61bb
+    1 2 616db7fa269efa2d23c915ff62df270b
+    7 7 b768a318b03dc9023a1ef89d591e4957
+    7 7 a3def082beea9cf565707afb6f761bc7
+    7 7 1367b3f195b29e65ac9a0934a15e7cea
+    5 5 8f792f6f3d41b8dd2346c62dd0d1f1c6
+    4 4 ebe09d5eb9f18b93be14299dc1a75429
+    4 4 4d802c7c0b74846ec48f6b9cd4aba6fc
+    3 4 3346344e9891ec11fc2a24cb59552b9c
+    4 3 b529d5641a9110cbf662d7df7233b240
+    4 3 c02690fd092e33f24fdf3dec6e3f61bb
+    1 2 616db7fa269efa2d23c915ff62df270b
+    4 4 3a0385ef43bafdbfbeab23334161b6c9
+    3 4 3346344e9891ec11fc2a24cb59552b9c
+    4 4 4d802c7c0b74846ec48f6b9cd4aba6fc
+    1 3 55787427da85dbf04f57e6eef9a0d366
+} -match list
+
+# --------------------------------------------------------------------------
+
+# cleanup
+::tcltest::cleanupTests
+return

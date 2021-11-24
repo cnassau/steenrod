@@ -2,9 +2,7 @@
 #
 # This file provides a test suite for the enumerator functions
 #
-# Copyright (C) 2004 Christian Nassau <nassau@nullhomotopie.de>
-#
-#  $Id$
+# Copyright (C) 2004-2021 Christian Nassau <nassau@nullhomotopie.de>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -21,7 +19,7 @@ if {[file exists pkgIndex.tcl]} {
     source pkgIndex.tcl
     set auto_path something_useless
 }
-package require Steenrod 
+package require Steenrod
 
 namespace import -force steenrod::*
 
@@ -31,7 +29,7 @@ namespace import -force steenrod::*
 enumerator ENU
 set RES {}
 
-set XXX 0     ;# if 1 we create new test data 
+set XXX 0     ;# if 1 we create new test data
 set NTD   {}  ;# holds new test data
 
 proc do-test {name} {
@@ -51,19 +49,21 @@ proc do-test {name} {
             }
             sigcheck {
                 set expct [lindex $cmd 1]
-                # save signature 
+                # save signature
                 set sig [::ENU cget -signature]
                 set signum [llength [set siglist [::ENU siglist]]]
-                if {$XXX} { 
+                if {$XXX} {
                     lset cmd 1 $signum
-                    append NDATA "  { sigcheck $signum }\n" 
+                    append NDATA "  { sigcheck $signum }\n"
                 }
                 if {$expct != $signum} { lappend RES [list [::ENU conf] sigfail-1] }
                 ::ENU sigreset
                 set cnt 1
-                while {[::ENU signext]} { incr cnt }
-                if {$cnt != $signum} { 
-                    lappend RES [list [::ENU conf] sigfail-$cnt-vs-$signum] 
+                while {[::ENU signext]} {
+                    incr cnt
+                }
+                if {$cnt != $signum} {
+                    lappend RES [list [::ENU conf] sigfail-$cnt-vs-$signum]
                 }
                 # restore signature
                 ::ENU configure -signature $sig
@@ -75,19 +75,19 @@ proc do-test {name} {
                 # save internal degree
                 set idg [::ENU cget -ideg]
                 foreach {i d} $dlst {
-                    ::ENU configure -ideg $i 
+                    ::ENU configure -ideg $i
                     set val [::ENU dimension]
                     if {$val != $d} {
-                         lappend fail $i 
+                         lappend fail $i
                     }
                     lappend aux $i $val
-                } 
+                }
                 if {$XXX} { append NDATA "  { dimtest \{$aux\} }\n" }
                 if {[llength $fail]} { lappend RES [list [::ENU conf] dimtest $fail] }
                 # restore internal degree
                 ::ENU configure -ideg $idg
             }
-            seqtest { 
+            seqtest {
                 set dm [lindex $cmd 1]
                 if {$XXX} { append NDATA "  { [list seqtest $dm] }\n" }
                 # save internal degree
@@ -112,7 +112,7 @@ proc do-test {name} {
             }
         }
     }
-    append NTD "set enumtestdata($name) {\n$NDATA}\n\n" 
+    append NTD "set enumtestdata($name) {\n$NDATA}\n\n"
     set RES
 }
 
@@ -120,18 +120,18 @@ proc do-test {name} {
 
 array set enumtestdata {}
 
-# load data from previous runs for comparison 
+# load data from previous runs for comparison
 source [file join [file dirname [info script]] enum.data]
 
 # --------------------------------------------------------------------------
 
-# carry out the tests 
+# carry out the tests
 
 foreach name [lsort [array names enumtestdata]] {
     test enum-$name {} BIGTEST [list do-test $name] {}
 }
 
-if {$XXX} { 
+if {$XXX} {
     set ch [open enum.data w]
     puts $ch "# -*- tcl -*-"
     puts $ch "#"
@@ -215,9 +215,36 @@ test enum-1.6 {this was broken once} {
     set res
 } {{} {1 0 1 0} {1 0 2 0} {1 0 4 0} {1 0 8 0} {1 0 16 0} {1 0 32 0} {1 0 64 0} {1 0 128 0} {1 0 256 0}}
 
+# tests with extended profiles
+
+proc profile-decomposition-test {prime algebra profile ideg {edeg 0}} {
+    enumerator e -prime $prime -algebra $algebra -genlist {{0 0 0 0}} -ideg $ideg -edeg $edeg
+    set total [e dimension]
+    e configure -profile $profile
+    set pieces {}
+    set sum 0
+    e sigreset
+    while on {
+        incr sum [set ed [e dimension]]
+        if {$ed} {
+            lappend pieces $ed
+        }
+        if {![e signext]} break
+    }
+    if {$total != $sum} {
+        error "mismatch $total != $sum"
+    }
+    return $pieces
+}
+
+test profile-decomposition-5 {test signature decomposition} -body {
+   profile-decomposition-test 2 {0 0 {9 9 9 9 9 9 9 9} 0} {0 0 {3 3 2 1} 0} 80
+} -result {2 1 1 1 1 2 1 1 2 1 1 1 1 1 1 2 1 2 2 1 1 2 1 1 1 1 1 2 2 2 1 1 1 1 2 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1}
+
+
+
 # --------------------------------------------------------------------------
 
 # cleanup
 ::tcltest::cleanupTests
 return
-

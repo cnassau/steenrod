@@ -1,0 +1,121 @@
+# -*- tcl -*-
+#
+# This file provides a test suite for the signature decomposition
+# and the computation of the signature preserving parts of differentials
+#
+# Copyright (C) 2021 Christian Nassau <nassau@nullhomotopie.de>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+
+source [file join [file dir [info script]] matsig.tcl]
+
+# --- verify computation of some matrices in the minimal resolution for p=3
+
+source [file join [file dirname [info script]] matsig.res3]
+
+test "matsig resolution 3" "matrix 140" -body {
+    test-matrix 140 0 -> mat
+} -constraints BIGTEST -result {74 81 a7ba452a380519ed96a06c60ef8b7aa4}
+
+test "matsig resolution 3" "signature decomposition" -body {
+    test-profile mat {0 0 {2 1} 0}
+} -constraints BIGTEST -result {
+    4 3 56ccdce0ac66d62304524891a888c43f
+    5 5 42ad738aedf98767b6cd0a5940541f02
+    3 5 3428ab5e39b6fcb85ba302f36ff17415
+    4 3 a3402da21625defda22f06aa47f5ad17
+    4 4 86a1f5c74b7ff0f034c148746bbe1e88
+    4 6 91b58c88dc9d61a62f5f5c620096d15c
+    2 2 bfcf8f52c6aa8f2764d10bb61d395463
+    3 4 628d92bb023367c1f4100a052eec7e2e
+    3 3 f5ff207dd6dce5de3a9a3480e447651c
+    4 4 86a1f5c74b7ff0f034c148746bbe1e88
+    4 6 91b58c88dc9d61a62f5f5c620096d15c
+    2 2 bfcf8f52c6aa8f2764d10bb61d395463
+    3 4 628d92bb023367c1f4100a052eec7e2e
+    3 3 f5ff207dd6dce5de3a9a3480e447651c
+    2 2 e61c8ddc05d4a1145cf7e30ea7484838
+    2 2 0f3d2cb9959a0f8dd5d6d25765aa2c33
+    2 3 277a93652065b893080afdb71e5bcd30
+    2 1 27a3f1a3d555387ab7bf589ca716c295
+    3 3 f5ff207dd6dce5de3a9a3480e447651c
+    2 2 e61c8ddc05d4a1145cf7e30ea7484838
+    2 2 0f3d2cb9959a0f8dd5d6d25765aa2c33
+    2 3 277a93652065b893080afdb71e5bcd30
+    2 1 27a3f1a3d555387ab7bf589ca716c295
+    2 2 b5e0acc846a504bc58f4e82d705a461a
+    2 3 21e0090f80ec3816e3a18ffcdf8be54d
+    1 1 cfcd208495d565ef66e7dff9f98764da
+    2 2 a5d80d5289a7ada92bd970e9c823d1c8
+} -match list
+
+#while {[incr edeg]<15} { puts $edeg:[test-matrix 220 $edeg -> mmm] }
+
+test "matsig resolution 3" "matrix 120" -body {
+    test-matrix 120 4 -> mat
+} -constraints BIGTEST -result {203 189 2292fd2f2d3e94c70a7e77c3c5333d05}
+
+test "matsig resolution 3" "signature decomposition" -body {
+    test-profile mat {0 14 {0 2 1} 0}
+} -constraints BIGTEST -result {
+    4 1 e686dea3ffc3b3f552aa56c7b6abd66b
+    4 1 ebe8fac2ade2ea796dd6de85a3946f25
+    4 1 dc1a1a424e06fe518c9c1789d245fddd
+    4 1 c1230252e3a99fcbf47e80e60485c724
+    4 1 cb2fb83c36de558f95a17a3829b02056
+    4 1 efc489840ce4fd82bf38b097f945b172
+    2 1 75c124fae7a8b8b89183d4de196613b3
+    1 1 c4ca4238a0b923820dcc509a6f75849b
+    4 1 e89ec367701d1ec38d052a894c4a4875
+    4 1 efc489840ce4fd82bf38b097f945b172
+    3 1 6e0cf250d7d498ea80ffc2d2aad74ab8
+    2 1 31371f199688ae40ba84c37a303411be
+    1 1 c4ca4238a0b923820dcc509a6f75849b
+    1 1 c4ca4238a0b923820dcc509a6f75849b
+    7 4 7d4dea5c935316b4ed7db805f7833ee6
+    7 4 11f6bd8921501c1450a020466c4fde7c
+    6 4 b73c44e8714e340c45fde64caf3313b1
+    6 4 25877bae5d5fa3d3170493d2f6ffd7dd
+    5 4 5f063ffcb90cea647208e029147d93d7
+    3 3 58c814bf64cc607fa18c9b71ac770fcb
+    1 2 b5ef1c8565da9f8576e15017a62e2d90
+    6 4 0b0aef7413f3124c8471398d533dc22b
+    5 4 0a8a21ccd22334fde70ce6f8074a9812
+    3 3 5316fb48d275abb4f66ae21f4fc007dc
+    7 4 49b67e8d205c3c485ed745bff6aab0e7
+    7 4 4f5c191d5a6c1bae79352481c08c7e9b
+    6 4 4d1a81c81b554ad966cea3aaaa315830
+    5 4 2263d464ebdbc9c9196abd0b51f642a1
+    5 4 4c1dc4027803c49db1d38dbc3e6bdf43
+    1 2 acbf766ac932250579624873f4cef98a
+    5 4 5f063ffcb90cea647208e029147d93d7
+    3 3 58c814bf64cc607fa18c9b71ac770fcb
+    1 2 b5ef1c8565da9f8576e15017a62e2d90
+    10 9 162e21e70b02e767d9733aa4af97bdd9
+    7 8 af0a1f7476ed4f82651a870b9c91d77e
+    6 7 cf7dc8da01b44e1a2dbaec8fd946892d
+    4 6 d5028370cd892482757031409868316c
+    2 3 1a9c98c664bbd70c5da87984182c598d
+    3 6 4f8ff3585f9f4737099206d814fcfca4
+    2 3 5f914f3373d9fe2b72db42ea4fa90262
+    6 4 25877bae5d5fa3d3170493d2f6ffd7dd
+    5 4 5f063ffcb90cea647208e029147d93d7
+    3 3 58c814bf64cc607fa18c9b71ac770fcb
+    1 2 b5ef1c8565da9f8576e15017a62e2d90
+    6 7 5de261edaf1dca0c34ede75138519c1a
+    3 6 4f8ff3585f9f4737099206d814fcfca4
+    2 3 5f914f3373d9fe2b72db42ea4fa90262
+    4 6 d5028370cd892482757031409868316c
+    2 3 1a9c98c664bbd70c5da87984182c598d
+    4 7 2b062e19703b40fddc1b79b684379c03
+    2 3 277a93652065b893080afdb71e5bcd30
+} -match list
+
+# --------------------------------------------------------------------------
+
+# cleanup
+::tcltest::cleanupTests
+return
