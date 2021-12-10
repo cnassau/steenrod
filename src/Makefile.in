@@ -158,6 +158,10 @@ PKG_CFLAGS	= @PKG_CFLAGS@
 #DEFS		= $(TCL_DEFS) @DEFS@ $(PKG_CFLAGS)
 DEFS		= @DEFS@ $(PKG_CFLAGS)
 
+# http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
+DEPDIR := .deps
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
+
 # Move pkgIndex.tcl to 'BINARIES' var if it is generated in the Makefile
 CONFIG_CLEAN_FILES = Makefile pkgIndex.tcl
 CLEANFILES	= @CLEANFILES@
@@ -166,7 +170,7 @@ CPPFLAGS	= @CPPFLAGS@
 LIBS		= @PKG_LIBS@ @LIBS@
 AR		= @AR@
 CFLAGS		= @CFLAGS@
-COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+COMPILE		= $(CC) $(DEFS) $(DEPFLAGS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 
 #========================================================================
 # Start of user-definable TARGETS section
@@ -241,7 +245,7 @@ test-installation:
 	done
 
 .PHONY: test-installation
- 
+
 test: binaries libraries test-installation
 	$(TCLSH) `@CYGPATH@ $(srcdir)/../test/all.tcl` $(TESTFLAGS)
 
@@ -293,7 +297,7 @@ $(PKG_STUB_LIB_FILE): $(PKG_STUB_OBJECTS)
 
 VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win
 
-.c.@OBJEXT@:
+%.@OBJEXT@ : %.c $(DEPDIR)/%.d | $(DEPDIR)
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
 
 steenrodsh: ${PKG_SOURCES} ${TCL_LIB_FILE}
@@ -352,7 +356,7 @@ dist: dist-clean
 # variable in configure.in
 #========================================================================
 
-clean:  
+clean:
 	-test -z "$(BINARIES)" || rm -f $(BINARIES)
 	-rm -f *.$(OBJEXT) core *.core
 	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
@@ -450,3 +454,10 @@ uninstall-binaries:
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
+
+$(DEPDIR): ; @mkdir -p $@
+
+DEPFILES := $(PKG_SOURCES:%.c=$(DEPDIR)/%.d)
+$(DEPFILES):
+
+include $(wildcard $(DEPFILES))
