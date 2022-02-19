@@ -15,6 +15,7 @@
 #include "tprime.h"
 #include "tptr.h"
 #include "prime.h"
+#include "setresult.h"
 
 #define DBGPR if (0)
 

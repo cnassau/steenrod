@@ -13,6 +13,7 @@
  */
 
 #include <tcl.h>
+#include "setresult.h"
 
 #include <string.h>
 #include <stdlib.h>

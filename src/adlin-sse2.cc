@@ -12,6 +12,7 @@
 #include "adlin.h"
 #include "ssedefs.h"
 #include <tcl.h>
+#include "setresult.h"
 #include "linalg.h"
 
 #define  PROGVARINIT     \

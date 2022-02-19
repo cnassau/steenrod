@@ -16,6 +16,7 @@
 #include "tprime.h"
 #include "poly.h"
 #include "mult.h"
+#include "setresult.h"
 
 #if USEOPENCL
 #  include "opencl.h"

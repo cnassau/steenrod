@@ -14,6 +14,7 @@
 #define MOMAC
 
 #include <tcl.h>
+#include "setresult.h"
 #include <string.h>
 #include "tprime.h"
 #include "tpoly.h"

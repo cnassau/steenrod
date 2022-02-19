@@ -14,6 +14,7 @@
 #endif
 
 #include <tcl.h>
+#include "setresult.h"
 
 extern int Steenrod_Init(Tcl_Interp *ip);
 

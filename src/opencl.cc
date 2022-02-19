@@ -18,6 +18,7 @@
 
 // need poly.h to create steenrod::cl::typedefs
 #include "poly.h"
+#include "setresult.h"
 
 /* we use the STCL prefix (= Steenrod + Open CL) */
 
@@ -410,7 +411,7 @@ static Tcl_Obj *stclPlatformInfo(cl_platform_id p, int withdevices) {
             if (did &&
                 CL_SUCCESS == clGetDeviceIDs(p, CL_DEVICE_TYPE_ALL, numdevices,
                                              did, &numdevices)) {
-                for (int i = 0; i < numdevices; i++) {
+                for (cl_uint i = 0; i < numdevices; i++) {
                     Tcl_ListObjAppendElement(0, dev,
                                              Tcl_NewLongObj((long)did[i]));
                     Tcl_ListObjAppendElement(0, dev, stclDeviceInfo(did[i]));
@@ -1163,7 +1164,7 @@ int stclPlatformCmd(ClientData cd, Tcl_Interp *ip, int objc,
             return TCL_ERROR;
         }
         Tcl_Obj *ans = Tcl_NewListObj(0, NULL);
-        for (int i = 0; i < numentries; i++) {
+        for (cl_uint i = 0; i < numentries; i++) {
             Tcl_ListObjAppendElement(ip, ans, Tcl_NewLongObj((long)ids[i]));
             Tcl_ListObjAppendElement(
                 ip, ans, stclPlatformInfo(ids[i], 1 /* with devices */));

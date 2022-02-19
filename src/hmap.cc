@@ -12,6 +12,7 @@
  */
 
 #include <tcl.h>
+#include "setresult.h"
 #include <string.h>
 #include "tprime.h"
 #include "tpoly.h"
@@ -476,7 +477,7 @@ int hmapParseSummand(hmap *hm, hmap_summand *nsum,  Tcl_Interp *ip, Tcl_Obj *obj
     int cnt, aux;
     Tcl_Obj **lst;
 
-    char *usage = "wrong format, expected "
+    const char *usage = "wrong format, expected "
         "'E/R <idx> <source> <coeff> <monomial slots> <integer slots> ?<quant>? ?<goodbits>?'";
 
 #define RETERR2(x) { freeSummand(nsum); RETERR(x); }

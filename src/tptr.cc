@@ -14,6 +14,7 @@
 #include "tptr.h"
 #include <stdlib.h>
 #include <string.h>
+#include "setresult.h"
 
 #define PTR1(objptr) ((objptr)->internalRep.twoPtrValue.ptr1)
 #define PTR2(objptr) ((objptr)->internalRep.twoPtrValue.ptr2)
@@ -260,7 +261,7 @@ void printnameOfType(char *buf, int type) {
     }
 }
 
-void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, char *msg) {
+void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, const char *msg) {
     char err[500], *wrk = err;
     char nameOfType[100];
     const char *space = " ";
