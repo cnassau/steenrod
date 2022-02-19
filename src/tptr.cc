@@ -261,6 +261,8 @@ void printnameOfType(char *buf, int type) {
     }
 }
 
+#pragma GCC diagnostic ignored "-Wformat-security"
+
 void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, const char *msg) {
     char err[500], *wrk = err;
     char nameOfType[100];

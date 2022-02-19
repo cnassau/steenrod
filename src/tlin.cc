@@ -1248,7 +1248,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
     primeInfo *pi;
     matrixType *mt;
     void *mdat;
-    Tcl_Obj *(varp[5]), *urbobj, **urb;
+    Tcl_Obj *varp[5], *urbobj, **urb;
     int *interruptVar = (int *)cd;
     LINALG_INTERRUPT_VARIABLE = 0;
 
@@ -1730,7 +1730,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         dims[2] = Tcl_NewIntObj(m2->ipr * sizeof(int)/4);
         Tcl_ObjSetVar2(ip, objv[5], NULL, Tcl_NewListObj(3, dims), 0);
         clRetainMemObject(clm);
-        Tcl_NRAddCallback(ip, MatrixCLCreatePostProc, m2, clm, ctx, (ClientData) (mCmdmap[index] == CLCREATE ? 1 : 0));
+        Tcl_NRAddCallback(ip, MatrixCLCreatePostProc, m2, clm, ctx, (ClientData) (intptr_t) (mCmdmap[index] == CLCREATE ? 1 : 0));
         return Tcl_NREvalObj(ip, objv[6], 0);
     }
     case CLMAP: {

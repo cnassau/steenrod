@@ -52,8 +52,8 @@ typedef struct {
     int effdeg[NALG];      /* this is "reddeg * profile" */
     int tablen;            /* length of the following arrays */
     int tabmaxrideg;       /* maximal reduced internal degree */
-    int *(dimtab[NALG+1]); 
-    int *(seqtab[NALG+1]); 
+    int *dimtab[NALG+1]; 
+    int *seqtab[NALG+1]; 
     int totaldim;
 
     /* list of effective generators, and their sequence number offsets */

@@ -216,7 +216,7 @@ int Tcl_EnumConfigureCmd(ClientData cd, Tcl_Interp *ip,
     DOFLOG("Entered Tcl_EnumConfigureCmd");
 
     if (0 == objc) {
-        Tcl_Obj *(co[2]), *res = Tcl_NewListObj(0, NULL);
+        Tcl_Obj *co[2], *res = Tcl_NewListObj(0, NULL);
 
         /* describe current configuration status */
 
@@ -797,8 +797,8 @@ int STcl_EnumMap(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) 
     }
 
 #define NUMENMBUF 3
-    void *(buffer[NUMENMBUF]);
-    int    buflen[NUMENMBUF];
+    void *buffer[NUMENMBUF];
+    int   buflen[NUMENMBUF];
     Tcl_Obj *bufvar[NUMENMBUF];
 
     buffer[0] = &(te->cl);

@@ -116,7 +116,7 @@ int getMaxExterior(primeInfo *pi, exmo *alg, exmo *pro, int ideg) {
     while (wrk>>=1,i--)
         if ((NULL == alg) || (wrk == (wrk & alg->ext)))
             if ((NULL == pro) || (0 == (wrk & pro->ext)))
-                if (pi->extdegs[i] <= ideg) {
+                if ((int)pi->extdegs[i] <= ideg) {
                     res |= wrk; ideg -= pi->extdegs[i];
                 }
     return res;

@@ -145,7 +145,7 @@ int ExmoSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
 /* Create a new list Obj from the objPtr */
 Tcl_Obj *Tcl_NewListFromExmo(Tcl_Obj *objPtr) {
     exmo *e = (exmo *) PTR1(objPtr);
-    Tcl_Obj *res, *(objv[4]), **arr;
+    Tcl_Obj *res, *objv[4], **arr;
     int i, len = exmoGetRedLen(e);
     arr = (Tcl_Obj **) ckalloc(sizeof(Tcl_Obj *)*len);
     for (i=0;i<len;i++) arr[i] = Tcl_NewIntObj(e->r.dat[i]);
@@ -570,7 +570,7 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
     Tcl_Obj **array;
     void **parray;
     int rcode = SUCCESS, prc;
-    Tcl_Obj *(cmd[2]);
+    Tcl_Obj *cmd[2];
 
     if (TCL_OK != Tcl_ConvertToPoly(ip, src))
         return TCL_ERROR;
@@ -586,6 +586,7 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
         RETERR("out of memory");
     }
 
+    array[0] = NULL; // just to silence a compiler warning
     for (i=0; i<(objc+1); i++) {
         if (NULL == (parray[i] = PLcreate(stdpoly))) {
             for (;i--;) DECREFCNT(array[i]);
@@ -912,7 +913,7 @@ int PolyNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv
     int result, index, scale, modval;
     primeInfo *pi;
     exmo *ex;
-    Tcl_Obj *(varp[5]), *obj1, *obj;
+    Tcl_Obj *varp[5], *obj1, *obj;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(ip, 1, objv, "subcommand ?args?");

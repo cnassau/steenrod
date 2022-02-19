@@ -35,7 +35,7 @@ int piiBasic(primeInfo *pi) {
         pi->reddegs[i]  =
             (pi->prime * (pi->reddegs[i-1] * pi->tpmo + 2) - 2) / pi->tpmo;
         mpx = pi->primpows[i];
-        if (pi->primpows[i] != mpx) havempx = 1;
+        if ((int)pi->primpows[i] != mpx) havempx = 1;
         if (!havempx) { pi->maxpowerXint = mpx; pi->maxpowerXintI = i; }
     }
     return PI_OK;
@@ -238,12 +238,12 @@ piProcEntry piList[] = {
 };
 
 int makePrimeInfo(primeInfo *pi, int prime) {
-    int i, rval;
+    int rval;
     if (prime<2) return PI_NOPRIME;
     if (prime>61) return PI_TOOLARGE;
     pi->prime  = prime;
     pi->maxdeg = 0; /* TODO: compute right vaue */
-    for (i=0; i<sizeof(piList)/sizeof(piProcEntry); i++)
+    for (unsigned i=0; i<sizeof(piList)/sizeof(piProcEntry); i++)
         if (PI_OK != (rval = piList[i].ini(pi))) {
             for (;i--;) piList[i].done(pi);
             return rval;

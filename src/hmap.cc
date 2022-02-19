@@ -377,7 +377,7 @@ void hmapTclTensor(hmap_tensor *h,
 #define LOGMSG(format,arg) { if (LogStuff) {printf("> " format "\n", arg);}; }
 
 int invokeCallback(Tcl_Interp *ip, Tcl_Obj *callback, hmap *hm,  hmap_summand *result) {
-    Tcl_Obj *(command[5]);
+    Tcl_Obj *command[5];
     int retval;
 
     LOGMSG("invokeCallback result=%p",result);
