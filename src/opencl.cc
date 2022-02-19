@@ -161,7 +161,7 @@ Tcl_Obj *STcl_GetEventInfo(Tcl_Interp *ip, cl_event e) {
 #define TRYREG(f)                                                              \
     {                                                                          \
         if (errcode == f) {                                                    \
-            Tcl_SetResult(ip, #f, TCL_STATIC);                                 \
+            Tcl_SetResult(ip, (char*) #f, TCL_STATIC);                                 \
             return;                                                            \
         }                                                                      \
     }
@@ -242,7 +242,7 @@ static void AddDeviceInfo(int tp, cl_device_id d, Tcl_Obj *a, const char *name,
     size_t sz;
     char *ans = NULL;
     if (CL_SUCCESS == clGetDeviceInfo(d, param, 0, NULL, &sz)) {
-        ans = malloc(sz + 1);
+        ans = (char*) malloc(sz + 1);
         if (CL_SUCCESS == clGetDeviceInfo(d, param, sz, ans, &sz)) {
             Tcl_ListObjAppendElement(0, a, Tcl_NewStringObj(name, -1));
             switch (tp) {
@@ -303,7 +303,7 @@ static Tcl_Obj *stclDeviceInfo(cl_device_id d) {
     ADDDEVINFO_INT(d, ans, CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_CLOCK_FREQUENCY);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_COMPUTE_UNITS);
-    ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_constANT_ARGS);
+    ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_CONSTANT_ARGS);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_READ_IMAGE_ARGS);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_SAMPLERS);
     ADDDEVINFO_INT(d, ans, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS);
@@ -334,7 +334,7 @@ static Tcl_Obj *stclDeviceInfo(cl_device_id d) {
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_GLOBAL_MEM_CACHE_SIZE);
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_GLOBAL_MEM_SIZE);
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_LOCAL_MEM_SIZE);
-    ADDDEVINFO_LONG(d, ans, CL_DEVICE_MAX_constANT_BUFFER_SIZE);
+    ADDDEVINFO_LONG(d, ans, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE);
     ADDDEVINFO_LONG(d, ans, CL_DEVICE_MAX_MEM_ALLOC_SIZE);
     ADDDEVINFO_SIZET(d, ans, CL_DEVICE_IMAGE2D_MAX_HEIGHT);
     ADDDEVINFO_SIZET(d, ans, CL_DEVICE_IMAGE2D_MAX_WIDTH);
@@ -377,7 +377,7 @@ static void AddPlatformInfo(cl_platform_id pid, Tcl_Obj *ans, const char *name,
     do {
         if (CL_SUCCESS != clGetPlatformInfo(pid, flag, 0, NULL, &s))
             break;
-        val = malloc(s + 1);
+        val = (char*) malloc(s + 1);
         if (NULL == val)
             break;
         if (CL_SUCCESS != clGetPlatformInfo(pid, flag, s + 1, val, &s))
@@ -406,7 +406,7 @@ static Tcl_Obj *stclPlatformInfo(cl_platform_id p, int withdevices) {
         cl_uint numdevices;
         if (CL_SUCCESS ==
             clGetDeviceIDs(p, CL_DEVICE_TYPE_ALL, 0, NULL, &numdevices)) {
-            cl_device_id *did = malloc((sizeof(cl_device_id) * numdevices));
+            cl_device_id *did = (cl_device_id*) malloc((sizeof(cl_device_id) * numdevices));
             if (did &&
                 CL_SUCCESS == clGetDeviceIDs(p, CL_DEVICE_TYPE_ALL, numdevices,
                                              did, &numdevices)) {
@@ -678,7 +678,7 @@ int stclProgramInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         size_t siz;
         if (CL_SUCCESS ==
             clGetProgramInfo(p, CL_PROGRAM_KERNEL_NAMES, 0, NULL, &siz)) {
-            char *ans = malloc(siz + 1);
+            char *ans = (char*) malloc(siz + 1);
             if (ans &&
                 CL_SUCCESS == clGetProgramInfo(p, CL_PROGRAM_KERNEL_NAMES, siz,
                                                ans, NULL)) {
@@ -704,7 +704,7 @@ int stclProgramInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
         cl_int errcode;
         cl_kernel k = clCreateKernel(p, Tcl_GetString(objv[3]), &errcode);
         if (CL_SUCCESS == errcode) {
-            stcl_kernel *ker = malloc(sizeof(stcl_kernel));
+            stcl_kernel *ker = (stcl_kernel *) malloc(sizeof(stcl_kernel));
             ker->ker = k;
             clGetProgramInfo(p, CL_PROGRAM_DEVICES, sizeof(cl_device_id),
                              &(ker->dev), NULL);
@@ -770,7 +770,7 @@ int makeWaitList(Tcl_Interp *ip, Tcl_Obj *o, int *numwait,
     if (TCL_OK != Tcl_ListObjGetElements(ip, o, numwait, &obj))
         return TCL_ERROR;
     if (*numwait) {
-        cl_event *el = calloc(*numwait, sizeof(cl_event));
+        cl_event *el = (cl_event *)calloc(*numwait, sizeof(cl_event));
         for (int i = *numwait; i--;) {
             cl_event e = STcl_GetEvent(ip, Tcl_GetString(obj[i]));
             if (NULL == e) {
@@ -838,11 +838,11 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
             return TCL_OK;
         }
         if (objc > 2) {
-            int bool;
-            if (TCL_OK != Tcl_GetBooleanFromObj(ip, objv[2], &bool)) {
+            int b;
+            if (TCL_OK != Tcl_GetBooleanFromObj(ip, objv[2], &b)) {
                 return TCL_ERROR;
             }
-            dev->create_queues_with_profiling = bool;
+            dev->create_queues_with_profiling = b;
             return TCL_OK;
         }
         break;
@@ -1085,7 +1085,7 @@ int stclContextInstanceCmd(ClientData cd, Tcl_Interp *ip, int objc,
             if (CL_SUCCESS == clGetProgramBuildInfo(prog, dev->did,
                                                     CL_PROGRAM_BUILD_LOG, 0,
                                                     NULL, &logsize)) {
-                char *log = malloc(logsize + 1);
+                char *log = (char*) malloc(logsize + 1);
                 if (log && CL_SUCCESS ==
                                clGetProgramBuildInfo(prog, dev->did,
                                                      CL_PROGRAM_BUILD_LOG,
@@ -1156,7 +1156,7 @@ int stclPlatformCmd(ClientData cd, Tcl_Interp *ip, int objc,
             Tcl_SetResult(ip, "cannot get number of platforms", TCL_STATIC);
             return TCL_ERROR;
         }
-        cl_platform_id *ids = malloc(sizeof(cl_platform_id) * numentries);
+        cl_platform_id *ids = (cl_platform_id *)malloc(sizeof(cl_platform_id) * numentries);
         if (CL_SUCCESS != clGetPlatformIDs(numentries, ids, NULL)) {
             Tcl_SetResult(ip, "cannot retrieve list of available platforms",
                           TCL_STATIC);
@@ -1180,7 +1180,7 @@ int stclPlatformCmd(ClientData cd, Tcl_Interp *ip, int objc,
             return TCL_ERROR;
         }
 
-        stcl_context *dev = calloc(1, sizeof(stcl_context));
+        stcl_context *dev = (stcl_context *) calloc(1, sizeof(stcl_context));
         dev->pid = (cl_platform_id)pid;
         dev->did = (cl_device_id)did;
 
@@ -1268,7 +1268,7 @@ int stclEventMoveCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const obj
     clRetainEvent(evt);
     STcl_SetEventTrace(ip,newvar,evt);
     Tcl_UnsetVar(ip,oldvar,0);
-    return TCL_OK;                           
+    return TCL_OK;
 }
 
 int stclEventWaitCmd(ClientData cd, Tcl_Interp *ip, int objc,
@@ -1281,7 +1281,7 @@ int stclEventWaitCmd(ClientData cd, Tcl_Interp *ip, int objc,
     Tcl_Obj **ov;
     if (TCL_OK != Tcl_ListObjGetElements(ip, objv[1], &oc, &ov))
         return TCL_ERROR;
-    cl_event *evts = malloc(sizeof(cl_event) * oc);
+    cl_event *evts = (cl_event *) malloc(sizeof(cl_event) * oc);
     if (NULL == evts) {
         Tcl_SetResult(ip, "out of memory", TCL_STATIC);
         return TCL_ERROR;
@@ -1314,7 +1314,7 @@ int stclBufferAllocCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const o
     if(objc == 4 && TCL_OK != GetMemFlagFromTclObj(ip,objv[3],&flags))
         return TCL_ERROR;
     long dlen;
-    if(TCL_OK != Tcl_GetLongFromObj(ip,objv[2],&dlen)) 
+    if(TCL_OK != Tcl_GetLongFromObj(ip,objv[2],&dlen))
         return TCL_ERROR;
     int rc;
     cl_mem clm = clCreateBuffer(ctx->ctx,flags,dlen,NULL,&rc);
@@ -1326,7 +1326,7 @@ int stclBufferAllocCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const o
         clReleaseMemObject(clm);
         return TCL_ERROR;
     }
-    return TCL_OK;                           
+    return TCL_OK;
 }
 
 int stclBufferCreateCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]) {
@@ -1364,7 +1364,7 @@ int stclBufferCreateCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const 
         clReleaseMemObject(clm);
         return TCL_ERROR;
     }
-    return TCL_OK;                           
+    return TCL_OK;
 }
 
 int stclBufferValueCmd(ClientData cd, Tcl_Interp *ip, int objc,
@@ -1439,17 +1439,17 @@ void stclMakeTypedefs(Tcl_Interp *ip, const char *varname) {
                         "\n"
                         "\n   typedef struct {"
                         "\n       union {"
-                        "\n          ", clint(sizeof(ex.e.r.dat)/NALG), " dat[NALG];" 
-                        "\n       } r;" 
+                        "\n          ", clint(sizeof(ex.e.r.dat)/NALG), " dat[NALG];"
+                        "\n       } r;"
                         "\n       ", clint(sizeof(ex.e.coeff)), " coeff;"
                         "\n       ", clint(sizeof(ex.e.ext)), " ext;"
                         "\n       ", clint(sizeof(ex.e.gen)), " gen;"
                         "\n   } __attribute__ ((packed)) __attribute__ ((aligned (", x, "))) exmo;"
                         "\n"
-                        "\n   typedef struct {" 
+                        "\n   typedef struct {"
                         "\n       union {"
-                        "\n          unsigned char dat[NALG];" 
-                        "\n       } r;" 
+                        "\n          unsigned char dat[NALG];"
+                        "\n       } r;"
                         "\n   } exmo2;"
                         "\n"
                         "\n   #define hostint ", clint(sizeof(int)),

@@ -40,7 +40,7 @@ char dfp[] = "default parameter";
 #define STRLEN(x) (sizeof(x)-1)  /* use only with constant strings */
 
 #define RETERR(errmsg) \
-{ if (NULL != ip) Tcl_SetResult(ip, errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
+{ if (NULL != ip) Tcl_SetResult(ip, (char*)errmsg, TCL_VOLATILE) ; return TCL_ERROR; }
 
 /* A tclEnumerator is an enumerator plus configuration objects.
  * The configuration flags indicate whether the option has been changed. */
@@ -84,7 +84,7 @@ int *getGenList(Tcl_Interp *ip, Tcl_Obj *obj, int *length) {
 
 #if 0
     printf("genlist = %s\n",Tcl_GetString(obj));
-    Tcl_Eval(ip, "flush stdout");
+    Tcl_Eval(ip, (char*)"flush stdout");
 #endif
 
     for (wrk=res; objc--; (objv)++, wrk+=4) {
@@ -400,7 +400,7 @@ int Tcl_EnumCgetCmd(ClientData cd, Tcl_Interp *ip,
             SETRESRET(te->genlist);
     }
 
-    Tcl_SetResult(ip,"internal error in Tcl_EnumCgetCmd",TCL_STATIC);
+    Tcl_SetResult(ip,(char*)"internal error in Tcl_EnumCgetCmd",TCL_STATIC);
     return TCL_ERROR;
 }
 
@@ -472,7 +472,7 @@ int Tcl_EnumSeqnoCmd(ClientData cd, Tcl_Interp *ip, int usemotivic,
 	  sqn = SeqnoFromEnum(te->enm, eptr);
 
 	  if(sqn<0) {
-	    Tcl_SetResult(ip, "cannot account for monomial ", TCL_STATIC);
+	    Tcl_SetResult(ip, (char*)"cannot account for monomial ", TCL_STATIC);
 	    Tcl_Obj *e = Tcl_NewExmoCopyObj(eptr);
 	    Tcl_IncrRefCount(e);
 	    Tcl_AppendResult(ip, Tcl_GetString(e), NULL);
@@ -674,7 +674,7 @@ int STcl_EnumBasisPostProc(ClientData data[], Tcl_Interp *ip, int result) {
     clenumbasiscbdata *cb = (clenumbasiscbdata *)data[0];
     //fprintf(stderr,"res=%d, cb->more=%d, cb->algdim=%d\n",result,cb->more,cb->algdim);
     if(cb->more && (TCL_OK == result || TCL_CONTINUE == result)) {
-        stp *p = stdpoly->createCopy(NULL);
+        stp *p = (stp *)stdpoly->createCopy(NULL);
         stdRealloc(p,cb->algdim);
         int gen = cb->te->enm->theex.gen;
         int len = cb->algdim;
@@ -690,7 +690,7 @@ int STcl_EnumBasisPostProc(ClientData data[], Tcl_Interp *ip, int result) {
         size_t bufsz = sizeof(exmo)*len;
         cl_int rc;
         cl_event evt;
-        cl_mem buf = clCreateBuffer(cb->ctx->ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, 
+        cl_mem buf = clCreateBuffer(cb->ctx->ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
                                     bufsz, NULL, &rc);
         if(CL_SUCCESS == rc && buf) {
             cl_command_queue q = GetOrCreateCommandQueue(ip,cb->ctx,0);
@@ -721,9 +721,9 @@ int STcl_EnumBasisPostProc(ClientData data[], Tcl_Interp *ip, int result) {
 int STcl_EnumBasis(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) {
     stcl_context *ctx;
     if(TCL_OK != STcl_GetContext(ip, &ctx)) return TCL_ERROR;
-    clenumbasiscbdata *cb = malloc(sizeof(clenumbasiscbdata));
+    clenumbasiscbdata *cb = (clenumbasiscbdata *)malloc(sizeof(clenumbasiscbdata));
     if(NULL == cb) {
-        Tcl_SetResult(ip,"out of memory",TCL_STATIC);
+        Tcl_SetResult(ip,(char*)"out of memory",TCL_STATIC);
         return TCL_ERROR;
     }
     cb->ctx = ctx;
@@ -744,14 +744,14 @@ int STcl_EnumMap(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) 
     if(TCL_OK != STcl_GetContext(ip, &ctx)) return TCL_ERROR;
     int totdim = DimensionFromEnum(te->enm);
     if(totdim<0) {
-        Tcl_SetResult(ip, "internal error in DimensionFromEnum", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"internal error in DimensionFromEnum", TCL_STATIC);
         return TCL_ERROR;
     }
     // DimensionFromEnum has initialised or updated the seqoff and seqtab tables
     int tl = te->cl.tablen = te->enm->tablen, *st, *st2;
     st = (int*) malloc(sizeof(int)*NALG*te->enm->tablen);
     if(NULL == st) {
-        Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"out of memory", TCL_STATIC);
         return TCL_ERROR;
     }
     st2 = st;
@@ -764,16 +764,16 @@ int STcl_EnumMap(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) 
     for(int k=0;k<gcnt;k++) {
         effgen *eg = &(te->enm->efflist[k]);
         if(eg->ext) {
-            Tcl_SetResult(ip, "exterior algebra not supported", TCL_STATIC);
+            Tcl_SetResult(ip, (char*)"exterior algebra not supported", TCL_STATIC);
         }
         if(maxid < eg->id) maxid = eg->id;
     }
     if(maxid<0) {
         maxid = 1;
     }
-    st = malloc(maxid * sizeof(int));
+    st = (int*)malloc(maxid * sizeof(int));
     if(NULL == st) {
-        Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"out of memory", TCL_STATIC);
         return TCL_ERROR;
     }
     for(int k=0;k<gcnt;k++) {
@@ -824,7 +824,7 @@ int STcl_EnumMap(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) 
             blocking = 1;
             evtptr = NULL;
         }
-        cl_mem buf = clCreateBuffer(ctx->ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, 
+        cl_mem buf = clCreateBuffer(ctx->ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
                                     buflen[k], NULL, &rc);
         if(CL_SUCCESS == rc && buf) {
             cl_command_queue q = GetOrCreateCommandQueue(ip,ctx,0);
@@ -833,7 +833,7 @@ int STcl_EnumMap(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) 
         if(CL_SUCCESS != rc) {
             SetCLErrorCode(ip,rc);
             return TCL_ERROR;
-        } 
+        }
         if(evtptr) {
             if (TCL_OK != STcl_SetEventTrace(ip, Tcl_GetString(objv[wvpos]), evt)) {
                 SetCLErrorCode(ip,rc);
@@ -843,7 +843,7 @@ int STcl_EnumMap(Tcl_Interp *ip, tclEnum *te, int objc, Tcl_Obj * const objv[]) 
         if(TCL_OK != STcl_CreateMemObj(ip, bufvar[k], buf)) {
             SetCLErrorCode(ip,rc);
             return TCL_ERROR;
-        } 
+        }
     }
 
     return TCL_OK;
@@ -999,7 +999,7 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             if (TCL_OK != Tcl_EnumSetValues(te, ip)) return TCL_ERROR;
             return STcl_EnumMap(ip,te,objc,objv);
 #else
-            Tcl_SetResult(ip, "not compiled with OpenCL support", TCL_STATIC);
+            Tcl_SetResult(ip, (char*)"not compiled with OpenCL support", TCL_STATIC);
             return TCL_ERROR;
 #endif
         }
@@ -1013,13 +1013,13 @@ int Tcl_EnumWidgetCmd(ClientData cd, Tcl_Interp *ip,
             if (TCL_OK != Tcl_EnumSetValues(te, ip)) return TCL_ERROR;
             return STcl_EnumBasis(ip,te,objc,objv);
 #else
-            Tcl_SetResult(ip, "not compiled with OpenCL support", TCL_STATIC);
+            Tcl_SetResult(ip, (char*)"not compiled with OpenCL support", TCL_STATIC);
             return TCL_ERROR;
 #endif
         }
     }
 
-    Tcl_SetResult(ip, "internal error in Tcl_EnumWidgetCmd", TCL_STATIC);
+    Tcl_SetResult(ip, (char*)"internal error in Tcl_EnumWidgetCmd", TCL_STATIC);
     return TCL_ERROR;
 }
 
@@ -1052,12 +1052,12 @@ enumerator *Tcl_EnumFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
     tclEnum *te;
 
     if (!Tcl_GetCommandInfo(ip, Tcl_GetString(obj), &info)) {
-        Tcl_SetResult(ip, "command not found", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"command not found", TCL_STATIC);
         return NULL;
     }
 
     if (info.objProc != Tcl_EnumWidgetCmd) {
-        Tcl_SetResult(ip, "enumerator object expected", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"enumerator object expected", TCL_STATIC);
         return NULL;
     }
 
@@ -1078,7 +1078,7 @@ int Tcl_CreateEnumCmd(ClientData cd, Tcl_Interp *ip,
         return TCL_ERROR;
     }
 
-    if (NULL == (te = callox(1, sizeof(tclEnum))))
+    if (NULL == (te = (tclEnum*) callox(1, sizeof(tclEnum))))
         RETERR("out of memory");
 
     if (NULL == (te->enm = enmCreate()))
@@ -1114,7 +1114,7 @@ int Tcl_CreateEnumCmd(ClientData cd, Tcl_Interp *ip,
 
 int Tenum_Init(Tcl_Interp *ip) {
 
-    Tcl_InitStubs(ip, "8.0", 0);
+    Tcl_InitStubs(ip, (char*)"8.0", 0);
 
     Tptr_Init(ip);
     Tprime_Init(ip);

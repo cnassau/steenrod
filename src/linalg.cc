@@ -21,7 +21,7 @@
 #endif
 
 vector * vector_create(int size) {
-    vector *v = mallox(sizeof(vector));
+    vector *v = (vector*) mallox(sizeof(vector));
     if (NULL == v) return NULL;
     v->blocks = BLOCKS_REQUIRED(size);
     v->data = (BLOCKTYPE *) mallox(sizeof(BLOCKTYPE) * v->blocks);
@@ -213,7 +213,7 @@ void make_matrix_row(vector *v, matrix *m, int r) {
 }
 
 vector *matrix_get_row(matrix *m, int r) {
-    vector *res = mallox(sizeof(vector)) ;
+    vector *res = (vector*) mallox(sizeof(vector)) ;
     if (NULL == res) return NULL;
     make_matrix_row(res, m, r);
     return res;

@@ -17,7 +17,7 @@
 #include "prime.h"
 
 #define DBGPR if (0)
-    
+
 #define RETURNINT(rval) { Tcl_SetObjResult(ip,Tcl_NewIntObj(rval)); return TCL_OK; }
 #define RETURNLIST(list,len) \
 { Tcl_SetObjResult(ip,Tcl_ListFromArray(len,list)); return TCL_OK; }
@@ -30,7 +30,7 @@ static const char *eCmdNames[] = { "test", "maxpower", "tpmo", "NALG", "powers",
                                    "rdegrees", "edegrees", "inverse", "binom", "binom2",
                                    (char *) NULL };
 
-static ecmdcode eCmdmap[] = { TEST, MAXPOW, TPMO, N, PRIMPOWS, 
+static ecmdcode eCmdmap[] = { TEST, MAXPOW, TPMO, N, PRIMPOWS,
                               RDEGS, EDEGS, INVERSE, BINOM, BINOM2 };
 
 #define EXPECTARGS(num,msg) \
@@ -49,7 +49,7 @@ int PrimeCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]
     result = Tcl_GetIndexFromObj(ip, objv[2], eCmdNames, "subcommand", 0, &index);
     if (result != TCL_OK) return result;
 
-    if (TEST != eCmdmap[index]) 
+    if (TEST != eCmdmap[index])
         if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[1], &pi))
             return TCL_ERROR;
 
@@ -60,47 +60,47 @@ int PrimeCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]
             return TCL_OK;
 
         case MAXPOW:
-            EXPECTARGS(3,""); 
+            EXPECTARGS(3,"");
             RETURNINT(pi->maxpowerXintI);
 
         case TPMO:
-            EXPECTARGS(3,""); 
+            EXPECTARGS(3,"");
             RETURNINT(pi->tpmo);
 
         case N:
-            EXPECTARGS(3,""); 
+            EXPECTARGS(3,"");
             RETURNINT(NALG);
 
         case PRIMPOWS:
-            EXPECTARGS(3,""); 
-            RETURNLIST(pi->primpows, NALG);
+            EXPECTARGS(3,"");
+            RETURNLIST((int*)pi->primpows, NALG);
 
         case RDEGS:
-            EXPECTARGS(3,""); 
-            RETURNLIST(pi->reddegs, NALG);
+            EXPECTARGS(3,"");
+            RETURNLIST((int*)pi->reddegs, NALG);
 
         case EDEGS:
-            EXPECTARGS(3,""); 
-            RETURNLIST(pi->extdegs, NALG);
- 
+            EXPECTARGS(3,"");
+            RETURNLIST((int*)pi->extdegs, NALG);
+
         case INVERSE:
-            EXPECTARGS(4,"<integer>"); 
+            EXPECTARGS(4,"<integer>");
             if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &a))
                 return TCL_ERROR;
             a %= pi->prime;
-            if (0 == a) 
+            if (0 == a)
                 RETERR("division by zero");
             RETURNINT(pi->inverse[a]);
-            
+
         case BINOM:
-            EXPECTARGS(5,"<integer> <integer>"); 
+            EXPECTARGS(5,"<integer> <integer>");
             if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &a))
                 return TCL_ERROR;
             if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &b))
                 return TCL_ERROR;
             RETURNINT(binomp(pi, a, b));
         case BINOM2:
-            EXPECTARGS(5,"<integer> <integer>"); 
+            EXPECTARGS(5,"<integer> <integer>");
             if (TCL_OK != Tcl_GetIntFromObj(ip, objv[3], &a))
                 return TCL_ERROR;
             if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &b))
@@ -114,7 +114,7 @@ int PrimeCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]
 	    }
 	    return TCL_OK;
     }
- 
+
     Tcl_SetResult(ip, "internal error in PrimeCombiCmd", TCL_STATIC);
     return TCL_ERROR;
 }
@@ -123,7 +123,7 @@ int PrimeCombiCmd(ClientData cd, Tcl_Interp *ip, int objc, Tcl_Obj *const objv[]
 typedef struct piList {
     primeInfo pi;
     struct piList *next;
-} piList; 
+} piList;
 
 static piList *piMasterList;
 
@@ -133,15 +133,15 @@ TCL_DECLARE_MUTEX(primeMutex)
 int findPrimeInfo(int prime, primeInfo **pi) {
     piList **nextp = &(piMasterList);
     int rcode;
-    for (; NULL != *nextp; nextp = &((*nextp)->next)) 
+    for (; NULL != *nextp; nextp = &((*nextp)->next))
         if (prime == (*nextp)->pi.prime) { *pi = &((*nextp)->pi); return PI_OK; }
     Tcl_MutexLock(&primeMutex);
-    if (NULL == ((*nextp) = mallox(sizeof(piList)))) {
+    if (NULL == ((*nextp) = (piList*)mallox(sizeof(piList)))) {
 	rcode = PI_NOMEM;
     } else {
-	if (PI_OK != (rcode = makePrimeInfo(&((*nextp)->pi), prime))) { 
-	    freex(*nextp); 
-	    *nextp = NULL; 
+	if (PI_OK != (rcode = makePrimeInfo(&((*nextp)->pi), prime))) {
+	    freex(*nextp);
+	    *nextp = NULL;
 	} else {
 	    (*nextp)->next = NULL;
 	    *pi = &((*nextp)->pi);
@@ -159,9 +159,9 @@ int PT_SetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
     int rc, prime;
     primeInfo *pi;
     DBGPR printf("PT_SetFromAnyProc obj at %p\n",objPtr);
-    if (objPtr->typePtr == &PrimeType) 
+    if (objPtr->typePtr == &PrimeType)
         return TCL_OK;
-    if (TCL_OK != Tcl_GetIntFromObj(interp, objPtr, &prime)) 
+    if (TCL_OK != Tcl_GetIntFromObj(interp, objPtr, &prime))
         return TCL_ERROR;
     if (PI_OK != (rc = findPrimeInfo(prime, &pi))) {
         const char *err;
@@ -174,7 +174,7 @@ int PT_SetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
         }
         if (NULL != interp) Tcl_SetResult(interp, (char *) err, TCL_STATIC);
         return TCL_ERROR;
-    } 
+    }
     TRYFREEOLDREP(objPtr);
     objPtr->typePtr = &PrimeType;
     objPtr->internalRep.twoPtrValue.ptr1 = (void *) pi;
@@ -185,7 +185,7 @@ int PT_SetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 void PT_UpdateStringProc(Tcl_Obj *objPtr) {
     primeInfo *pi = (primeInfo *) objPtr->internalRep.twoPtrValue.ptr1;
     DBGPR printf("PT_UpdateStringProc obj at %p\n",objPtr);
-    objPtr->bytes = ckalloc(5);
+    objPtr->bytes = (char*) ckalloc(5);
     sprintf(objPtr->bytes, "%d", pi->prime);
     objPtr->length = strlen(objPtr->bytes);
 }
@@ -206,12 +206,12 @@ int Tcl_GetPrimeInfo(Tcl_Interp *ip, Tcl_Obj *obj, primeInfo **pi) {
 /* our namespace */
 #define NSP "steenrod::"
 
-int Tprime_HaveType; 
+int Tprime_HaveType;
 
 int Tprime_Init(Tcl_Interp *ip) {
 
     if (NULL == Tcl_InitStubs(ip, "8.0", 0)) return TCL_ERROR;
-    
+
     Tptr_Init(ip);
 
     if (!Tprime_HaveType) {
@@ -222,7 +222,7 @@ int Tprime_Init(Tcl_Interp *ip) {
         PrimeType.updateStringProc      = PT_UpdateStringProc;
         PrimeType.setFromAnyProc        = PT_SetFromAnyProc;
         Tcl_RegisterObjType(&PrimeType);
-        
+
         TPtr_RegObjType(TP_PRIME, &PrimeType);
         Tprime_HaveType = 1;
     }

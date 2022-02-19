@@ -45,7 +45,7 @@ void *stdVCreateVector2(int cols) {
     if (NULL != v) {
         v->size = cols;
         v->ints = IPROCO(cols);
-        if (NULL == (v->data = callox(v->ints,sizeof(int)))) {
+        if (NULL == (v->data = (int*) callox(v->ints,sizeof(int)))) {
             freex(v);
             return NULL;
         }
@@ -59,7 +59,7 @@ void *stdVCreateCopy2(void *vec) {
     if (NULL != w) {
         w->size = v->size;
         w->ints = v->ints;
-        if (NULL == (w->data = mallox(v->ints))) {
+        if (NULL == (w->data = (int*) mallox(v->ints))) {
             freex(w);
             return NULL;
         }
@@ -86,8 +86,8 @@ vectorType stdVectorType2 = {
     .createVector  = &stdVCreateVector2,
     .createCopy    = &stdVCreateCopy2,
     .destroyVector = &stdVDestroyVector2,
-    .reduce        = &stdVReduce2,
-    .add           = NULL
+    .add           = NULL,
+    .reduce        = &stdVReduce2
 };
 
 int stdGetEntry2(void *m, int row, int col, int *val) {
@@ -134,7 +134,7 @@ void *stdCreateMatrix2(int row, int col) {
     mat2 *m = (mat2 *) mallox(sizeof(mat2));
     if (NULL != m) {
         m->rows = row; m->cols = col; m->ipr = IPROCO(col);
-        if (NULL == (m->data = callox(row * m->ipr,sizeof(int)))) {
+        if (NULL == (m->data = (int*) callox(row * m->ipr,sizeof(int)))) {
             freex(m);
             return NULL;
         }
@@ -144,7 +144,7 @@ void *stdCreateMatrix2(int row, int col) {
 
 void *stdCreateMCopy2(void *mat) {
     mat2 *m = (mat2 *) mat;
-    mat2 *res = stdCreateMatrix2(m->rows, m->cols);
+    mat2 *res = (mat2 *) stdCreateMatrix2(m->rows, m->cols);
     if (NULL != res && NULL != m->data) {
         memcpy(res->data,m->data,m->ipr * m->rows * sizeof(int));
     }
@@ -203,7 +203,7 @@ void *stdLiftFunc2(primeInfo *pi, void *inp, void *lft, void *bas, progressInfo 
     const char *progvar = NULL;
     int pmsk = 0;
     if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk; }
-    res = matrix_lift2((mat2 *) inp, lft, bas, ip, progvar, pmsk);
+    res = matrix_lift2((mat2 *) inp, (mat2*)lft, (mat2*)bas, ip, progvar, pmsk);
     return res;
 }
 
@@ -231,7 +231,7 @@ int stdAddMatrix2(void *m1, void *m2, int scale, int mod) {
 
 void *stdShrinkMatrix2(void *mat, int *indices, int numind) {
     mat2 *m = (mat2 *) mat;
-    mat2 *res = stdCreateMatrix2(numind,m->cols);
+    mat2 *res = (mat2*) stdCreateMatrix2(numind,m->cols);
     if (NULL != res) {
         int i, ipr = m->ipr;
         for (i=0;i<numind;i++) {
@@ -252,8 +252,8 @@ matrixType stdMatrixType2 = {
     .destroyMatrix = stdDestroyMatrix2,
     .clearMatrix   = stdClearMatrix2,
     .unitMatrix    = stdUnitMatrix2,
-    .shrinkRows    = stdShrinkMatrix2,
     .reduce        = stdReduceMatrix2,
+    .shrinkRows    = stdShrinkMatrix2,
     .add           = stdAddMatrix2,
     .orthoFunc     = stdOrthoFunc2,
     .liftFunc      = stdLiftFunc2,
@@ -292,7 +292,7 @@ void matrix_collect2(mat2 *m, int i) {
 int matrix_resize2(mat2 *m, int newrows) {
     int nsz = m->ipr * sizeof(int) * newrows;
     int *nw;
-    nw = reallox(m->data, nsz);
+    nw = (int*)reallox(m->data, nsz);
     m->rows = newrows;
     if ((NULL!=nw) || (0 == nsz)) {
         m->data = nw;
@@ -319,7 +319,7 @@ mat2 *matrix_ortho2(mat2 *inp, mat2 **urb, Tcl_Interp *ip, int wantkernel,
     stdUnitMatrix2(un);
 
     if (urb) {
-        oth = (*urb = stdCreateMatrix2(inp->rows, inp->rows));
+        oth = (*urb = (mat2*) stdCreateMatrix2(inp->rows, inp->rows));
         if (NULL == oth) {
             stdDestroyMatrix2(un);
             return NULL;

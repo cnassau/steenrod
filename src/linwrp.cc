@@ -79,15 +79,15 @@ int stdMatrixCopyRows(void *dst, int startrow, void *src, int from, int nrows) {
 }
 
 void stdDestroyMatrix(void *mat) {
-    matrix_destroy(mat);
+    matrix_destroy((matrix*)mat);
 }
 
 void stdClearMatrix(void *mat) {
-    matrix_clear(mat);
+    matrix_clear((matrix*)mat);
 }
 
 void stdUnitMatrix(void *mat) {
-    matrix_unit(mat);
+    matrix_unit((matrix*)mat);
 }
 
 int stdReduceMatrix(void *mat, int prime) {
@@ -116,7 +116,7 @@ void *stdLiftFunc(primeInfo *pi, void *inp, void *lft, void *bas, progressInfo *
     const char *progvar = NULL;
     int pmsk = 0, *ivarp = NULL;
     if (NULL != prg) { ip = prg->ip; progvar = prg->progvar; pmsk = prg->pmsk;  ivarp = prg->interruptVar;}
-    res = matrix_lift(pi, (matrix *) inp, lft, bas, ip, progvar, pmsk, ivarp ? ivarp : &zero);
+    res = matrix_lift(pi, (matrix *) inp, (matrix*)lft, (matrix*)bas, ip, progvar, pmsk, ivarp ? ivarp : &zero);
     return res;
 }
 
@@ -151,13 +151,13 @@ matrixType stdMatrixType = {
     .destroyMatrix = stdDestroyMatrix,
     .clearMatrix   = stdClearMatrix,
     .unitMatrix    = stdUnitMatrix,
-    .shrinkRows    = NULL,
     .reduce        = stdReduceMatrix,
+    .iszero        = stdMatrixIsZero,
+    .shrinkRows    = NULL,
     .add           = stdMAdd,
     .orthoFunc     = stdOrthoFunc,
     .liftFunc      = stdLiftFunc,
     .quotFunc      = stdQuotFunc,
-    .iszero        = stdMatrixIsZero,
     .copyRows      = stdMatrixCopyRows
 };
 
@@ -230,8 +230,8 @@ vectorType stdVectorType = {
     .createVector  = &stdVCreateVector,
     .createCopy    = &stdVCreateCopy,
     .destroyVector = &stdVDestroyVector,
-    .reduce        = &stdVReduce,
-    .add           = &stdVAdd
+    .add           = &stdVAdd,
+    .reduce        = &stdVReduce
 };
 
 typedef struct rcvect {
@@ -275,7 +275,7 @@ int rcGetLength(void*vec) {
 
 void *rcCreateCopy(void*vec) {
     rcvect *r = (rcvect*)vec;
-    rcvect *c = malloc(sizeof(rcvect));
+    rcvect *c = (rcvect*)malloc(sizeof(rcvect));
     memcpy(c,r,sizeof(rcvect));
     Tcl_IncrRefCount(c->matobj);
     return c;
@@ -295,8 +295,8 @@ vectorType matrixRowcolVector = {
     .createVector  = NULL, /* CreateVector */
     .createCopy    = &rcCreateCopy,
     .destroyVector = &rcDestroyVector,
-    .reduce        = NULL, /* Reduce */
-    .add           = NULL /* Add */
+    .add           = NULL,
+    .reduce        = NULL
 };
 
 void *createStdMatrixCopy(matrixType *mt, void *mat) {

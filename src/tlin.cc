@@ -113,7 +113,7 @@ int VectorSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
 
     vct = (stdvector->createVector)(objc);
     if (NULL == vct) {
-        Tcl_SetResult(ip, "out of memory in VectorSetFromAnyProc", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"out of memory in VectorSetFromAnyProc", TCL_STATIC);
         return TCL_ERROR;
     }
 
@@ -147,7 +147,7 @@ Tcl_Obj *Tcl_NewListFromVector(Tcl_Obj *obj) {
 
     len = (vt->getLength)(PTR2(obj));
 
-    if (NULL == (objv = mallox(len * sizeof(Tcl_Obj *))))
+    if (NULL == (objv = (Tcl_Obj**)mallox(len * sizeof(Tcl_Obj *))))
         return NULL;
 
     for (i = 0; i < len; i++) {
@@ -171,7 +171,7 @@ void VectorUpdateStringProc(Tcl_Obj *objPtr) {
 }
 
 void VectorDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
-    vectorType *vt = PTR1(srcPtr);
+    vectorType *vt = (vectorType *) PTR1(srcPtr);
     dupPtr->typePtr = srcPtr->typePtr;
     PTR1(dupPtr) = vt;
     PTR2(dupPtr) = (vt->createCopy)(PTR2(srcPtr));
@@ -257,12 +257,12 @@ int MatrixSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
         if (NULL == mat) {
             cols = objc2;
             if (NULL == (mat = (stdmatrix->createMatrix)(rows, cols))) {
-                Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+                Tcl_SetResult(ip, (char*)"out of memory", TCL_STATIC);
                 FREEMATANDRETERR;
             }
         } else {
             if (cols != objc2) {
-                Tcl_SetResult(ip, "vectors of different length in matrix",
+                Tcl_SetResult(ip, (char*)"vectors of different length in matrix",
                               TCL_STATIC);
                 FREEMATANDRETERR;
             }
@@ -301,10 +301,10 @@ Tcl_Obj *Tcl_NewListFromMatrix(Tcl_Obj *obj) {
 
     (vt->getDimensions)(PTR2(obj), &rows, &cols);
 
-    if (NULL == (objv = mallox(rows * sizeof(Tcl_Obj *))))
+    if (NULL == (objv = (Tcl_Obj**) mallox(rows * sizeof(Tcl_Obj *))))
         return NULL;
 
-    if (NULL == (objv2 = mallox(cols * sizeof(Tcl_Obj *)))) {
+    if (NULL == (objv2 = (Tcl_Obj**) mallox(cols * sizeof(Tcl_Obj *)))) {
         freex(objv);
         return NULL;
     }
@@ -335,7 +335,7 @@ void MatrixUpdateStringProc(Tcl_Obj *objPtr) {
 }
 
 void MatrixDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
-    matrixType *vt = PTR1(srcPtr);
+    matrixType *vt = (matrixType *) PTR1(srcPtr);
     dupPtr->typePtr = srcPtr->typePtr;
     PTR1(dupPtr) = vt;
     PTR2(dupPtr) = (vt->createCopy)(PTR2(srcPtr));
@@ -349,7 +349,7 @@ int Tcl_MatrixGetDimensions(Tcl_Interp *ip, Tcl_Obj *obj, int *rows,
     matrixType *mt;
     if (TCL_OK != Tcl_ConvertToMatrix(ip, obj))
         return TCL_ERROR;
-    mt = PTR1(obj);
+    mt = (matrixType *) PTR1(obj);
     (mt->getDimensions)(PTR2(obj), rows, cols);
     return TCL_OK;
 }
@@ -365,7 +365,7 @@ int Tcl_MatrixGetDimensions(Tcl_Interp *ip, Tcl_Obj *obj, int *rows,
 Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft, Tcl_Obj *bas,
                      Tcl_Interp *ip, const char *progvar, int pmsk,
                      int *interruptVar) {
-    matrixType *mt = PTR1(inp), *mt2 = PTR1(lft);
+    matrixType *mt = (matrixType *) PTR1(inp), *mt2 = (matrixType *) PTR1(lft);
     int krows, kcols, irows, icols;
     void *rdat;
     progressInfo pro;
@@ -400,7 +400,7 @@ Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft, Tcl_Obj *bas,
     if (irows == 0)
         icols = kcols;
     if (kcols != icols) {
-        Tcl_SetResult(ip, "inconsistent dimensions", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"inconsistent dimensions", TCL_STATIC);
         return NULL;
     }
 
@@ -423,7 +423,7 @@ Tcl_Obj *Tcl_LiftCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj *lft, Tcl_Obj *bas,
 
 int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp, Tcl_Interp *ip,
                 const char *progvar, int pmsk, int *interruptVar) {
-    matrixType *mt = PTR1(inp), *mt2 = PTR1(ker);
+    matrixType *mt = (matrixType *) PTR1(inp), *mt2 = (matrixType *) PTR1(ker);
     int krows, kcols, irows, icols;
     progressInfo pro;
 
@@ -463,7 +463,7 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp, Tcl_Interp *ip,
         return TCL_OK;
     }
     if (kcols != icols) {
-        Tcl_SetResult(ip, "inconsistent dimensions", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"inconsistent dimensions", TCL_STATIC);
         return TCL_ERROR;
     }
 
@@ -484,7 +484,7 @@ int Tcl_QuotCmd(primeInfo *pi, Tcl_Obj *ker, Tcl_Obj *inp, Tcl_Interp *ip,
 Tcl_Obj *Tcl_OrthoCmd(primeInfo *pi, Tcl_Obj *inp, Tcl_Obj **urb,
                       Tcl_Interp *ip, int wantkernel, const char *progvar,
                       int pmsk, int *interruptVar) {
-    matrixType *mt = PTR1(inp);
+    matrixType *mt = (matrixType *) PTR1(inp);
     progressInfo pro;
     void *res, *oth, *oth2;
 
@@ -609,18 +609,18 @@ int MAddCmd(Tcl_Interp *ip, Tcl_Obj *obj1, Tcl_Obj *obj2, int scale,
 int ExtractColsCmd(Tcl_Interp *ip, Tcl_Obj *mat, int *ind, int num) {
     matrixType *mt1, *mt2;
     void *mdat1, *mdat2;
-    int i, j, ir, ic, or, oc; /* input/output number of ros/columns */
+    int i, j, ir, ic, oro, oc; /* input/output number of ros/columns */
 
     mt1 = matrixTypeFromTclObj(mat);
     mdat1 = matrixFromTclObj(mat);
 
     mt1->getDimensions(mdat1, &ir, &ic);
 
-    or = ir;
+    oro = ir;
     oc = num;
 
     mt2 = mt1;
-    mdat2 = mt2->createMatrix(or, oc);
+    mdat2 = mt2->createMatrix(oro, oc);
 
     if (NULL == mdat2)
         RETERR("out of memory");
@@ -628,11 +628,11 @@ int ExtractColsCmd(Tcl_Interp *ip, Tcl_Obj *mat, int *ind, int num) {
     for (i = 0; i < num; i++) {
         int idx = ind[i];
         if (idx < 0) {
-            Tcl_SetResult(ip, "negative index", TCL_STATIC);
+            Tcl_SetResult(ip, (char*)"negative index", TCL_STATIC);
             mt2->destroyMatrix(mdat2);
             return TCL_ERROR;
         } else if (idx >= ic && ir > 0) {
-            Tcl_SetResult(ip, "index too big", TCL_STATIC);
+            Tcl_SetResult(ip, (char*)"index too big", TCL_STATIC);
             mt2->destroyMatrix(mdat2);
             return TCL_ERROR;
         }
@@ -650,14 +650,14 @@ int ExtractColsCmd(Tcl_Interp *ip, Tcl_Obj *mat, int *ind, int num) {
 int ExtractRowsCmd(Tcl_Interp *ip, Tcl_Obj *mat, int *ind, int num) {
     matrixType *mt1, *mt2;
     void *mdat1, *mdat2;
-    int i, j, ir, ic, or, oc; /* input/output number of ros/columns */
+    int i, j, ir, ic, oro, oc; /* input/output number of ros/columns */
 
     mt1 = matrixTypeFromTclObj(mat);
     mdat1 = matrixFromTclObj(mat);
 
     mt1->getDimensions(mdat1, &ir, &ic);
 
-    or = num;
+    oro = num;
     oc = ic;
 
     if (NULL != mt1->shrinkRows) {
@@ -672,7 +672,7 @@ int ExtractRowsCmd(Tcl_Interp *ip, Tcl_Obj *mat, int *ind, int num) {
     }
 
     mt2 = mt1;
-    mdat2 = mt2->createMatrix(or, oc);
+    mdat2 = mt2->createMatrix(oro, oc);
 
     if (NULL == mdat2)
         RETERR("out of memory");
@@ -706,7 +706,7 @@ Tcl_Obj *TakeMatrixFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
     if (TCL_OK != Tcl_ConvertToMatrix(ip, res)) {
         Tcl_SetObjResult(ip, varname);
-        Tcl_AppendResult(ip, " does not contain a valid matrix", NULL);
+        Tcl_AppendResult(ip, (char*)" does not contain a valid matrix", NULL);
         return NULL;
     }
 
@@ -742,7 +742,7 @@ Tcl_Obj *TakeVectorFromVar(Tcl_Interp *ip, Tcl_Obj *varname) {
 
     if (TCL_OK != Tcl_ConvertToVector(ip, res)) {
         Tcl_SetObjResult(ip, varname);
-        Tcl_AppendResult(ip, " does not contain a valid vector", NULL);
+        Tcl_AppendResult(ip, (char*)" does not contain a valid vector", NULL);
         return NULL;
     }
 
@@ -785,7 +785,7 @@ int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
         return TCL_ERROR;
 
     if (objc != 5) {
-        Tcl_SetResult(ip, "wrong number of entries in list", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"wrong number of entries in list", TCL_STATIC);
         return TCL_ERROR;
     }
 
@@ -810,7 +810,7 @@ int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
         mask = 0xff;
         break;
     default:
-        Tcl_SetResult(ip, "Unsupported blocksize: should be 1, 2, 4, or 8",
+        Tcl_SetResult(ip, (char*)"Unsupported blocksize: should be 1, 2, 4, or 8",
                       TCL_STATIC);
         return TCL_ERROR;
     }
@@ -825,7 +825,7 @@ int Tcl_DecodeCmd(Tcl_Interp *ip, Tcl_Obj *in) {
         return TCL_ERROR;
 
     if (ncols && (index != nrows)) {
-        Tcl_SetResult(ip, "inconsistent number of rows", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"inconsistent number of rows", TCL_STATIC);
         return TCL_ERROR;
     }
 
@@ -937,7 +937,7 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
     }
 
     if (blocksize < 0) {
-        Tcl_SetResult(ip, "base must be between 2 and 255", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"base must be between 2 and 255", TCL_STATIC);
         return TCL_ERROR;
     }
 
@@ -955,8 +955,8 @@ int Tcl_Encode64Cmd(Tcl_Interp *ip, int base, Tcl_Obj *mat) {
     rcs *= 2; /* now the number of hex digits per row */
     len += nrows * rcs;
 
-    if (NULL == (enc = Tcl_AttemptAlloc(len + 1))) {
-        Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+    if (NULL == (enc = (char*) Tcl_AttemptAlloc(len + 1))) {
+        Tcl_SetResult(ip, (char*)"out of memory", TCL_STATIC);
         return TCL_ERROR;
     }
 
@@ -1047,7 +1047,7 @@ int Tcl_Convert2Cmd(Tcl_Interp *ip, Tcl_Obj *inmat) {
     res = stdmatrix2->createMatrix(rows, cols);
 
     if (NULL == res) {
-        Tcl_SetResult(ip, "Out of memory", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"Out of memory", TCL_STATIC);
         return TCL_ERROR;
     }
 
@@ -1091,7 +1091,7 @@ int Tcl_MultMatrixCmd(Tcl_Interp *ip, primeInfo *pi, Tcl_Obj *f1, Tcl_Obj *f2) {
     mt2->getDimensions(mdat2, &inb2, &cols);
 
     if (inb != inb2) {
-        Tcl_SetResult(ip, "dimensions don't match", TCL_STATIC);
+        Tcl_SetResult(ip, (char*)"dimensions don't match", TCL_STATIC);
         return TCL_ERROR;
     }
 
@@ -1123,15 +1123,15 @@ int MatrixCLCreatePostProc(ClientData data[], Tcl_Interp *ip, int result) {
     mat2 *m2 = (mat2 *)data[0];
     cl_mem clm = (cl_mem)data[1];
     stcl_context *ctx = (stcl_context *)data[2];
-    int returnmatrix = (int)data[3];
+    intptr_t returnmatrix = (intptr_t)data[3];
     void *buf = NULL;
     if (returnmatrix && TCL_OK == result)
         do {
             result = TCL_ERROR;
             size_t dsz = m2->ipr * m2->rows * sizeof(int);
-            m2->data = malloc(dsz ? dsz : 1);
+            m2->data = (int*) malloc(dsz ? dsz : 1);
             if (NULL == m2->data) {
-                Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+                Tcl_SetResult(ip, (char*)"out of memory", TCL_STATIC);
                 break;
             }
             int rc;
@@ -1142,14 +1142,14 @@ int MatrixCLCreatePostProc(ClientData data[], Tcl_Interp *ip, int result) {
                                      dsz, 0, NULL, NULL, &rc);
             if (NULL == buf || CL_SUCCESS != rc) {
                 SetCLErrorCode(ip, rc);
-                Tcl_AddErrorInfo(ip, " from clEnqueueMapBuffer");
+                Tcl_AddErrorInfo(ip, (char*)" from clEnqueueMapBuffer");
                 break;
             }
             memcpy(m2->data, buf, dsz);
             rc = clEnqueueUnmapMemObject(q, clm, buf, 0, NULL, NULL);
             if (CL_SUCCESS != rc) {
                 SetCLErrorCode(ip, rc);
-                Tcl_AddErrorInfo(ip, " from clEnqueueUnmapMemObject");
+                Tcl_AddErrorInfo(ip, (char*)" from clEnqueueUnmapMemObject");
                 break;
             }
             Tcl_SetObjResult(ip, Tcl_NewMatrixObj(stdmatrix2, m2));
@@ -1184,7 +1184,7 @@ int MatrixCLMapPostProc(ClientData data[], Tcl_Interp *ip, int result) {
                                      0, NULL, NULL);
             if (CL_SUCCESS != rc) {
                 SetCLErrorCode(ip, rc);
-                Tcl_AddErrorInfo(ip, " from clEnqueueReadBuffer");
+                Tcl_AddErrorInfo(ip, (char*)" from clEnqueueReadBuffer");
                 break;
             }
             result = TCL_OK;
@@ -1199,7 +1199,7 @@ int MatrixCLMapPostProc(ClientData data[], Tcl_Interp *ip, int result) {
 
 #define CHECK_INTERRUPT_VARIABLE(where)                                        \
     if (LINALG_INTERRUPT_VARIABLE) {                                           \
-        Tcl_SetResult(ip, "computation has been interrupted", TCL_STATIC);     \
+        Tcl_SetResult(ip, (char*)"computation has been interrupted", TCL_STATIC);     \
         return TCL_ERROR;                                                      \
     }
 
@@ -1271,6 +1271,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
     switch (mCmdmap[index]) {
     case TYPE:
+    {
         EXPECTARGS(2, 1, 1, "<matrix>");
 
         if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[2]))
@@ -1279,13 +1280,15 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         Tcl_SetResult(ip, (char *)matrixTypeFromTclObj(objv[2])->name,
                       TCL_VOLATILE);
         return TCL_OK;
-
+    }
     case CONVERT2:
+    {
         EXPECTARGS(2, 1, 1, "<matrix>");
 
         return Tcl_Convert2Cmd(ip, objv[2]);
-
+    }
     case ENCODE64:
+    {
         EXPECTARGS(2, 2, 2, "<base> <matrix>");
 
         if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2], &scale))
@@ -1299,8 +1302,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         }
 
         return TCL_OK;
-
+    }
     case DECODE:
+    {
         EXPECTARGS(2, 1, 1, "<string>");
 
         if (TCL_OK != Tcl_DecodeCmd(ip, objv[2])) {
@@ -1308,8 +1312,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         }
 
         return TCL_OK;
-
+    }
     case QUOT:
+    {
         EXPECTARGS(2, 3, 3, "<prime> <varname> <matrix>");
 
         if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
@@ -1337,8 +1342,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
         DECREFCNT(varp[1]);
         return TCL_OK;
-
+    }
     case LIFT:
+    {
         EXPECTARGS(2, 4, 4, "<prime> <matrix> <basis> <varname>");
 
         if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
@@ -1372,8 +1378,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
         Tcl_SetObjResult(ip, varp[3]);
         return TCL_OK;
-
+    }
     case LIFTV:
+    {
         EXPECTARGS(2, 3, 3, "<prime> <matrixvar> <toliftvar>");
 
         if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
@@ -1407,8 +1414,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
         Tcl_SetObjResult(ip, varp[3]);
         return TCL_OK;
-
-    case ORTHO: {
+    }
+    case ORTHO:
+    {
         int wantkernel;
         EXPECTARGS(2, 3, 4, "<prime> <inputvar> <kernelvar> ?<basisvar>?");
 
@@ -1458,6 +1466,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         return TCL_OK;
     }
     case EXTRACT:
+    {
         EXPECTARGS(2, 3, 3, "rows/cols <matrix> <list of indices>");
 
         if (TCL_OK !=
@@ -1488,15 +1497,18 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
             Tcl_SetObjResult(ip, Tcl_NewVectorObj(&matrixRowcolVector, vdat));
             return TCL_OK;
         }
+    }
     case MULT:
+    {
         EXPECTARGS(2, 3, 3, "<prime> <matrix1> <matrix2>");
 
         if (TCL_OK != Tcl_GetPrimeInfo(ip, objv[2], &pi))
             return TCL_ERROR;
 
         return Tcl_MultMatrixCmd(ip, pi, objv[3], objv[4]);
-
+    }
     case DIMS:
+    {
         EXPECTARGS(2, 1, 1, "<matrix>");
 
         if (TCL_OK != Tcl_MatrixGetDimensions(ip, objv[2], &rows, &cols))
@@ -1507,8 +1519,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
         Tcl_SetObjResult(ip, Tcl_NewListObj(2, varp));
         return TCL_OK;
-
+    }
     case CREATE:
+    {
         EXPECTARGS(2, 2, 2, "<rows> <columns>");
 
         if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2], &rows))
@@ -1525,8 +1538,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
         Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt, mdat));
         return TCL_OK;
-
+    }
     case UNIT:
+    {
         EXPECTARGS(2, 1, 1, "<rows>");
 
         if (TCL_OK != Tcl_GetIntFromObj(ip, objv[2], &rows))
@@ -1544,8 +1558,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
         Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt, mdat));
         return TCL_OK;
-
+    }
     case ADDTO:
+    {
         EXPECTARGS(2, 2, 4, "<varname> <matrix> ?<scale>? ?<mod>?");
 
         scale = 1;
@@ -1579,8 +1594,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
         Tcl_ResetResult(ip);
         return TCL_OK;
-
+    }
     case ISZERO:
+    {
         EXPECTARGS(2, 1, 1, "<matrix>");
 
         if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[2]))
@@ -1591,8 +1607,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
         Tcl_SetObjResult(ip, Tcl_NewBooleanObj(matrixIsZero(mt, mdat)));
         return TCL_OK;
-
+    }
     case TEST:
+    {
         EXPECTARGS(2, 1, 1, "<matrix candidate>");
 
         if (TCL_OK != Tcl_ConvertToMatrix(ip, objv[2]))
@@ -1600,9 +1617,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
         Tcl_ResetResult(ip);
         return TCL_OK;
-
+    }
     case CONCAT:
-
+    {
         EXPECTARGS(2, 1, 1, "<variable with list of matrices>");
 
         int i, matcnt;
@@ -1634,10 +1651,10 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
                 mt = mt2;
                 ncols = cols;
             } else if (mt != mt2) {
-                Tcl_SetResult(ip, "inconsistent matrix types", TCL_STATIC);
+                Tcl_SetResult(ip, (char*)"inconsistent matrix types", TCL_STATIC);
                 return TCL_ERROR;
             } else if (cols != ncols) {
-                Tcl_SetResult(ip, "inconsistent number of columns", TCL_STATIC);
+                Tcl_SetResult(ip, (char*)"inconsistent number of columns", TCL_STATIC);
                 return TCL_ERROR;
             }
             nrows += rows;
@@ -1665,7 +1682,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
 
         Tcl_SetObjResult(ip, Tcl_NewMatrixObj(mt, mdat));
         return TCL_OK;
-
+    }
 #if USEOPENCL
     case CLALLOC:
     case CLCREATE: {
@@ -1678,9 +1695,9 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
             return TCL_ERROR;
         if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &ncols))
             return TCL_ERROR;
-        mat2 *m2 = malloc(sizeof(mat2));
+        mat2 *m2 = (mat2*) malloc(sizeof(mat2));
         if (NULL == m2) {
-            Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+            Tcl_SetResult(ip, (char*)"out of memory", TCL_STATIC);
             return TCL_ERROR;
         }
         m2->data = NULL;
@@ -1712,7 +1729,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         dims[2] = Tcl_NewIntObj(m2->ipr * sizeof(int)/4);
         Tcl_ObjSetVar2(ip, objv[5], NULL, Tcl_NewListObj(3, dims), 0);
         clRetainMemObject(clm);
-        Tcl_NRAddCallback(ip, MatrixCLCreatePostProc, m2, clm, ctx, mCmdmap[index] == CLCREATE ? 1 : 0);
+        Tcl_NRAddCallback(ip, MatrixCLCreatePostProc, m2, clm, ctx, (ClientData) (mCmdmap[index] == CLCREATE ? 1 : 0));
         return Tcl_NREvalObj(ip, objv[6], 0);
     }
     case CLMAP: {
@@ -1728,7 +1745,7 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         if (NULL == matobj)
             return TCL_ERROR;
         if (matrixTypeFromTclObj(matobj) != &stdMatrixType2) {
-            Tcl_SetResult(ip, "matrixType is not stdMatrixType2", TCL_STATIC);
+            Tcl_SetResult(ip, (char*)"matrixType is not stdMatrixType2", TCL_STATIC);
             return TCL_ERROR;
         }
         if (0 == ((CL_MEM_COPY_HOST_PTR | CL_MEM_USE_HOST_PTR) & flags)) {
@@ -1783,30 +1800,30 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
         if (TCL_OK != STcl_GetMemObjFromObj(ip, objv[2], &buf))
             return TCL_ERROR;
         size_t dsz;
-        clGetMemObjectInfo(buf,CL_MEM_SIZE,sizeof(dsz),&dsz,NULL); 
+        clGetMemObjectInfo(buf,CL_MEM_SIZE,sizeof(dsz),&dsz,NULL);
         int lobjc;
         Tcl_Obj **lobjv;
         if (TCL_OK != Tcl_ListObjGetElements(ip,objv[3],&lobjc,&lobjv))
             return TCL_ERROR;
         int nrows, ncols, ipr;
-        if (3 != lobjc 
+        if (3 != lobjc
             || TCL_OK != Tcl_GetIntFromObj(ip,lobjv[0],&nrows)
             || TCL_OK != Tcl_GetIntFromObj(ip,lobjv[1],&ncols)
             || TCL_OK != Tcl_GetIntFromObj(ip,lobjv[2],&ipr)) {
-            Tcl_SetResult(ip, "dimension not understood", TCL_STATIC);
+            Tcl_SetResult(ip, (char*)"dimension not understood", TCL_STATIC);
             return TCL_ERROR;
         }
         cl_command_queue q = GetOrCreateCommandQueue(ip, ctx, 0);
         if (NULL == q)
             break;
-        mat2 *m2 = malloc(sizeof(mat2));
+        mat2 *m2 = (mat2*) malloc(sizeof(mat2));
         if (NULL == m2) {
-            Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+            Tcl_SetResult(ip, (char*)"out of memory", TCL_STATIC);
             return TCL_ERROR;
         }
-        if (NULL == (m2->data = malloc(dsz ? dsz : 1))) {
+        if (NULL == (m2->data = (int*) malloc(dsz ? dsz : 1))) {
             free(m2);
-            Tcl_SetResult(ip, "out of memory", TCL_STATIC);
+            Tcl_SetResult(ip, (char*)"out of memory", TCL_STATIC);
             return TCL_ERROR;
         }
         m2->rows = nrows;
@@ -1822,14 +1839,14 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
                                         dsz, numwait, evtlist, NULL, &rc);
         if(CL_SUCCESS != rc || NULL == data) {
             SetCLErrorCode(ip,rc);
-            Tcl_AddErrorInfo(ip, " from clEnqueueMapBuffer");
+            Tcl_AddErrorInfo(ip, (char*)" from clEnqueueMapBuffer");
             return TCL_ERROR;
         }
         memcpy(m2->data, data, dsz);
         rc = clEnqueueUnmapMemObject(q, buf, data, 0, NULL, NULL);
         if (CL_SUCCESS != rc) {
             SetCLErrorCode(ip, rc);
-            Tcl_AddErrorInfo(ip, " from clEnqueueUnmapMemObject");
+            Tcl_AddErrorInfo(ip, (char*)" from clEnqueueUnmapMemObject");
             return TCL_ERROR;
         }
         Tcl_SetObjResult(ip, Tcl_NewMatrixObj(stdmatrix2, m2));
@@ -1840,13 +1857,13 @@ int MatrixNRECombiCmd(ClientData cd, Tcl_Interp *ip, int objc,
     case CLCREATE:
     case CLMAP:
     case CLENQREAD:
-        Tcl_SetResult(ip, "library was not built with opencl support",
+        Tcl_SetResult(ip, (char*)"library was not built with opencl support",
                       TCL_STATIC);
         return TCL_ERROR;
 #endif
     }
 
-    Tcl_SetResult(ip, "internal error in MatrixCombiCmd", TCL_STATIC);
+    Tcl_SetResult(ip, (char*)"internal error in MatrixCombiCmd", TCL_STATIC);
     return TCL_ERROR;
 }
 
@@ -1859,7 +1876,7 @@ int Tlin_HaveType;
 
 int Tlin_Init(Tcl_Interp *ip) {
 
-    if (NULL == Tcl_InitStubs(ip, "8.0", 0))
+    if (NULL == Tcl_InitStubs(ip, (char*)"8.0", 0))
         return TCL_ERROR;
 
     Tprime_Init(ip);
@@ -1888,7 +1905,7 @@ int Tlin_Init(Tcl_Interp *ip) {
         Tlin_HaveType = 1;
     }
 
-    int *interruptVar = malloc(sizeof(int)); /* yes, this leaks */
+    int *interruptVar = (int *) malloc(sizeof(int)); /* yes, this leaks */
 
     Tcl_NRCreateCommand(ip, NSP "matrix", MatrixCombiCmd, MatrixNRECombiCmd,
                         (ClientData)interruptVar, NULL);
@@ -1899,7 +1916,7 @@ int Tlin_Init(Tcl_Interp *ip) {
     Tcl_LinkVar(ip, NSP "_vecCount", (char *)&vecCount,
                 TCL_LINK_INT | TCL_LINK_READ_ONLY);
 
-    Tcl_Eval(ip, "namespace eval " NSP " { namespace export * }");
+    Tcl_Eval(ip, (char*)"namespace eval " NSP " { namespace export * }");
 
     return TCL_OK;
 }

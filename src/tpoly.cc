@@ -81,7 +81,7 @@ Tcl_Obj *Tcl_NewExmoObj(exmo *ex) {
 }
 
 Tcl_Obj *Tcl_NewExmoCopyObj(exmo *ex) {
-    exmo *x = mallox(sizeof(exmo));
+    exmo *x = (exmo*) mallox(sizeof(exmo));
     TCLMEMASSERT(x);
     copyExmo(x,ex);
     return Tcl_NewExmoObj(x);
@@ -89,7 +89,7 @@ Tcl_Obj *Tcl_NewExmoCopyObj(exmo *ex) {
 
 /* free internal representation */
 void ExmoFreeInternalRepProc(Tcl_Obj *obj) {
-    freex(PTR1(obj));
+    freex((polyType*)PTR1(obj));
     DECMONCNT;
 }
 
@@ -166,10 +166,10 @@ void ExmoUpdateStringProc(Tcl_Obj *objPtr) {
 
 /* create copy */
 void ExmoDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
-    exmo *new = (exmo *) mallox(sizeof(exmo));
-    TCLMEMASSERT(new);
-    memcpy(new, PTR1(srcPtr), sizeof(exmo));
-    PTR1(dupPtr) = new;
+    exmo *ans = (exmo *) mallox(sizeof(exmo));
+    TCLMEMASSERT(ans);
+    memcpy(ans, PTR1(srcPtr), sizeof(exmo));
+    PTR1(dupPtr) = ans;
     dupPtr->typePtr = srcPtr->typePtr;
     INCMONCNT;
 }
@@ -309,11 +309,11 @@ void PolyDupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
 void Tcl_PolyObjConvert(Tcl_Obj *obj, polyType *newtype) {
     void *aux;
     DBGPOLY printf("Tcl_PolyObjConvert obj = %p\n", (void*)obj);
-    if (PTR1(obj) == newtype) return;
+    if ((polyType*)PTR1(obj) == newtype) return;
     if (Tcl_IsShared(obj))
         ASSERT(NULL == "Tcl_PolyObjConvert called for shared object");
-    aux = PLcreateCopy(newtype,PTR1(obj),PTR2(obj));
-    PLfree(PTR1(obj),PTR2(obj));
+    aux = PLcreateCopy(newtype,(polyType*)PTR1(obj),PTR2(obj));
+    PLfree((polyType*)PTR1(obj),PTR2(obj));
     PTR2(obj) = aux;
     PTR1(obj) = (void *) newtype;
     Tcl_InvalidateStringRep(obj);
@@ -322,13 +322,13 @@ void Tcl_PolyObjConvert(Tcl_Obj *obj, polyType *newtype) {
 Tcl_Obj *Tcl_PolyObjCancel(Tcl_Obj *obj, int mod) {
     if (Tcl_IsShared(obj))
         obj = Tcl_DuplicateObj(obj);
-    PLcancel(PTR1(obj),PTR2(obj),mod);
+    PLcancel((polyType*)PTR1(obj),PTR2(obj),mod);
     Tcl_InvalidateStringRep(obj);
     return obj;
 }
 
 Tcl_Obj *Tcl_PolyObjReflect(Tcl_Obj *obj) {
-    polyType *tp = PTR1(obj);
+    polyType *tp = (polyType*)PTR1(obj);
     if (Tcl_IsShared(obj))
         obj = Tcl_DuplicateObj(obj);
     if (NULL == tp->reflect)
@@ -339,7 +339,7 @@ Tcl_Obj *Tcl_PolyObjReflect(Tcl_Obj *obj) {
 }
 
 Tcl_Obj *Tcl_PolyObjMotate(Tcl_Obj *obj) {
-    polyType *tp = PTR1(obj);
+    polyType *tp = (polyType*)PTR1(obj);
     if (Tcl_IsShared(obj))
         obj = Tcl_DuplicateObj(obj);
     if (NULL == tp->motate)
@@ -350,7 +350,7 @@ Tcl_Obj *Tcl_PolyObjMotate(Tcl_Obj *obj) {
 }
 
 Tcl_Obj *Tcl_PolyObjEtatom(Tcl_Obj *obj) {
-    polyType *tp = PTR1(obj);
+    polyType *tp = (polyType*)PTR1(obj);
     if (Tcl_IsShared(obj))
         obj = Tcl_DuplicateObj(obj);
     if (NULL == tp->etatom)
@@ -361,7 +361,7 @@ Tcl_Obj *Tcl_PolyObjEtatom(Tcl_Obj *obj) {
 }
 
 Tcl_Obj *Tcl_PolyObjScaleMod(Tcl_Obj *obj, int scale, int mod) {
-    polyType *tp = PTR1(obj);
+    polyType *tp = (polyType*)PTR1(obj);
     if (Tcl_IsShared(obj))
         obj = Tcl_DuplicateObj(obj);
     if (NULL == tp->scaleMod)
@@ -375,7 +375,7 @@ Tcl_Obj *Tcl_PolyObjAppend(Tcl_Obj *obj, Tcl_Obj *pol2, int scale, int mod) {
     if (Tcl_IsShared(obj))
         ASSERT(NULL == "obj must not be shared in Tcl_PolyObjAppend");
 
-    if (SUCCESS != PLappendPoly(PTR1(obj),PTR2(obj),PTR1(pol2),PTR2(pol2),NULL,0,scale,mod))
+    if (SUCCESS != PLappendPoly((polyType*)PTR1(obj),PTR2(obj),(polyType*)PTR1(pol2),PTR2(pol2),NULL,0,scale,mod))
         return NULL;
 
     Tcl_InvalidateStringRep(obj);
@@ -392,8 +392,8 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
     ash = Tcl_IsShared(a);
     bsh = Tcl_IsShared(b);
 
-    if (SUCCESS == PLcompare(PTR1(ac),PTR2(ac),
-                             PTR1(bc),PTR2(bc),
+    if (SUCCESS == PLcompare((polyType*)PTR1(ac),PTR2(ac),
+                             (polyType*)PTR1(bc),PTR2(bc),
                              &rval, (ash || bsh) ? 0 : PLF_ALLOWMODIFY)) {
 
         DECREFCNT(a);
@@ -409,7 +409,7 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
     if (ash) ac = Tcl_DuplicateObj(a);
     if (bsh) bc = Tcl_DuplicateObj(b);
 
-    rcode = PLcompare(PTR1(ac),PTR2(ac),PTR1(bc),PTR2(bc),&rval,PLF_ALLOWMODIFY);
+    rcode = PLcompare((polyType*)PTR1(ac),PTR2(ac),(polyType*)PTR1(bc),PTR2(bc),&rval,PLF_ALLOWMODIFY);
 
     /* destroy private copies */
     if (a != ac) DECREFCNT(ac);
@@ -419,7 +419,7 @@ Tcl_Obj *Tcl_PolyObjCompare(Tcl_Obj *a, Tcl_Obj *b) {
 }
 
 Tcl_Obj *Tcl_PolyObjShift(Tcl_Obj *obj, exmo *e, int flags) {
-    polyType *tp = PTR1(obj);
+    polyType *tp = (polyType*) PTR1(obj);
 
     ASSERTUNSHARED(obj, Tcl_PolyObjShift);
 
@@ -436,8 +436,8 @@ Tcl_Obj *Tcl_PolyObjShift(Tcl_Obj *obj, exmo *e, int flags) {
 Tcl_Obj *Tcl_PolyObjPosProduct(Tcl_Obj *obj, Tcl_Obj *pol2, int mod) {
     polyType *rtp; void *res;
     if (SUCCESS != PLposMultiply(&rtp,&res,
-                                 PTR1(obj),PTR2(obj),
-                                 PTR1(pol2),PTR2(pol2),mod))
+                                 (polyType*)PTR1(obj),PTR2(obj),
+                                 (polyType*)PTR1(pol2),PTR2(pol2),mod))
         return NULL;
     return Tcl_NewPolyObj(rtp,res);
 }
@@ -445,8 +445,8 @@ Tcl_Obj *Tcl_PolyObjPosProduct(Tcl_Obj *obj, Tcl_Obj *pol2, int mod) {
 Tcl_Obj *Tcl_PolyObjNegProduct(Tcl_Obj *obj, Tcl_Obj *pol2, int mod) {
     polyType *rtp; void *res;
     if (SUCCESS != PLnegMultiply(&rtp,&res,
-                                 PTR1(obj),PTR2(obj),
-                                 PTR1(pol2),PTR2(pol2),mod))
+                                 (polyType*)PTR1(obj),PTR2(obj),
+                                 (polyType*)PTR1(pol2),PTR2(pol2),mod))
         return NULL;
     return Tcl_NewPolyObj(rtp,res);
 }
@@ -454,8 +454,8 @@ Tcl_Obj *Tcl_PolyObjNegProduct(Tcl_Obj *obj, Tcl_Obj *pol2, int mod) {
 Tcl_Obj *Tcl_PolyObjSteenrodProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) {
     polyType *rtp; void *res;
     if (SUCCESS != PLsteenrodMultiply(&rtp,&res,
-                                      PTR1(obj),PTR2(obj),
-                                      PTR1(pol2),PTR2(pol2),pi,NULL))
+                                      (polyType*)PTR1(obj),PTR2(obj),
+                                      (polyType*)PTR1(pol2),PTR2(pol2),pi,NULL))
         return NULL;
     return Tcl_NewPolyObj(rtp,res);
 }
@@ -463,8 +463,8 @@ Tcl_Obj *Tcl_PolyObjSteenrodProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) 
 Tcl_Obj *Tcl_PolyObjEBPProduct(Tcl_Obj *obj, Tcl_Obj *pol2, primeInfo *pi) {
     polyType *rtp; void *res;
     if (SUCCESS != PLEBPMultiply(&rtp,&res,
-				 PTR1(obj),PTR2(obj),
-				 PTR1(pol2),PTR2(pol2),pi))
+				 (polyType*)PTR1(obj),PTR2(obj),
+				 (polyType*)PTR1(pol2),PTR2(pol2),pi))
         return NULL;
     return Tcl_NewPolyObj(rtp,res);
 }
@@ -475,13 +475,13 @@ Tcl_Obj *Tcl_PolyObjGetCoeff(Tcl_Obj *obj, Tcl_Obj *exm, int mod) {
     INCREFCNT(obj);
 
     if (!Tcl_IsShared(obj)) safeflags |= PLF_ALLOWMODIFY;
-    if (SUCCESS != PLcollectCoeffs(PTR1(obj),PTR2(obj),
+    if (SUCCESS != PLcollectCoeffs((polyType*)PTR1(obj),PTR2(obj),
                                    exmoFromTclObj(exm),&rval,mod,safeflags)) {
         DECREFCNT(obj);
         obj = Tcl_DuplicateObj(obj);
         INCREFCNT(obj);
 
-        if (SUCCESS != PLcollectCoeffs(PTR1(obj),PTR2(obj),
+        if (SUCCESS != PLcollectCoeffs((polyType*)PTR1(obj),PTR2(obj),
                                        exmoFromTclObj(exm),&rval,
                                        mod,PLF_ALLOWMODIFY)) {
             DECREFCNT(obj);
@@ -496,7 +496,7 @@ Tcl_Obj *Tcl_PolyObjGetCoeff(Tcl_Obj *obj, Tcl_Obj *exm, int mod) {
 Tcl_Obj *Tcl_PolyObjGetInfo(Tcl_Obj *obj) {
     polyInfo poli;
     char aux[500], *wrk=aux;;
-    if (SUCCESS != PLgetInfo(PTR1(obj),PTR2(obj),&poli))
+    if (SUCCESS != PLgetInfo((polyType*)PTR1(obj),PTR2(obj),&poli))
         return Tcl_NewObj();
 
     wrk += sprintf(wrk,"{implementation {%s}}"
@@ -577,10 +577,10 @@ int Tcl_PolySplitProc(Tcl_Interp *ip, int objc, Tcl_Obj *src, Tcl_Obj *proc,
     /* First create an array of empty polynomials. We let array[k+1]
      * correspond to objv[k] and array[0] to *res. */
 
-    if (NULL == (array = mallox(sizeof(Tcl_Obj *) * (objc + 1))))
+    if (NULL == (array = (Tcl_Obj**) mallox(sizeof(Tcl_Obj *) * (objc + 1))))
         RETERR("out of memory");
 
-    if (NULL == (parray = mallox(sizeof(void *) * (objc + 1)))) {
+    if (NULL == (parray = (void**) mallox(sizeof(void *) * (objc + 1)))) {
         freex(array);
         RETERR("out of memory");
     }
@@ -754,7 +754,7 @@ int Tcl_CLGenSplitPolyPostProc(ClientData data[], Tcl_Interp *ip, int result) {
             size_t bufsz = sizeof(exmo)*len;
             cl_event evt;
             cl_int rc;
-            cl_mem buf = clCreateBuffer(cb->ctx->ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, 
+            cl_mem buf = clCreateBuffer(cb->ctx->ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
                                         bufsz, NULL, &rc);
             if(CL_SUCCESS == rc && buf) {
                 cl_command_queue q = GetOrCreateCommandQueue(ip,cb->ctx,0);
@@ -789,11 +789,11 @@ int Tcl_CLGenSplitPoly(Tcl_Interp *ip, Tcl_Obj *polyobj, Tcl_Obj *lengthvar, Tcl
         Tcl_SetResult(ip, "wrong poly implementation; must be stdpoly", TCL_STATIC);
         return TCL_ERROR;
     }
-    clgsplitcbdata *cb = malloc(sizeof(clgsplitcbdata));
+    clgsplitcbdata *cb = (clgsplitcbdata *)malloc(sizeof(clgsplitcbdata));
     if(NULL == cb) {
         Tcl_SetResult(ip,"out of memory", TCL_STATIC);
         return TCL_ERROR;
-    } 
+    }
     cb->ctx = ctx;
     cb->p = (stp*) polyFromTclObj(polyobj);
     cb->idx = 0;
@@ -822,7 +822,7 @@ int Tcl_CLMapPoly(Tcl_Interp *ip, Tcl_Obj *polyobj, Tcl_Obj *lengthvar, Tcl_Obj 
     stcl_context *ctx;
     if(TCL_OK != STcl_GetContext(ip, &ctx)) return TCL_ERROR;
     cl_command_queue queue = GetOrCreateCommandQueue(ip, ctx, 0);
-    
+
     Tcl_Obj *buffer[4] = { redbuf, extbuf, genbuf, coeffbuf };
     int sizes[4] = { NALG, 1, 4, 1 };
     for(int idx=0; idx<4; idx++) {
@@ -845,7 +845,7 @@ int Tcl_CLMapPoly(Tcl_Interp *ip, Tcl_Obj *polyobj, Tcl_Obj *lengthvar, Tcl_Obj 
             Tcl_AppendResult(ip, " while mapping buffer ", Tcl_GetString(bufname), NULL);
             return TCL_ERROR;
         }
-        unsigned char *wptr = hostbuf; 
+        unsigned char *wptr = hostbuf;
         for(int smd=0;smd<len;smd++, wptr += basesz) {
             exmo *e;
             pt->getExmoPtr(pdata,&e,smd);
@@ -866,7 +866,7 @@ int Tcl_CLMapPoly(Tcl_Interp *ip, Tcl_Obj *polyobj, Tcl_Obj *lengthvar, Tcl_Obj 
                     unsigned int *iptr = (unsigned int *) wptr;
                     *iptr = e->gen;
                     break;
-                } 
+                }
                 case 3:
                 {
                     *wptr = e->coeff;
@@ -876,7 +876,7 @@ int Tcl_CLMapPoly(Tcl_Interp *ip, Tcl_Obj *polyobj, Tcl_Obj *lengthvar, Tcl_Obj 
         }
         if(CL_SUCCESS != clEnqueueUnmapMemObject(queue, clm, hostbuf, 0, NULL, NULL)) {
             Tcl_SetResult(ip, "clEnqueueUnmapMemObject failed", TCL_STATIC);
-        } 	
+        }
     }
 
     return TCL_OK;

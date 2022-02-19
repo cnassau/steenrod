@@ -1,5 +1,5 @@
 /*
- * Generic pointers for the Tcl interface 
+ * Generic pointers for the Tcl interface
  *
  * Copyright (C) 2004-2018 Christian Nassau <nassau@nullhomotopie.de>
  *
@@ -20,13 +20,13 @@
 
 /*::: Implementation of the IntList object type ::::::::::::::::::::::::::::::*/
 
-/* An IntList represents a list of arbitrary precision integers. 
+/* An IntList represents a list of arbitrary precision integers.
  * It uses the two-pointer value like this:
- * 
- *   ptr1 = ((length of the list) << 1) | (fits-to-int ? 0 : 1)
- *   ptr2 = (fits-to-int ? (pointer to int) : (pointer to extra struct) 
  *
- * Currently, only the ordinary precision case is implemented. 
+ *   ptr1 = ((length of the list) << 1) | (fits-to-int ? 0 : 1)
+ *   ptr2 = (fits-to-int ? (pointer to int) : (pointer to extra struct)
+ *
+ * Currently, only the ordinary precision case is implemented.
  */
 
 int  ILisXXL(Tcl_Obj *obj)     { return (USGNFROMVPTR(PTR1(obj))) & 1; }
@@ -46,11 +46,11 @@ void ILFreeInternalRepProc(Tcl_Obj *obj) {
 
 /* try to turn objPtr into a IntList */
 int ILSetFromAnyProc(Tcl_Interp *ip, Tcl_Obj *objPtr) {
-    int objc, i, *dat; 
+    int objc, i, *dat;
     Tcl_Obj **objv;
     if (TCL_OK != Tcl_ListObjGetElements(ip, objPtr, &objc, &objv))
         return TCL_ERROR;
-    if (NULL == (dat = (int *) ckalloc(sizeof(int) * objc))) 
+    if (NULL == (dat = (int *) ckalloc(sizeof(int) * objc)))
         return TCL_ERROR;
     for (i=0;i<objc;i++)
         if (TCL_OK != Tcl_GetIntFromObj(ip, objv[i], &(dat[i]))) {
@@ -70,7 +70,7 @@ Tcl_Obj *ILToListObj(Tcl_Obj *objPtr) {
     int *dat = ILgetIntPtr(objPtr);
     Tcl_Obj *res, **arr; int i;
     arr = (Tcl_Obj **) ckalloc(sizeof(Tcl_Obj *) * len);
-    for (i=0;i<len;i++) 
+    for (i=0;i<len;i++)
         arr[i] = Tcl_NewIntObj(dat[i]);
     res = Tcl_NewListObj(len, arr);
     ckfree((char *) arr);
@@ -81,7 +81,7 @@ Tcl_Obj *ILToListObj(Tcl_Obj *objPtr) {
 void ILUpdateStringProc(Tcl_Obj *objPtr) {
     Tcl_Obj *lst = ILToListObj(objPtr);
     int slen; char *str = Tcl_GetStringFromObj(lst, &slen);
-    objPtr->bytes = ckalloc(slen + 1);
+    objPtr->bytes = (char*) ckalloc(slen + 1);
     memcpy(objPtr->bytes, str, slen + 1);
     objPtr->length = slen;
 }
@@ -112,46 +112,46 @@ void make_TPtr(Tcl_Obj *objPtr, int type, void *ptr) {
     Tcl_InvalidateStringRep(objPtr);
 }
 
-void *TPtr_GetPtr(Tcl_Obj *obj) { 
-    return obj->internalRep.twoPtrValue.ptr2; 
-} 
+void *TPtr_GetPtr(Tcl_Obj *obj) {
+    return obj->internalRep.twoPtrValue.ptr2;
+}
 
-int   TPtr_GetType(Tcl_Obj *obj) { 
-    return USGNFROMVPTR(obj->internalRep.twoPtrValue.ptr1); 
-} 
+int   TPtr_GetType(Tcl_Obj *obj) {
+    return USGNFROMVPTR(obj->internalRep.twoPtrValue.ptr1);
+}
 
 /* try to turn objPtr into a TPtr */
 int TPtr_SetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *objPtr) {
     char *aux = Tcl_GetStringFromObj(objPtr, NULL);
     void *d1, *d2;
-    if (2 != sscanf(aux, TP_FORMAT, &d1, &d2)) 
-        TCLRETERR(interp, 
+    if (2 != sscanf(aux, TP_FORMAT, &d1, &d2))
+        TCLRETERR(interp,
                   "not recognized as TPtr, "
-                  "proper format = \"" TP_FORMAT "\""); 
+                  "proper format = \"" TP_FORMAT "\"");
     if (NULL != objPtr->typePtr)
-        if (NULL != objPtr->typePtr->freeIntRepProc) 
+        if (NULL != objPtr->typePtr->freeIntRepProc)
             objPtr->typePtr->freeIntRepProc(objPtr);
-    make_TPtr(objPtr, USGNFROMVPTR(d1), d2); 
+    make_TPtr(objPtr, USGNFROMVPTR(d1), d2);
     return TCL_OK;
 }
 
 /* recreate string representation */
 void TPtr_UpdateStringProc(Tcl_Obj *objPtr) {
-    objPtr->bytes = ckalloc(50);
-    sprintf(objPtr->bytes, TP_FORMAT, 
-            objPtr->internalRep.twoPtrValue.ptr1, 
+    objPtr->bytes = (char*) ckalloc(50);
+    sprintf(objPtr->bytes, TP_FORMAT,
+            objPtr->internalRep.twoPtrValue.ptr1,
             objPtr->internalRep.twoPtrValue.ptr2);
     objPtr->length = strlen(objPtr->bytes);
 }
 
 /* create copy */
 void TPtr_DupInternalRepProc(Tcl_Obj *srcPtr, Tcl_Obj *dupPtr) {
-    make_TPtr(dupPtr, 
-              USGNFROMVPTR(srcPtr->internalRep.twoPtrValue.ptr1), 
+    make_TPtr(dupPtr,
+              USGNFROMVPTR(srcPtr->internalRep.twoPtrValue.ptr1),
               srcPtr->internalRep.twoPtrValue.ptr2);
 }
 
-int TPtr_IsInitialized; 
+int TPtr_IsInitialized;
 
 int Tptr_Init(Tcl_Interp *ip) {
 
@@ -167,7 +167,7 @@ int Tptr_Init(Tcl_Interp *ip) {
     TPtr.updateStringProc      = TPtr_UpdateStringProc;
     TPtr.setFromAnyProc        = TPtr_SetFromAnyProc;
     Tcl_RegisterObjType(&TPtr);
-    
+
     IntList.name               = "list of integers";
     IntList.freeIntRepProc     = ILFreeInternalRepProc;
     IntList.dupIntRepProc      = ILDupInternalRepProc;
@@ -191,7 +191,7 @@ int Tptr_Init(Tcl_Interp *ip) {
 }
 
 Tcl_Obj *Tcl_NewTPtr(int type, void *ptr) {
-    Tcl_Obj *res = Tcl_NewObj(); 
+    Tcl_Obj *res = Tcl_NewObj();
     make_TPtr(res, type, ptr);
     return res;
 }
@@ -201,7 +201,7 @@ Tcl_Obj *Tcl_NewTPtr(int type, void *ptr) {
 typedef struct TPtrTypeInfo {
     int id;
     char *name;
-    Tcl_ObjType *type; 
+    Tcl_ObjType *type;
     struct TPtrTypeInfo *next;
 } TPtrTypeInfo;
 
@@ -220,13 +220,13 @@ TPtrTypeInfo *createNewType(int type, const char *name) {
     TPtrTypeInfo *aux, **auxp = &(TPtr_TypeList);
     if (NULL != (aux = findType(type))) {
         printf("Fatal problem in TPtr_RegType:\n"
-               "cannot register type %s with id %d: already assigned to %s\n", 
+               "cannot register type %s with id %d: already assigned to %s\n",
                name, type, aux->name);
         while (NULL != findType(++type)) ;
         printf("Suggest type id %d for type %s\n", type, name);
         exit(1);
     }
-    while (NULL != *auxp) 
+    while (NULL != *auxp)
         auxp = &((*auxp)->next);
     if (NULL==(*auxp=(TPtrTypeInfo *) ckalloc(sizeof(TPtrTypeInfo)))) {
         printf("Out of memory\n");
@@ -251,7 +251,7 @@ void TPtr_RegObjType(int type, Tcl_ObjType *obtp) {
     aux->next = NULL;
 }
 
-void printTypename(char *buf, int type) {
+void printnameOfType(char *buf, int type) {
     TPtrTypeInfo *aux = findType(type);
     if (NULL == aux) {
         sprintf(buf, "<pointer of type %d>", type);
@@ -262,9 +262,9 @@ void printTypename(char *buf, int type) {
 
 void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, char *msg) {
     char err[500], *wrk = err;
-    char typename[100];
+    char nameOfType[100];
     const char *space = " ";
-    int type; 
+    int type;
     int optional = 0;
     if (NULL == ip) return ;
     wrk += sprintf(wrk, "problem with argument #%d", pos);
@@ -273,14 +273,14 @@ void ckArgsErr(Tcl_Interp *ip, char *name, va_list *ap, int pos, char *msg) {
         wrk += sprintf(wrk, "\nusage: %s", name);
         while (TP_END != (type = va_arg(*ap, int))) {
             wrk += sprintf(wrk, space);
-            if (TP_OPTIONAL == type) { 
-                optional = 1; 
+            if (TP_OPTIONAL == type) {
+                optional = 1;
                 wrk += sprintf(wrk, "?");
                 space = "";
                 continue;
             }
-            printTypename(typename, type);
-            wrk += sprintf(wrk, "%s", typename);
+            printnameOfType(nameOfType, type);
+            wrk += sprintf(wrk, "%s", nameOfType);
             space = " ";
         }
         if (optional) wrk += sprintf(wrk, "?");
@@ -298,7 +298,7 @@ return TCL_ERROR; } while (0)
 
 int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * const objv[], ...) {
     va_list ap;
-    int type, lasttype; 
+    int type, lasttype;
     int pos = 0;
     int optional = 0;
     int aux;
@@ -306,13 +306,13 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * const objv[], ...) {
     TPtrTypeInfo *tpi;
 
     Tcl_Obj * const *objvorig = objv; /* backup copy */
-  
+
     /* skip program name */
     objc--; objv++;
 
     va_start(ap, objv);
 
-    for (pos=1, lasttype=-76823; TP_END != (type = va_arg(ap, int)); 
+    for (pos=1, lasttype=-76823; TP_END != (type = va_arg(ap, int));
          lasttype=type, objc--, objv++, pos++) {
 
         /* process control args */
@@ -322,28 +322,28 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * const objv[], ...) {
 
         if (!objc) { /* no more args available */
             if (optional) { va_end(ap); return TCL_OK; }
-            CHCKARGSERR("too few arguments"); 
+            CHCKARGSERR("too few arguments");
         }
 
-        if (0) printf("argchk: obj (%p), refcnt %d\n",(void*)*objv,(*objv)->refCount); 
-  
+        if (0) printf("argchk: obj (%p), refcnt %d\n",(void*)*objv,(*objv)->refCount);
+
         /* check for type mismatch */
 
         switch (type) {
             case TP_PROCNAME:
             case TP_VARNAME:
             case TP_SCRIPT:
-            case TP_ANY: 
+            case TP_ANY:
             case TP_STRING:
                 continue;
             case TP_INT:
                 if (TCL_OK != Tcl_GetIntFromObj(ip, *objv, &aux))
-                    CHCKARGSERR(NULL); 
+                    CHCKARGSERR(NULL);
                 continue;
             case TP_LIST:
             case TP_INTLIST:
                 if (TCL_OK != Tcl_ListObjLength(ip, *objv, &aux))
-                    CHCKARGSERR(NULL); 
+                    CHCKARGSERR(NULL);
                 if (TP_LIST == type) continue;
                 {
                     int obc, i; Tcl_Obj **obv;
@@ -351,17 +351,17 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * const objv[], ...) {
                     Tcl_ListObjGetElements(ip, *objv, &obc, &obv);
                     for (i=0;i<obc;i++)
                         if (TCL_OK != Tcl_GetIntFromObj(ip, obv[i], &aux))
-                            CHCKARGSERR(NULL);     
+                            CHCKARGSERR(NULL);
                 }
                 continue;
             case TP_PTR:
-                if (TCL_OK != Tcl_ConvertToType(ip, *objv, &TPtr)) 
-                    CHCKARGSERR(NULL); 
+                if (TCL_OK != Tcl_ConvertToType(ip, *objv, &TPtr))
+                    CHCKARGSERR(NULL);
                 continue;
-        }    
-        
+        }
+
         tpi = findType(type);
-        
+
         /* check if Tcl_ObjType given */
         if ((NULL != tpi) && (NULL != tpi->type)) {
             if (TCL_OK != Tcl_ConvertToType(ip, *objv, tpi->type)) {
@@ -373,18 +373,18 @@ int TPtr_CheckArgs(Tcl_Interp *ip, int objc, Tcl_Obj * const objv[], ...) {
         }
 
         /* default : expect TPtr of given type */
-    
-        if (TCL_OK != Tcl_ConvertToType(ip, *objv, &TPtr)) 
-            CHCKARGSERR(NULL); 
 
-        if (TPtr_GetType(*objv) != type) 
-            CHCKARGSERR(NULL); 
+        if (TCL_OK != Tcl_ConvertToType(ip, *objv, &TPtr))
+            CHCKARGSERR(NULL);
+
+        if (TPtr_GetType(*objv) != type)
+            CHCKARGSERR(NULL);
 
         /* Ok. Goto next arg */
     }
 
     if (objc) /* have some args left...? */
-        CHCKARGSERR("too many arguments"); 
+        CHCKARGSERR("too many arguments");
 
     va_end(ap);
 
@@ -405,14 +405,14 @@ Tcl_Obj *Tcl_ListFromArray(int len, int *list) {
 
 void copyStringRep(Tcl_Obj *dest, Tcl_Obj *src) {
     int slen; char *str = Tcl_GetStringFromObj(src, &slen);
-    dest->bytes = ckalloc(slen + 1);
+    dest->bytes = (char*) ckalloc(slen + 1);
     memcpy(dest->bytes, str, slen + 1);
     dest->length = slen;
 }
 
 void printObj(const char *vname, Tcl_Obj *obj) {
     printf("Tcl_Obj (%s) at %p:\n",(NULL != vname) ? vname : "no name given", (void*)obj);
-    printf("  refCount=%d, bytes=%p, length=%d, type=%p (%s)\n", 
+    printf("  refCount=%d, bytes=%p, length=%d, type=%p (%s)\n",
            obj->refCount, (void*)obj->bytes, obj->length, (void*)obj->typePtr,
            (NULL != obj->typePtr) ? (obj->typePtr->name) : "---");
 }

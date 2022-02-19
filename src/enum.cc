@@ -18,7 +18,7 @@
 
 enumerator *enmCreate(void) {
     enumerator *en;
-    en = callox(1, sizeof(enumerator));
+    en = (enumerator *) callox(1, sizeof(enumerator));
     return en;
 }
 
@@ -346,13 +346,13 @@ int enmCreateSeqtab(enumerator *en) {
 
     /* allocate space */
     for (i=NALG+1;i--;)
-        if (NULL == (en->dimtab[i] = mallox(sizeof(int) * (reddim+1)))) {
+        if (NULL == (en->dimtab[i] = (int *) mallox(sizeof(int) * (reddim+1)))) {
             enmDestroySeqtab(en);
             return FAILMEM;
         }
 
     for (i=NALG+1;i--;)
-        if (NULL == (en->seqtab[i] = mallox(sizeof(int) * (reddim+1)))) {
+        if (NULL == (en->seqtab[i] = (int *) mallox(sizeof(int) * (reddim+1)))) {
             enmDestroySeqtab(en);
             return FAILMEM;
         }

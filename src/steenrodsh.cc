@@ -9,11 +9,15 @@
  *
  */
 
+#ifdef USE_TCL_STUBS
+#  undef USE_TCL_STUBS
+#endif
+
 #include <tcl.h>
 
 extern int Steenrod_Init(Tcl_Interp *ip);
 
-int Tcl_SteenAppInit(Tcl_Interp *interp) 
+int Tcl_SteenAppInit(Tcl_Interp *interp)
 {
     if (Tcl_Init(interp) == TCL_ERROR) {
     return TCL_ERROR;
@@ -30,7 +34,7 @@ int Tcl_SteenAppInit(Tcl_Interp *interp)
              " (version %s, "
              "built " __DATE__ " " __TIME__ ")"
              "} [::steenrod::Version]]}");
-    
+
     return TCL_OK;
 }
 

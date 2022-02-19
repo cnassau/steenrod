@@ -394,7 +394,7 @@ int stdRealloc(void *self, int nalloc) {
     LOGSTD("Realloc");
     if (nalloc < s->num) nalloc = s->num;
     if (0 == nalloc) nalloc = 1;
-    if (NULL == (ndat = reallox(s->dat,sizeof(exmo) * nalloc)))
+    if (NULL == (ndat = (exmo*)reallox(s->dat,sizeof(exmo) * nalloc)))
         return FAILMEM;
     s->dat = ndat; s->nalloc = nalloc;
     return SUCCESS;
@@ -435,7 +435,7 @@ void stdCancel(void *self, int mod) {
 
 int stdLookup(void *self, const exmo *ex, int *coeff) {
     stp *s = (stp *) self;
-    exmo *aux = bsearch(ex, s->dat, s->num, sizeof(exmo), compareExmo);
+    exmo *aux = (exmo*)bsearch(ex, s->dat, s->num, sizeof(exmo), compareExmo);
     if (NULL == aux) return -1;
     if (NULL != coeff) *coeff = aux->coeff;
     return aux - s->dat;
@@ -561,7 +561,7 @@ int stdCollectCoeffs(void *self, const exmo *e, int *coeff, int mod, int flags) 
         return FAILIMPOSSIBLE;
     stdSort(self);
     *coeff = 0;
-    if (NULL == (w = bsearch(e,s->dat,s->num,sizeof(exmo),compareExmo)))
+    if (NULL == (w = (const exmo*)bsearch(e,s->dat,s->num,sizeof(exmo),compareExmo)))
         return SUCCESS;
     for (b=w-1;b>=s->dat;b--)
         if (0 != compareExmo(b,e))
@@ -583,22 +583,22 @@ int stdCollectCoeffs(void *self, const exmo *e, int *coeff, int mod, int flags) 
 struct polyType stdPolyType = {
     .getInfo    = &stdGetInfo,
     .createCopy = &stdCreateCopy,
-    .free       = &stdFree,
     .swallow    = &stdSwallow,
     .clear      = &stdClear,
+    .free       = &stdFree,
+    .getNumsum  = &stdGetLength,
+    .getExmoPtr = &stdGetExmoPtr,
+    .collectCoeffs = &stdCollectCoeffs,
+    .lookup     = &stdLookup,
+    .remove     = &stdRemove,
     .cancel     = &stdCancel,
-    .compare    = &stdCompare,
     .reflect    = &stdReflect,
     .motate     = &stdMotate,
     .etatom     = &stdEtatom,
-    .getExmoPtr = &stdGetExmoPtr,
-    .getNumsum  = &stdGetLength,
+    .compare    = &stdCompare,
     .appendExmo = &stdAppendExmo,
     .scaleMod   = &stdScaleMod,
-    .shift      = &stdShift,
-    .lookup     = &stdLookup,
-    .remove     = &stdRemove,
-    .collectCoeffs = &stdCollectCoeffs
+    .shift      = &stdShift
 };
 
 void *PLcreateStdCopy(polyType *type, void *poly) {
@@ -610,7 +610,7 @@ void *PLcreateCopy(polyType *newtype, polyType *type, void *poly) {
     LOGPLFMT(PLcreateCopy, "orig at %p",poly);
     if (newtype == type)
         return (newtype->createCopy)(poly);
-    if (NULL == (res = (newtype->createCopy)(NULL)))
+    if (NULL == (res = (stp*)(newtype->createCopy)(NULL)))
         return NULL;
     if (SUCCESS != PLappendPoly(newtype,res,type,poly,NULL,0,1,0)) {
         (newtype->free)(res); return NULL;
@@ -788,7 +788,7 @@ int stdpolySortWithValues(void *poly, void **values) {
     sortitem *sit;
     int i, snum;
 
-    if (NULL == (sit = mallox(sizeof(sortitem) * (s->num + 0))))
+    if (NULL == (sit = (sortitem*) mallox(sizeof(sortitem) * (s->num + 0))))
         return FAILMEM;
 
     if (SLOG) printf("Sorting:");

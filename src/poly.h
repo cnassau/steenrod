@@ -24,7 +24,7 @@
 #if USEOPENCL
 #  define ATTPACKED __attribute__ ((packed)) __attribute__ ((aligned (32)))
 #else
-#  define ATTPACKED 
+#  define ATTPACKED
 #endif
 
 typedef struct {
@@ -129,7 +129,7 @@ typedef struct {
 
 typedef struct polyType {
 
-    int (*getInfo)(void *self, polyInfo *poli); /* obvious, eh? */
+    int (*getInfo)(void *self, polyInfo *poli);
 
     int (*getMaxRedLength)(void *self, int *len); /* max red-length of all exmo's */
 

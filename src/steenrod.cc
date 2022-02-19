@@ -494,8 +494,8 @@ int makePCS(PlistCtrlStruct *pcs, Tcl_Obj *plist) {
     pcs->npoly = obc;
     pcs->ispos = 1;
     pcs->ismot = 0;
-    pcs->pt    = mallox(obc * sizeof(polyType *));
-    pcs->pdat  = mallox(obc * sizeof(void *));
+    pcs->pt    = (polyType**) mallox(obc * sizeof(polyType *));
+    pcs->pdat  = (void**) mallox(obc * sizeof(void *));
 
     if ((NULL == pcs->pt) || (NULL == pcs->pdat))
         THROWUP;
@@ -557,7 +557,7 @@ int TMakeImages(ClientData cd, Tcl_Interp *ip,
     matrixType *mtp = NULL;
     void *mat = NULL;
     int i, obc; Tcl_Obj **obv;
-    int ismotivic = (int) cd;
+    intptr_t ismotivic = (intptr_t) cd;
 
     if ((objc<4) || (objc>6)) {
         Tcl_WrongNumArgs(ip, 1, objv,
@@ -763,7 +763,7 @@ EXTERN int Steenrod_Init(Tcl_Interp *ip) {
     Tcl_LinkVar(ip, POLYNSP "_progvarname", (char *) &theprogvar, TCL_LINK_STRING);
     Tcl_LinkVar(ip, POLYNSP "_progsteps", (char *) &theprogmsk, TCL_LINK_INT);
 
-    theprogvar = ckalloc(1); *theprogvar = 0; theprogmsk = 0x1;
+    theprogvar = (char *) ckalloc(1); *theprogvar = 0; theprogmsk = 0x1;
 
     Tcl_UnlinkVar(ip, POLYNSP "_objCount");
     Tcl_LinkVar(ip, POLYNSP "_objCount", (char *) &objCount, TCL_LINK_INT | TCL_LINK_READ_ONLY);

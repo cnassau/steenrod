@@ -12,7 +12,7 @@
 #include "adlin.h"
 
 #ifdef USESSE2
-#  include "adlin-sse2.c"
+#  include "adlin-sse2.cc"
 #else
 
 #define  PROGVARINIT     \

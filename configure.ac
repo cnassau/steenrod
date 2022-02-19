@@ -61,6 +61,9 @@ TEA_PREFIX
 
 TEA_SETUP_COMPILER
 
+AC_PROG_CXXCPP
+AC_PROG_CXX
+
 # openCL support
 
 AC_MSG_CHECKING([whether to use OpenCL instructions])
@@ -111,7 +114,7 @@ AC_MSG_CHECKING([whether to use sse2 instructions])
 	[sse2=$enableval], [sse2=detect])
 
 if test "$sse2" != "no"; then
-   
+
     AC_TRY_LINK([
 	    #include <emmintrin.h>
 	    void f(void) {__m128i var = _mm_set_epi16(7,6,5,4,3,2,1,0);}], [f();],
@@ -126,7 +129,7 @@ if test "$usesse2" = "no"; then
 	AC_MSG_ERROR( "sse2 requested but not available", 1)
     fi
 fi
-    
+
 AC_MSG_RESULT([$usesse2])
 
 AS_IF([test "$usesse2" = yes], [AC_DEFINE(USESSE2,1)])
@@ -143,10 +146,10 @@ AS_IF([test "$usesse2" = yes], [AC_DEFINE(USESSE2,1)])
 
 srcdir=../src
 TEA_ADD_SOURCES([
-	 enum.c	   mult.c      steenrod.c	 tprime.c
-	 adlin.c	  hmap.c	linalg.c   poly.c   tptr.c
-		  linwrp.c   prime.c     tenum.c
-	 linwrp2.c   tlin.c  common.c	 	momap.c  tpoly.c
+	 enum.cc	   mult.cc      steenrod.cc	 tprime.cc
+	 adlin.cc	  hmap.cc	linalg.cc   poly.cc   tptr.cc
+		  linwrp.cc   prime.cc     tenum.cc
+	 linwrp2.cc   tlin.cc  common.cc	 	momap.cc  tpoly.cc
 ])
 TEA_ADD_HEADERS()
 #[adlin.h   hmap.h    linwrp.h  poly.h	scrobjy.h   steenrod.h	tpoly.h
@@ -157,7 +160,7 @@ TEA_ADD_LIBS([])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
 TEA_ADD_TCL_SOURCES([startup.tcl algebra.tc conj.tc a2nd.tc opencl.tcl])
-AS_IF([test "$useopencl" = yes], [TEA_ADD_SOURCES([opencl.c])])
+AS_IF([test "$useopencl" = yes], [TEA_ADD_SOURCES([opencl.cc])])
 
 #--------------------------------------------------------------------
 # __CHANGE__

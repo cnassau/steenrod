@@ -97,6 +97,7 @@ INSTALL_SCRIPT	= @INSTALL_SCRIPT@
 PACKAGE_NAME	= @PACKAGE_NAME@
 PACKAGE_VERSION	= @PACKAGE_VERSION@
 CC		= @CC@
+CXX		= @CXX@
 CFLAGS_DEFAULT	= @CFLAGS_DEFAULT@
 CFLAGS_WARNING	= @CFLAGS_WARNING@
 EXEEXT		= @EXEEXT@
@@ -166,7 +167,7 @@ CPPFLAGS	= @CPPFLAGS@
 LIBS		= @PKG_LIBS@ @LIBS@
 AR		= @AR@
 CFLAGS		= @CFLAGS@
-COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+COMPILE		= $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 
 #========================================================================
 # Start of user-definable TARGETS section
@@ -241,7 +242,7 @@ test-installation:
 	done
 
 .PHONY: test-installation
- 
+
 test: binaries libraries test-installation
 	$(TCLSH) `@CYGPATH@ $(srcdir)/../test/all.tcl` $(TESTFLAGS)
 
@@ -293,11 +294,11 @@ $(PKG_STUB_LIB_FILE): $(PKG_STUB_OBJECTS)
 
 VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win
 
-.c.@OBJEXT@:
+.cc.@OBJEXT@:
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
 
 steenrodsh: ${PKG_SOURCES} ${TCL_LIB_FILE}
-	${CC} ${CFLAGS} ${LDFLAGS} $(srcdir)/steenrodsh.c \
+	${COMPILE} ${CFLAGS} ${LDFLAGS} $(srcdir)/steenrodsh.cc \
 		${CC_SEARCH_FLAGS} -DPACKAGE_VERSION=\"${PACKAGE_VERSION}\" ${INCLUDES} ${LD_SEARCH_FLAGS} -Wl,-rpath,${TCL_BIN_DIR} @TCL_LIB_SPEC@ -o steenrodsh
 
 #========================================================================
@@ -352,7 +353,7 @@ dist: dist-clean
 # variable in configure.in
 #========================================================================
 
-clean:  
+clean:
 	-test -z "$(BINARIES)" || rm -f $(BINARIES)
 	-rm -f *.$(OBJEXT) core *.core
 	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
@@ -427,7 +428,7 @@ install-bin-binaries: binaries
 	  fi; \
 	done
 
-.SUFFIXES: .c .$(OBJEXT)
+.SUFFIXES: .cc .$(OBJEXT)
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) \

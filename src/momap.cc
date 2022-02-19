@@ -13,7 +13,7 @@
 
 #define MOMAC
 
-#include <tcl.h>  
+#include <tcl.h>
 #include <string.h>
 #include "tprime.h"
 #include "tpoly.h"
@@ -29,11 +29,11 @@ static Tcl_HashKeyType MomaHashType;
 unsigned int momaHashProc(Tcl_HashTable *table, void *key) {
     exmo *ex = exmoFromTclObj((Tcl_Obj *) key);
     int res, cnt;
-    
+
     res = ex->gen + 17*(ex->ext);
-    for (cnt=0; cnt<NALG; cnt++) 
+    for (cnt=0; cnt<NALG; cnt++)
     res += (ex->r.dat[cnt]) << (3*cnt);
-    
+
     return res;
 }
 
@@ -42,20 +42,20 @@ int momaCompProc(void *keyPtr, Tcl_HashEntry *hPtr) {
     exmo *e2 = exmoFromTclObj((Tcl_Obj *) keyFromHE(hPtr));
 
     if (e1 == e2) return 1;
-    
+
     return compareExmo(e1,e2) ? 0 : 1;
 }
 
 momap *momapCreate(void) {
-    momap *res = mallox(sizeof(momap));
+    momap *res = (momap*) mallox(sizeof(momap));
     if (NULL == res) return NULL;
 
-    if (NULL == (res->tab = mallox(sizeof(Tcl_HashTable)))) {
+    if (NULL == (res->tab = (Tcl_HashTable*) mallox(sizeof(Tcl_HashTable)))) {
     freex(res);
     return NULL;
     }
 
-    Tcl_InitCustomHashTable(res->tab, TCL_CUSTOM_PTR_KEYS, &MomaHashType);    
+    Tcl_InitCustomHashTable(res->tab, TCL_CUSTOM_PTR_KEYS, &MomaHashType);
     return res;
 }
 
@@ -73,7 +73,7 @@ void freeValues(momap *mo) {
 
 void momapClear(momap *mo) {
     freeValues(mo);
-    Tcl_InitCustomHashTable(mo->tab, TCL_CUSTOM_PTR_KEYS, &MomaHashType);    
+    Tcl_InitCustomHashTable(mo->tab, TCL_CUSTOM_PTR_KEYS, &MomaHashType);
 }
 
 void momapDestroy(momap *mo) {
@@ -90,9 +90,9 @@ Tcl_Obj *momapGetValPtr(momap *mo, Tcl_Obj *key) {
 int momapRemoveValue(momap *mo, Tcl_Obj *key) {
     Tcl_HashEntry *ent;
     Tcl_Obj *val;
-    if (NULL == (ent = Tcl_FindHashEntry(mo->tab, (void *) key))) 
+    if (NULL == (ent = Tcl_FindHashEntry(mo->tab, (void *) key)))
     return SUCCESS;
-    val = Tcl_GetHashValue(ent);
+    val = (Tcl_Obj*) Tcl_GetHashValue(ent);
     if (NULL != val) DECREFCNT(val);
     /* NOTE: "keyFromHE(ent)" and "key" can be different Tcl_Obj'ects (!) */
     DECREFCNT(keyFromHE(ent));
@@ -103,14 +103,14 @@ int momapRemoveValue(momap *mo, Tcl_Obj *key) {
 int momapSetValPtr(momap *mo, Tcl_Obj *key, Tcl_Obj *val) {
     int newFlag;
     Tcl_HashEntry *ent = Tcl_CreateHashEntry(mo->tab, (void *) key, &newFlag);
-    
+
     if (!newFlag) {
-    Tcl_Obj *aux = Tcl_GetHashValue(ent);
+    Tcl_Obj *aux = (Tcl_Obj*)  Tcl_GetHashValue(ent);
     if (NULL != aux) DECREFCNT(aux);
     } else {
     INCREFCNT(key);
     }
-    
+
     Tcl_SetHashValue(ent, (ClientData) val);
     INCREFCNT(val);
 
@@ -168,14 +168,14 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
         case APPEND:
             scale = 1; modulo = 0;
             if ((objc<4) || (objc>6)) {
-                Tcl_WrongNumArgs(ip, 2, objv, 
+                Tcl_WrongNumArgs(ip, 2, objv,
                                  "<monomial> <polynomial> ?scale? ?modulo?");
                 return TCL_ERROR;
             }
-            if (objc>4) 
+            if (objc>4)
                 if (TCL_OK != Tcl_GetIntFromObj(ip, objv[4], &scale))
                     return TCL_ERROR;
-            if (objc>5) 
+            if (objc>5)
                 if (TCL_OK != Tcl_GetIntFromObj(ip, objv[5], &modulo))
                     return TCL_ERROR;
             if (TCL_OK != Tcl_ConvertToExmo(ip, objv[2]))
@@ -202,7 +202,7 @@ int Tcl_MomaWidgetCmd(ClientData cd, Tcl_Interp *ip,
                                             scale,modulo))
                     return TCL_ERROR;
 
-                if (cmdmap[index] != APPEND) { 
+                if (cmdmap[index] != APPEND) {
                     if (SUCCESS != PLcancel(polyTypeFromTclObj(auxptr),
                                             polyFromTclObj(auxptr),
                                             modulo))
@@ -267,7 +267,7 @@ void Tcl_DestroyMoma(ClientData cd) {
 
 momap *Tcl_MomapFromObj(Tcl_Interp *ip, Tcl_Obj *obj) {
     Tcl_CmdInfo info;
-    
+
     if (!Tcl_GetCommandInfo(ip, Tcl_GetString(obj), &info)) {
         Tcl_SetResult(ip, "command not found", TCL_STATIC);
         return NULL;
@@ -300,23 +300,23 @@ int Tcl_CreateMomaCmd(ClientData cd, Tcl_Interp *ip,
 }
 
 int Momap_Init(Tcl_Interp *ip) {
-    
+
     Tcl_InitStubs(ip, "8.0", 0);
-    
+
     Tptr_Init(ip);
     Tprime_Init(ip);
     Tpoly_Init(ip);
-    
+
     Tcl_CreateObjCommand(ip, POLYNSP "monomap",
                          Tcl_CreateMomaCmd, (ClientData) 0, NULL);
 
 
     MomaHashType.version = TCL_HASH_KEY_TYPE_VERSION;
     MomaHashType.flags = 0;
-    MomaHashType.hashKeyProc = momaHashProc;
+    MomaHashType.hashKeyProc = (Tcl_HashKeyProc*) momaHashProc;
     MomaHashType.compareKeysProc = momaCompProc;
     MomaHashType.allocEntryProc = NULL; /* momaAllocProc; */
     MomaHashType.freeEntryProc = NULL; /* momaFreeProc; */
-    
+
     return TCL_OK;
 }
