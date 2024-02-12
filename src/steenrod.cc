@@ -19,6 +19,7 @@
 #  include "opencl.h"
 #endif
 
+#include <cstdint>
 #include <tcl.h>
 #include "setresult.h"
 #include <string.h>

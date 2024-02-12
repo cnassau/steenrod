@@ -1,0 +1,10 @@
+FROM alpine:latest
+LABEL Description="Build environment"
+
+ENV HOME /root
+
+RUN apk add --no-cache bash autoconf tar gcc g++ make tcl-dev tk-dev musl-dev 
+
+ENTRYPOINT [ "/bin/bash" ]
+CMD [ "/src/docker-build/instructions.sh" ]
+
