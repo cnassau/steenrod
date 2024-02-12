@@ -12,7 +12,7 @@
 #define STEENROD_C
 
 #ifndef NULL
-#  define NULL ((void*)0)
+#  define NULL 0
 #endif
 
 #if USEOPENCL
